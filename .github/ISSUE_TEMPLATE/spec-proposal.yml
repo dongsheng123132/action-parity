@@ -1,0 +1,55 @@
+name: Specification proposal
+description: Propose a normative or schema change to ActionParity.
+title: "[Spec] "
+labels:
+  - specification
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping make ActionParity implementable. Concrete application evidence is especially valuable.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What real application or interoperability problem is not handled?
+    validations:
+      required: true
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case and evidence
+      description: Identify an application, framework, action, or test scenario.
+    validations:
+      required: true
+  - type: textarea
+    id: normative
+    attributes:
+      label: Proposed normative text
+      description: Include MUST, SHOULD, or MAY wording where possible.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Manifest or schema example
+      render: json
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility impact
+      description: What existing manifests or implementations would change?
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Security, privacy, and accessibility
+      description: Describe relevant impact, including why there is no impact when applicable.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+

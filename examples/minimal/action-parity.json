@@ -1,0 +1,96 @@
+{
+  "$schema": "../../schema/action-parity.schema.json",
+  "spec_version": "0.1.0",
+  "application": {
+    "id": "org.example.notes",
+    "name": "Example Notes",
+    "version": "1.0.0",
+    "description": "Minimal ActionParity example."
+  },
+  "conformance_targets": [
+    "AP-1",
+    "AP-2"
+  ],
+  "surfaces": [
+    {
+      "id": "desktop",
+      "kind": "gui",
+      "required_for_parity": true,
+      "test_driver": "windows-uia",
+      "description": "Desktop graphical interface."
+    },
+    {
+      "id": "cli",
+      "kind": "cli",
+      "required_for_parity": true,
+      "description": "Non-interactive command-line interface."
+    }
+  ],
+  "actions": [
+    {
+      "id": "note.create",
+      "title": "Create note",
+      "description": "Create and persist a note.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "title"
+        ]
+      },
+      "output_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "note_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "note_id"
+        ]
+      },
+      "effects": {
+        "class": "write",
+        "risk": "low",
+        "reversible": true,
+        "confirmation": "never",
+        "audit_required": true
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": false,
+        "cancellable": false,
+        "timeout_ms": 5000,
+        "progress_events": false
+      },
+      "bindings": [
+        {
+          "surface": "desktop",
+          "target": "NewNoteButton",
+          "test": "tests/ui/create-note.spec.ts"
+        },
+        {
+          "surface": "cli",
+          "target": "notes note create --title <text> --json",
+          "test": "tests/cli/create-note.test.ts"
+        }
+      ]
+    }
+  ],
+  "state": {
+    "queries": [
+      "note.get"
+    ],
+    "events": [
+      "note.created"
+    ]
+  }
+}
+

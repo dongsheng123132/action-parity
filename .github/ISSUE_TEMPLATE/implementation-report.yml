@@ -1,0 +1,68 @@
+name: Implementation report
+description: Report an application implementing an ActionParity draft.
+title: "[Implementation] "
+labels:
+  - implementation
+body:
+  - type: input
+    id: application
+    attributes:
+      label: Application and version
+    validations:
+      required: true
+  - type: input
+    id: repository
+    attributes:
+      label: Repository or product URL
+    validations:
+      required: true
+  - type: dropdown
+    id: level
+    attributes:
+      label: Claimed level
+      options:
+        - AP-1 Core
+        - AP-2 Parity
+        - AP-3 Agent
+        - AP-4 Verified
+    validations:
+      required: true
+  - type: input
+    id: spec
+    attributes:
+      label: ActionParity version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: textarea
+    id: platforms
+    attributes:
+      label: Platforms and frameworks
+    validations:
+      required: true
+  - type: textarea
+    id: surfaces
+    attributes:
+      label: Required Surfaces
+      description: List GUI, CLI, MCP, API, IPC, TUI, or test Surfaces.
+    validations:
+      required: true
+  - type: input
+    id: manifest
+    attributes:
+      label: Public manifest URL
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Test instructions and evidence
+    validations:
+      required: true
+  - type: textarea
+    id: exceptions
+    attributes:
+      label: Known exceptions or gaps
+    validations:
+      required: true
+
