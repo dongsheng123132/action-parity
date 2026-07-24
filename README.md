@@ -167,8 +167,9 @@ The first three reference implementations are now working:
   legacy CLI adapters, and stable GUI selectors.
 - **U-Model:** stdlib Python/Web Components, two read-only hardware/model
   actions, a real hardware invocation, and legacy `--recommend --json`.
-- **U-King:** production Tauri/React/Rust, three read-only actions shared by the
-  existing GUI and release-mode executable, with credentials excluded by design.
+- **U-King:** production Tauri/React/Rust, six low-risk actions shared by the
+  existing GUI and release-mode executable, including a redacted provider
+  catalogue, read-only cleanup scan, and in-memory health-report preview.
 
 Together they show that existing GUI and CLI surfaces can converge without
 breaking either interface:

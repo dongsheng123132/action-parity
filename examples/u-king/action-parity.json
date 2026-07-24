@@ -188,7 +188,7 @@
         "reversible": true,
         "confirmation": "never",
         "audit_required": false,
-        "notes": "The provider catalogue is intentionally not exposed because custom entries can contain stored API keys."
+        "notes": "Full provider records remain private because custom entries can contain stored API keys; provider.catalog exposes a redacted view."
       },
       "execution": {
         "headless": true,
@@ -209,13 +209,213 @@
           "test": "src-tauri/src/action_cli.rs"
         }
       ]
+    },
+    {
+      "id": "provider.catalog",
+      "title": "List redacted AI providers",
+      "description": "Return provider metadata and whether a saved key exists without returning the key itself.",
+      "tags": [
+        "catalogue",
+        "providers",
+        "security"
+      ],
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "summary": { "type": "string" },
+            "openai_base": { "type": "string" },
+            "anthropic_base": { "type": ["string", "null"] },
+            "model": { "type": "string" },
+            "small_model": { "type": "string" },
+            "codex_model": { "type": "string" },
+            "codex_wire_api": { "type": "string" },
+            "key_url": { "type": "string" },
+            "key_hint": { "type": "string" },
+            "builtin_recharge": { "type": "boolean" },
+            "recommended": { "type": "boolean" },
+            "builtin": { "type": "boolean" },
+            "has_saved_key": { "type": "boolean" }
+          },
+          "required": [
+            "id",
+            "name",
+            "summary",
+            "openai_base",
+            "anthropic_base",
+            "model",
+            "small_model",
+            "codex_model",
+            "codex_wire_api",
+            "key_url",
+            "key_hint",
+            "builtin_recharge",
+            "recommended",
+            "builtin",
+            "has_saved_key"
+          ]
+        }
+      },
+      "effects": {
+        "class": "read",
+        "risk": "low",
+        "reversible": true,
+        "confirmation": "never",
+        "audit_required": false,
+        "notes": "api_key is structurally absent; only has_saved_key is exposed."
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": true,
+        "cancellable": false,
+        "timeout_ms": 10000,
+        "progress_events": false
+      },
+      "bindings": [
+        {
+          "surface": "desktop",
+          "target": "selector:[data-action-id=\"provider.catalog\"] -> tauri:command/list_provider_catalog",
+          "test": "src-tauri/src/actions.rs"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:U-King.exe action run provider.catalog --json --no-input",
+          "test": "src-tauri/src/action_cli.rs"
+        }
+      ]
+    },
+    {
+      "id": "cleanup.scan",
+      "title": "Scan U-King footprints",
+      "description": "List U-King core, configuration and AI-tool footprints without deleting or restoring anything.",
+      "tags": [
+        "cleanup",
+        "diagnostics",
+        "safety"
+      ],
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": { "type": "string" },
+            "group": { "enum": ["core", "config", "aitool"] },
+            "name": { "type": "string" },
+            "detail": { "type": "string" },
+            "safe": { "type": "boolean" },
+            "warn": { "type": "string" }
+          },
+          "required": [
+            "id",
+            "group",
+            "name",
+            "detail",
+            "safe",
+            "warn"
+          ]
+        }
+      },
+      "effects": {
+        "class": "read",
+        "risk": "low",
+        "reversible": true,
+        "confirmation": "never",
+        "audit_required": false,
+        "notes": "This action cannot dispatch cleanup.remove or the legacy destructive cleanup runner."
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": true,
+        "cancellable": false,
+        "timeout_ms": 60000,
+        "progress_events": false
+      },
+      "bindings": [
+        {
+          "surface": "desktop",
+          "target": "selector:[data-action-id=\"cleanup.scan\"] -> tauri:command/cleanup_scan",
+          "test": "src-tauri/src/actions.rs"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:U-King.exe action run cleanup.scan --json --no-input",
+          "test": "src-tauri/src/action_cli.rs"
+        }
+      ]
+    },
+    {
+      "id": "health.report.preview",
+      "title": "Preview AI health report",
+      "description": "Generate the human-readable support report in memory without writing a desktop file or returning API keys.",
+      "tags": [
+        "diagnostics",
+        "health",
+        "support"
+      ],
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "report": { "type": "string" }
+        },
+        "required": [
+          "report"
+        ]
+      },
+      "effects": {
+        "class": "external",
+        "risk": "low",
+        "reversible": true,
+        "confirmation": "never",
+        "audit_required": false,
+        "notes": "May read the current account balance over the network; it never returns, creates, or activates a device key."
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": true,
+        "cancellable": false,
+        "timeout_ms": 60000,
+        "progress_events": false
+      },
+      "bindings": [
+        {
+          "surface": "desktop",
+          "target": "selector:[data-action-id=\"health.report.preview\"] -> tauri:command/preview_health_report",
+          "test": "src-tauri/src/actions.rs"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:U-King.exe action run health.report.preview --json --no-input",
+          "test": "src-tauri/src/action_cli.rs"
+        }
+      ]
     }
   ],
   "state": {
     "queries": [
       "environment.inspect",
       "tool.list",
-      "driver.status"
+      "driver.status",
+      "provider.catalog",
+      "cleanup.scan",
+      "health.report.preview"
     ],
     "events": []
   }

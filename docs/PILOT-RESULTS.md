@@ -26,7 +26,7 @@ action, discoverable through every declared surface, is the advantage.**
 |---|---|---:|---:|---|
 | T-King 0.2.1 | Tauri + React + Rust | 3 | 9/9 | `78efde0` |
 | U-Model 1.0.0 | stdlib Python + Web Components | 2 | 6/6 | `653c5f5` |
-| U-King 0.9.67 | Tauri + React + Rust | 3 | 6/6 | `28d901f` |
+| U-King 0.9.67 | Tauri + React + Rust | 6 | 12/12 | `28d901f`, `0106bec` |
 
 T-King actions:
 
@@ -44,14 +44,18 @@ U-King actions:
 - `environment.inspect`
 - `tool.list`
 - `driver.status`
+- `provider.catalog`
+- `cleanup.scan`
+- `health.report.preview`
 
 Both keep their existing GUI and legacy CLI. Both add `action
 list/describe/manifest/run`, stable JSON envelopes, validation before side
 effects, stable GUI `data-action-id` selectors, and executable manifests.
 
 U-King keeps its existing GUI and `--selfcheck` path while adding the same
-generic action CLI and selectors. Its first production slice is deliberately
-read-only.
+generic action CLI and selectors. Its six-action slice remains low-risk:
+catalogue output is structurally redacted, cleanup is scan-only, and health
+preview is generated in memory.
 
 ## Measured evidence
 
@@ -97,14 +101,14 @@ benchmark.
 
 ### U-King
 
-- Work was isolated from the dirty production worktree on
+- Both stages were isolated from the dirty production worktree on
   `codex/action-parity-production-pilot`.
-- Pilot change: 9 files, 863 insertions, 17 deletions.
-- Rust tests: 21 passed.
+- Stage 2 change: 11 files, 693 insertions, 167 deletions.
+- Rust tests: 23 passed.
 - Rust compile check and React/TypeScript production build: passed.
 - Manifest report:
-  - headless actions: 3/3;
-  - required bindings: 6/6;
+  - headless actions: 6/6;
+  - required bindings: 12/12;
   - strict parity across desktop and generic CLI: 100%;
   - errors and warnings: zero.
 - Real debug executable timings:
@@ -112,13 +116,20 @@ benchmark.
   - `driver.status`: 38 ms;
   - `tool.list`: 6,629 ms.
 - Real release executable validation:
-  - action discovery returned parseable JSON with exit code 0;
-  - environment inspection returned parseable JSON in 816 ms;
+  - action discovery returned all six actions with exit code 0;
+  - provider catalogue returned six records and no `api_key` property;
+  - cleanup scan returned 17 footprints without deleting anything;
+  - health preview returned a report longer than 700 characters with the key
+    hidden and left the cached identity file unchanged;
   - unknown input failed in 0 ms with `invalid_input` and exit code 2;
   - stdout contained results only and stderr was empty.
-- The planned provider-list action was rejected during implementation because
-  custom records may contain stored API keys. `driver.status` provides the
-  useful state without exposing credentials.
+- Full provider records remain private because custom records may contain
+  stored API keys. The new public catalogue has a separate Rust type with no
+  credential field and reports only `has_saved_key`.
+- Real EXE testing found a declaration/enforcement drift: a low-risk external
+  action declared `confirmation: never`, but the CLI inferred confirmation from
+  effect class. The executor now obeys the manifest policy, with a regression
+  test.
 
 No version was bumped and no executable was packaged, signed, deployed, or
 served to customers.
@@ -145,7 +156,11 @@ served to customers.
 9. **Machine-auditable gaps.** The T-King validator exposed missing cancellation
    and risky long timeouts instead of allowing optimistic documentation.
 10. **A safer disclosure boundary.** U-King inspection caught a credential leak
-    that a mechanical “make every GUI call a CLI” conversion would have created.
+    that a mechanical “make every GUI call a CLI” conversion would have created,
+    then proved structural redaction against a fake secret.
+11. **Executable policy, not policy prose.** Real EXE testing caught confirmation
+    logic that disagreed with the manifest; the shared policy field now controls
+    runtime behavior.
 
 ## Does development become faster?
 

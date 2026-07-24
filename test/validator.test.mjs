@@ -23,9 +23,9 @@ test("U-King production pilot has full desktop and CLI parity", async () => {
   const report = validateManifestObject(manifest);
 
   assert.equal(report.ok, true);
-  assert.equal(report.summary.actions, 3);
+  assert.equal(report.summary.actions, 6);
   assert.equal(report.summary.required_surfaces, 2);
-  assert.equal(report.summary.present_required_bindings, 6);
+  assert.equal(report.summary.present_required_bindings, 12);
   assert.equal(report.summary.strict_parity_percent, 100);
   assert.equal(report.summary.warnings, 0);
 });
