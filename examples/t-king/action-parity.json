@@ -4,8 +4,8 @@
   "application": {
     "id": "org.t-king.desktop",
     "name": "T-King",
-    "version": "0.2.1-pilot-plan",
-    "description": "Proposed ActionParity vertical slice based on T-King's existing Tauri and headless test paths."
+    "version": "0.2.1",
+    "description": "Implemented ActionParity vertical slice shared by T-King's GUI, generic action CLI, and legacy CLI."
   },
   "conformance_targets": [
     "AP-1",
@@ -18,6 +18,12 @@
       "required_for_parity": true,
       "test_driver": "windows-uia-and-webview2",
       "description": "Tauri desktop GUI with stable semantic selectors added by the pilot."
+    },
+    {
+      "id": "cli",
+      "kind": "cli",
+      "required_for_parity": true,
+      "description": "Discoverable non-interactive action list, describe, manifest, and run commands."
     },
     {
       "id": "legacy-cli",
@@ -55,7 +61,7 @@
           "engine_id": {
             "type": "string"
           },
-          "installed_path": {
+          "verification": {
             "type": "string"
           },
           "verified": {
@@ -64,6 +70,7 @@
         },
         "required": [
           "engine_id",
+          "verification",
           "verified"
         ]
       },
@@ -78,20 +85,25 @@
       "execution": {
         "headless": true,
         "idempotent": true,
-        "cancellable": true,
+        "cancellable": false,
         "timeout_ms": 900000,
         "progress_events": true
       },
       "bindings": [
         {
           "surface": "desktop",
-          "target": "tauri:command/install_engine",
-          "test": "tests/bindings/engine-install-gui.test"
+          "target": "selector:[data-action-id=\"engine.install\"] -> tauri:command/install_engine",
+          "test": "src-tauri/src/actions.rs"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:t-king action run engine.install --input <json> --json --no-input --yes",
+          "test": "src-tauri/src/action_cli.rs"
         },
         {
           "surface": "legacy-cli",
           "target": "cli:always-json/--engine-test <engine_id>",
-          "test": "tests/bindings/engine-install-cli.test"
+          "test": "src-tauri/src/actions.rs"
         }
       ]
     },
@@ -132,20 +144,25 @@
       "execution": {
         "headless": true,
         "idempotent": true,
-        "cancellable": true,
+        "cancellable": false,
         "timeout_ms": 3600000,
         "progress_events": true
       },
       "bindings": [
         {
           "surface": "desktop",
-          "target": "tauri:command/decompose_run",
-          "test": "tests/bindings/project-decompose-gui.test"
+          "target": "selector:[data-action-id=\"project.decompose\"] -> tauri:command/decompose_run",
+          "test": "src-tauri/src/actions.rs"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:t-king action run project.decompose --input <json> --json --no-input --yes",
+          "test": "src-tauri/src/action_cli.rs"
         },
         {
           "surface": "legacy-cli",
           "target": "cli:always-json/--station-test decompose <project_id>",
-          "test": "tests/bindings/project-decompose-cli.test"
+          "test": "src-tauri/src/actions.rs"
         }
       ]
     },
@@ -159,7 +176,7 @@
       ],
       "input_schema": {
         "type": "object",
-        "additionalProperties": false,
+        "additionalProperties": true,
         "properties": {
           "project_id": {
             "type": "string",
@@ -214,20 +231,25 @@
       "execution": {
         "headless": true,
         "idempotent": true,
-        "cancellable": true,
+        "cancellable": false,
         "timeout_ms": 3600000,
         "progress_events": true
       },
       "bindings": [
         {
           "surface": "desktop",
-          "target": "tauri:command/render_run",
-          "test": "tests/bindings/project-render-gui.test"
+          "target": "selector:[data-action-id=\"project.render\"] -> tauri:command/render_run",
+          "test": "src-tauri/src/actions.rs"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:t-king action run project.render --input <json> --json --no-input --yes",
+          "test": "src-tauri/src/action_cli.rs"
         },
         {
           "surface": "legacy-cli",
           "target": "cli:always-json/--station-test render <project_id> [media...] [--voice <voice>] [--bgm <file>]",
-          "test": "tests/bindings/project-render-cli.test"
+          "test": "src-tauri/src/actions.rs"
         }
       ]
     }

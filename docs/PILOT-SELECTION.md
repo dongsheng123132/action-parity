@@ -1,7 +1,7 @@
 # Reference Pilot Selection
 
 **Assessment date:** 2026-07-24  
-**Decision:** T-King first, UU-Switch second, U-King third.
+**Decision:** T-King first, U-Model second, UU-Switch deferred, U-King flagship later.
 
 The first reference implementation should prove ActionParity with the smallest
 credible change, not start with the most commercially important application.
@@ -14,13 +14,15 @@ are comparison aids rather than audited software metrics.
 | Candidate | Observed source size | Existing machine path | Test isolation | Product/change risk | Decision |
 |---|---:|---|---|---|---|
 | T-King | 54 files / about 13,253 lines | `--selfcheck`, `--engine-test`, and `--station-test` already call pipeline modules | `TKING_TEST_HOME` | Medium; active development | First pilot |
-| UU-Switch | 660 files / about 254,879 lines | Extensive Tauri command surface; no product CLI entry found in the inspection | Existing tests, but broad configuration state | Medium-high; large upstream-derived surface | Second pilot |
+| U-Model | Small stdlib Python service and build-free Web Components UI | `--recommend` already calls hardware detection and model scoring | Read-only first slice; 53 tests | Low; offline and portable | Second pilot |
+| UU-Switch | 660 files / about 254,879 lines | Extensive Tauri command surface; no product CLI entry found in the inspection | Existing tests, but broad configuration state | Medium-high; large upstream-derived surface | Defer until adapters are packaged |
 | U-King | 173 files / about 52,877 lines | `--selfcheck`, `--term-test`, and `--launch-test` cover only a small part of a very large GUI command surface | `UKING_TEST_HOME` | Highest; production users and release chain | Flagship after the pattern is proven |
 
-The working trees also matter. At inspection time UU-Switch was clean, while
-T-King and U-King both contained substantial uncommitted work. The standard pilot
-must not modify either dirty tree until its current development line is committed
-or isolated in a worktree.
+The working trees also mattered. T-King's active development was committed first,
+then the pilot was isolated on `codex/action-parity-pilot`. U-Model was also
+isolated on its own branch, and its unrelated untracked `AGENTS.md` was preserved.
+UU-Switch was clean, but its upstream-derived surface was too large for a fast
+second experiment.
 
 ## Why T-King wins
 
@@ -48,12 +50,12 @@ Start with three actions that already have the strongest shared-core evidence:
 | `project.decompose` | Tauri `decompose_run` | `--station-test decompose <project_id>` | `pipeline::station2_decompose::decompose` |
 | `project.render` | Tauri `render_run` | `--station-test render <project_id> ...` | `pipeline::station4_render::render` |
 
-The proposed manifest is
+The implemented reference manifest is
 [examples/t-king/action-parity.json](../examples/t-king/action-parity.json).
 
 ## Code change shape
 
-After the active T-King work is committed:
+The implemented change shape was:
 
 1. Add a small `actions` module with a registry, typed requests/results, and one
    executor per pilot Action ID.
@@ -86,13 +88,22 @@ The first pilot is complete when:
 - a clean Windows machine reproduces the report;
 - no test reads or writes real `~/.tking` state.
 
-## Rollout after T-King
+The current pilot completes the action registry, generic CLI, legacy adapters,
+semantic selectors, unit tests, build checks, and manifest validation. Real GUI
+journey automation and live external render/decompose equivalence remain AP-4
+work and are not claimed as complete. See
+[PILOT-RESULTS.md](PILOT-RESULTS.md).
 
-1. **UU-Switch:** prove a high-value configuration slice such as
+## Current rollout
+
+1. **U-Model (implemented):** proved the same pattern in a stdlib Python service
+   and browser GUI with `hardware.inspect` and `model.recommend`.
+2. **UU-Switch:** package a reusable Tauri adapter before attempting a
+   high-value configuration slice such as
    `provider.list`, `provider.switch`, and `provider.test`.
-2. **U-King:** use the proven adapter to expose six or more production actions,
+3. **U-King:** use the proven adapter to expose six or more production actions,
    then add Windows real-GUI verification.
-3. **External application:** recruit one unrelated project. A standard validated
+4. **External application:** recruit one unrelated project. A standard validated
    only on related in-house Tauri applications is still a house convention, not
    an ecosystem standard.
 

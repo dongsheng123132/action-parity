@@ -110,7 +110,7 @@ ActionParity does **not** require one CLI command for every visual control. Tabs
 }
 ```
 
-See the complete [normative draft](SPEC.md), the [minimal example](examples/minimal/action-parity.json), and the [T-King pilot manifest](examples/t-king/action-parity.json).
+See the complete [normative draft](SPEC.md), the [minimal example](examples/minimal/action-parity.json), the [T-King pilot manifest](examples/t-king/action-parity.json), and the [U-Model Python/Web pilot](examples/u-model/action-parity.json).
 
 ## Conformance levels
 
@@ -161,10 +161,15 @@ Read the evidence and detailed comparison in [docs/LANDSCAPE.md](docs/LANDSCAPE.
 
 **v0.1.0 working draft.** The ideas are implementable; the exact schema and conformance language are intentionally open to revision before v1.0.
 
-The first reference implementation is T-King, an existing Tauri desktop
-application that already has headless station tests and an isolated test home.
-The pilot is designed to prove that a legacy GUI and CLI can converge without
-breaking either interface:
+The first two reference implementations are now working:
+
+- **T-King:** Tauri/React/Rust, three external pipeline actions, generic and
+  legacy CLI adapters, and stable GUI selectors.
+- **U-Model:** stdlib Python/Web Components, two read-only hardware/model
+  actions, a real hardware invocation, and legacy `--recommend --json`.
+
+Together they show that a legacy GUI and CLI can converge without breaking
+either interface:
 
 - a headless Action Core;
 - legacy and generic CLI adapters, with MCP as a later optional surface;
@@ -172,10 +177,10 @@ breaking either interface:
 - binding and parity reports;
 - safe, sandboxed AI-driven tests.
 
-See the [pilot selection](docs/PILOT-SELECTION.md), the
-[T-King manifest](examples/t-king/action-parity.json), and the
-[compatibility design](docs/COMPATIBILITY.md). U-King remains the planned
-production flagship after this smaller pilot proves the adapter pattern.
+See the [measured pilot results](docs/PILOT-RESULTS.md), the
+[pilot selection](docs/PILOT-SELECTION.md), and the
+[compatibility design](docs/COMPATIBILITY.md). The pilots establish AP-1/AP-2
+evidence; real GUI journeys and live external workflows remain AP-4 work.
 
 ## Participate
 

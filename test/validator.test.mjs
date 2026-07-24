@@ -29,18 +29,30 @@ test("U-King pilot manifest is valid and has full declared parity", async () => 
   assert.equal(report.summary.strict_parity_percent, 100);
 });
 
-test("T-King pilot plan preserves always-JSON legacy CLI bindings", async () => {
+test("T-King implementation binds desktop, generic CLI, and legacy CLI", async () => {
   const manifest = await fixture("../examples/t-king/action-parity.json");
   const report = validateManifestObject(manifest);
 
   assert.equal(report.ok, true);
   assert.equal(report.summary.actions, 3);
-  assert.equal(report.summary.required_surfaces, 2);
-  assert.equal(report.summary.present_required_bindings, 6);
+  assert.equal(report.summary.required_surfaces, 3);
+  assert.equal(report.summary.present_required_bindings, 9);
   assert.equal(report.summary.strict_parity_percent, 100);
   assert.ok(
     !report.issues.some((item) => item.code === "cli_binding_json_not_visible")
   );
+});
+
+test("U-Model implementation has full Python/Web parity", async () => {
+  const manifest = await fixture("../examples/u-model/action-parity.json");
+  const report = validateManifestObject(manifest);
+
+  assert.equal(report.ok, true);
+  assert.equal(report.summary.actions, 2);
+  assert.equal(report.summary.required_surfaces, 3);
+  assert.equal(report.summary.present_required_bindings, 6);
+  assert.equal(report.summary.strict_parity_percent, 100);
+  assert.equal(report.summary.warnings, 0);
 });
 
 test("missing required binding fails strict parity", async () => {

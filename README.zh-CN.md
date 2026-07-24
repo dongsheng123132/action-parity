@@ -127,21 +127,30 @@ ActionParity 要补的空位是：
 
 完整对比见 [docs/LANDSCAPE.md](docs/LANDSCAPE.md)。
 
-## 首个试点：T-King
+## 两个真实试点：T-King + U-Model
 
-首个参考实现改为 T-King。它已经有 Tauri GUI、无头工位测试和
-`TKING_TEST_HOME` 沙箱，能用较小改动验证“旧 GUI、旧 CLI、同一个动作核心”：
+第一个参考实现是 T-King。它已有 Tauri GUI、无头工位测试和
+`TKING_TEST_HOME` 沙箱，现已完成：
 
 1. 先统一 `engine.install`、`project.decompose`、`project.render` 三个动作；
 2. 保留现有 `--engine-test` / `--station-test`，让它们成为兼容别名；
 3. 增加通用 `action list/describe/run/manifest` 命令和稳定 GUI 标识；
-4. 在沙箱里验证 GUI 与 CLI 的输入、结果、状态和错误完全一致。
+4. 新动作层、参数校验、前端构建、真实 exe 冒烟与规范校验。
 
-这样不需要推倒重写，就能逐步从“只能看屏幕测试”升级为“业务动作无界面测试 + 真实 GUI 验证”。T-King 是实验室，UU-Switch 是第二个迁移样板，U-King 在模式跑通后做旗舰。
+第二个参考实现 U-Model 使用纯 Python + 浏览器 GUI，统一了
+`hardware.inspect` 和 `model.recommend`。它证明 ActionParity 不依赖
+Tauri/Rust：真实调用在约 12 秒内读出本机硬件并返回结构化模型推荐，
+53 项原有与新增测试全部通过。
+
+这两个项目都没有推倒重写。短期代码量会增加，因为需要清单、适配器和
+契约测试；长期收益来自业务规则只改一处，GUI、CLI、AI 不再各维护一份。
+详细数据、已证明的优势和未完成边界见
+[docs/PILOT-RESULTS.md](docs/PILOT-RESULTS.md)。
 
 详细判断见 [docs/PILOT-SELECTION.md](docs/PILOT-SELECTION.md)，兼容旧标准的原则见
 [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)，样例见
-[examples/t-king/action-parity.json](examples/t-king/action-parity.json)。
+[examples/t-king/action-parity.json](examples/t-king/action-parity.json) 和
+[examples/u-model/action-parity.json](examples/u-model/action-parity.json)。
 
 ## 开源与商业价值
 
@@ -166,7 +175,7 @@ ActionParity 要补的空位是：
 目前阶段的目标不是宣称标准已经完成，而是：
 
 1. 发布清晰、可讨论的规范；
-2. 先用 T-King 做真实改造，再迁移 UU-Switch 和 U-King；
+2. 用 T-King 和 U-Model 两种技术栈验证，再迁移 UU-Switch 和 U-King；
 3. 发布验证器和测试证据；
 4. 吸引更多桌面应用提交实现报告；
 5. 在真实实现基础上推进 v1.0。
@@ -177,6 +186,7 @@ ActionParity 要补的空位是：
 首发手册：[docs/LAUNCH.md](docs/LAUNCH.md)  
 兼容设计：[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
 试点选型：[docs/PILOT-SELECTION.md](docs/PILOT-SELECTION.md)
+试点结果：[docs/PILOT-RESULTS.md](docs/PILOT-RESULTS.md)
 参与方式：[CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## 许可证
