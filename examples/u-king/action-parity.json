@@ -4,80 +4,67 @@
   "application": {
     "id": "org.u-king.desktop",
     "name": "U-King",
-    "version": "pilot-0.1",
-    "description": "Proposed first ActionParity vertical slice for the U-King Windows desktop app.",
+    "version": "0.9.67",
+    "description": "U-King shared ActionParity surface for the production GUI and AI-native CLI.",
     "homepage": "https://www.u-king.org"
   },
   "conformance_targets": [
     "AP-1",
-    "AP-2",
-    "AP-3"
+    "AP-2"
   ],
   "surfaces": [
     {
       "id": "desktop",
       "kind": "gui",
       "required_for_parity": true,
-      "test_driver": "windows-uia",
-      "description": "Tauri desktop GUI tested through Windows UI Automation."
+      "test_driver": "windows-uia-and-webview2",
+      "description": "Existing Tauri desktop GUI with stable data-action-id selectors."
     },
     {
       "id": "cli",
       "kind": "cli",
       "required_for_parity": true,
-      "description": "Machine-readable local CLI."
-    },
-    {
-      "id": "mcp",
-      "kind": "mcp",
-      "required_for_parity": true,
-      "description": "Local MCP server generated from Action contracts."
+      "description": "Discoverable non-interactive action list, describe, manifest and run commands."
     }
   ],
   "actions": [
     {
-      "id": "environment.diagnose",
-      "title": "Diagnose environment",
-      "description": "Inspect the isolated U-King test environment and return structured findings.",
+      "id": "environment.inspect",
+      "title": "Inspect AI development environment",
+      "description": "Detect installed AI development commands, desktop apps, portable Node and the active system proxy without changing the machine.",
       "tags": [
         "diagnostics",
+        "environment",
         "pilot"
       ],
       "input_schema": {
         "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "scope": {
-            "type": "array",
-            "items": {
-              "enum": [
-                "node",
-                "git",
-                "network",
-                "gateway",
-                "configuration"
-              ]
-            }
-          }
-        }
+        "additionalProperties": false
       },
       "output_schema": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "healthy": {
-            "type": "boolean"
-          },
-          "findings": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          }
+          "node": { "type": "object" },
+          "npm": { "type": "object" },
+          "claude": { "type": "object" },
+          "codex": { "type": "object" },
+          "git": { "type": "object" },
+          "claude_desktop": { "type": "boolean" },
+          "codex_app": { "type": "boolean" },
+          "portable_node": { "type": "boolean" },
+          "system_proxy": { "type": ["string", "null"] }
         },
         "required": [
-          "healthy",
-          "findings"
+          "node",
+          "npm",
+          "claude",
+          "codex",
+          "git",
+          "claude_desktop",
+          "codex_app",
+          "portable_node",
+          "system_proxy"
         ]
       },
       "effects": {
@@ -90,55 +77,52 @@
       "execution": {
         "headless": true,
         "idempotent": true,
-        "cancellable": true,
-        "timeout_ms": 120000,
-        "progress_events": true
+        "cancellable": false,
+        "timeout_ms": 30000,
+        "progress_events": false
       },
       "bindings": [
         {
           "surface": "desktop",
-          "target": "EnvironmentDiagnoseButton",
-          "test": "tests/ui/environment-diagnose.spec.ts"
+          "target": "selector:[data-action-id=\"environment.inspect\"] -> tauri:command/detect_stack",
+          "test": "src-tauri/src/actions.rs"
         },
         {
           "surface": "cli",
-          "target": "u-king environment diagnose --json --no-input",
-          "test": "tests/cli/environment-diagnose.test.ts"
-        },
-        {
-          "surface": "mcp",
-          "target": "environment_diagnose",
-          "test": "tests/mcp/environment-diagnose.test.ts"
+          "target": "cli:U-King.exe action run environment.inspect --json --no-input",
+          "test": "src-tauri/src/action_cli.rs"
         }
       ]
     },
     {
-      "id": "gateway.status",
-      "title": "Get gateway status",
-      "description": "Return the status and health of the isolated test gateway.",
+      "id": "tool.list",
+      "title": "List AI tools",
+      "description": "Return U-King's tool catalogue and current installation state without installing or launching anything.",
+      "tags": [
+        "catalogue",
+        "tools",
+        "pilot"
+      ],
       "input_schema": {
         "type": "object",
         "additionalProperties": false
       },
       "output_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "state": {
-            "enum": [
-              "running",
-              "stopped",
-              "degraded",
-              "unknown"
-            ]
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "installed": { "type": "boolean" }
           },
-          "port": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "state"
-        ]
+          "required": [
+            "id",
+            "name",
+            "installed"
+          ]
+        }
       },
       "effects": {
         "class": "read",
@@ -146,6 +130,65 @@
         "reversible": true,
         "confirmation": "never",
         "audit_required": false
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": true,
+        "cancellable": false,
+        "timeout_ms": 30000,
+        "progress_events": false
+      },
+      "bindings": [
+        {
+          "surface": "desktop",
+          "target": "selector:[data-action-id=\"tool.list\"] -> tauri:command/list_tools",
+          "test": "src-tauri/src/actions.rs"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:U-King.exe action run tool.list --json --no-input",
+          "test": "src-tauri/src/action_cli.rs"
+        }
+      ]
+    },
+    {
+      "id": "driver.status",
+      "title": "Get AI driver status",
+      "description": "Read the active provider and model for Claude, Codex, ClawX and Hermes without returning API keys.",
+      "tags": [
+        "drivers",
+        "providers",
+        "pilot"
+      ],
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "active": { "type": "object" },
+          "claude_model": { "type": ["string", "null"] },
+          "codex_model": { "type": ["string", "null"] },
+          "clawx_model": { "type": ["string", "null"] },
+          "hermes_model": { "type": ["string", "null"] },
+          "claude_own_key": { "type": "boolean" },
+          "codex_own_key": { "type": "boolean" }
+        },
+        "required": [
+          "active",
+          "claude_own_key",
+          "codex_own_key"
+        ]
+      },
+      "effects": {
+        "class": "read",
+        "risk": "low",
+        "reversible": true,
+        "confirmation": "never",
+        "audit_required": false,
+        "notes": "The provider catalogue is intentionally not exposed because custom entries can contain stored API keys."
       },
       "execution": {
         "headless": true,
@@ -157,300 +200,23 @@
       "bindings": [
         {
           "surface": "desktop",
-          "target": "GatewayStatusPanel",
-          "test": "tests/ui/gateway-status.spec.ts"
+          "target": "selector:[data-action-id=\"driver.status\"] -> tauri:command/get_driver_status",
+          "test": "src-tauri/src/actions.rs"
         },
         {
           "surface": "cli",
-          "target": "u-king gateway status --json",
-          "test": "tests/cli/gateway-status.test.ts"
-        },
-        {
-          "surface": "mcp",
-          "target": "gateway_status",
-          "test": "tests/mcp/gateway-status.test.ts"
-        }
-      ]
-    },
-    {
-      "id": "gateway.start",
-      "title": "Start gateway",
-      "description": "Start the isolated test gateway and wait for a health result.",
-      "input_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "port": {
-            "type": "integer",
-            "minimum": 1024,
-            "maximum": 65535
-          }
-        }
-      },
-      "output_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "state": {
-            "const": "running"
-          },
-          "port": {
-            "type": "integer"
-          }
-        },
-        "required": [
-          "state",
-          "port"
-        ]
-      },
-      "effects": {
-        "class": "write",
-        "risk": "medium",
-        "reversible": true,
-        "confirmation": "conditional",
-        "audit_required": true,
-        "rollback_action": "gateway.stop",
-        "notes": "Unattended execution is allowed only inside the isolated pilot environment."
-      },
-      "execution": {
-        "headless": true,
-        "idempotent": true,
-        "cancellable": true,
-        "timeout_ms": 60000,
-        "progress_events": true
-      },
-      "bindings": [
-        {
-          "surface": "desktop",
-          "target": "GatewayStartButton",
-          "test": "tests/ui/gateway-start.spec.ts"
-        },
-        {
-          "surface": "cli",
-          "target": "u-king gateway start --json --no-input",
-          "test": "tests/cli/gateway-start.test.ts"
-        },
-        {
-          "surface": "mcp",
-          "target": "gateway_start",
-          "test": "tests/mcp/gateway-start.test.ts"
-        }
-      ]
-    },
-    {
-      "id": "gateway.stop",
-      "title": "Stop gateway",
-      "description": "Stop only the isolated test gateway identified by the pilot runtime.",
-      "input_schema": {
-        "type": "object",
-        "additionalProperties": false
-      },
-      "output_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "state": {
-            "const": "stopped"
-          }
-        },
-        "required": [
-          "state"
-        ]
-      },
-      "effects": {
-        "class": "write",
-        "risk": "medium",
-        "reversible": true,
-        "confirmation": "conditional",
-        "audit_required": true,
-        "rollback_action": "gateway.start"
-      },
-      "execution": {
-        "headless": true,
-        "idempotent": true,
-        "cancellable": false,
-        "timeout_ms": 30000,
-        "progress_events": false
-      },
-      "bindings": [
-        {
-          "surface": "desktop",
-          "target": "GatewayStopButton",
-          "test": "tests/ui/gateway-stop.spec.ts"
-        },
-        {
-          "surface": "cli",
-          "target": "u-king gateway stop --json --no-input",
-          "test": "tests/cli/gateway-stop.test.ts"
-        },
-        {
-          "surface": "mcp",
-          "target": "gateway_stop",
-          "test": "tests/mcp/gateway-stop.test.ts"
-        }
-      ]
-    },
-    {
-      "id": "provider.test",
-      "title": "Test provider",
-      "description": "Test a provider configuration without returning or logging its secret.",
-      "input_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "provider_id": {
-            "type": "string"
-          },
-          "credential_ref": {
-            "type": "string",
-            "description": "Reference to a secret held outside the manifest and command history."
-          }
-        },
-        "required": [
-          "provider_id",
-          "credential_ref"
-        ]
-      },
-      "output_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "reachable": {
-            "type": "boolean"
-          },
-          "latency_ms": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "error_code": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "reachable"
-        ]
-      },
-      "effects": {
-        "class": "external",
-        "risk": "low",
-        "reversible": true,
-        "confirmation": "never",
-        "audit_required": true
-      },
-      "execution": {
-        "headless": true,
-        "idempotent": true,
-        "cancellable": true,
-        "timeout_ms": 30000,
-        "progress_events": false
-      },
-      "bindings": [
-        {
-          "surface": "desktop",
-          "target": "ProviderTestButton",
-          "test": "tests/ui/provider-test.spec.ts"
-        },
-        {
-          "surface": "cli",
-          "target": "u-king provider test --provider <id> --credential-ref <ref> --json",
-          "test": "tests/cli/provider-test.test.ts"
-        },
-        {
-          "surface": "mcp",
-          "target": "provider_test",
-          "test": "tests/mcp/provider-test.test.ts"
-        }
-      ]
-    },
-    {
-      "id": "logs.export",
-      "title": "Export diagnostics logs",
-      "description": "Export redacted diagnostics logs from the isolated test environment.",
-      "input_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "output_path": {
-            "type": "string"
-          },
-          "since_minutes": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 10080
-          }
-        },
-        "required": [
-          "output_path"
-        ]
-      },
-      "output_schema": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "path": {
-            "type": "string"
-          },
-          "file_count": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "redacted": {
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "path",
-          "file_count",
-          "redacted"
-        ]
-      },
-      "effects": {
-        "class": "write",
-        "risk": "low",
-        "reversible": true,
-        "confirmation": "never",
-        "audit_required": true
-      },
-      "execution": {
-        "headless": true,
-        "idempotent": false,
-        "cancellable": true,
-        "timeout_ms": 60000,
-        "progress_events": true
-      },
-      "bindings": [
-        {
-          "surface": "desktop",
-          "target": "LogsExportButton",
-          "test": "tests/ui/logs-export.spec.ts"
-        },
-        {
-          "surface": "cli",
-          "target": "u-king logs export --output <path> --json --no-input",
-          "test": "tests/cli/logs-export.test.ts"
-        },
-        {
-          "surface": "mcp",
-          "target": "logs_export",
-          "test": "tests/mcp/logs-export.test.ts"
+          "target": "cli:U-King.exe action run driver.status --json --no-input",
+          "test": "src-tauri/src/action_cli.rs"
         }
       ]
     }
   ],
   "state": {
     "queries": [
-      "gateway.status",
-      "environment.diagnose"
+      "environment.inspect",
+      "tool.list",
+      "driver.status"
     ],
-    "events": [
-      "action.started",
-      "action.progress",
-      "action.completed",
-      "action.failed",
-      "gateway.changed"
-    ]
+    "events": []
   }
 }

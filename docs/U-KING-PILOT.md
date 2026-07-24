@@ -1,175 +1,114 @@
-# U-King ActionParity Flagship Plan
+# U-King ActionParity Production Pilot
 
-U-King is the planned production flagship after the smaller T-King reference
-pilot validates the adapter pattern.
+**Implementation date:** 2026-07-25
 
-The flagship implementation must improve real release confidence; it is not only
-a documentation example.
+**Product baseline:** U-King 0.9.67
 
-## Objectives
+**Branch:** `codex/action-parity-production-pilot`
 
-1. Make the existing Tauri GUI inspectable and operable through Windows UI Automation.
-2. Extract a small set of business actions from GUI event handlers.
-3. Expose those actions through GUI, CLI, MCP, and tests.
-4. Prove cross-surface state synchronization.
-5. Publish a reproducible ActionParity report.
+**Implementation commit:** `28d901f`
+
+U-King is the first production application to adopt the T-King/U-Model adapter
+pattern. The work was isolated from an active dirty production worktree and did
+not bump a version, package an installer, deploy an executable, or change a
+customer configuration.
+
+## Implemented slice
+
+| Action ID | Existing GUI path | Shared Rust entry | Effect |
+|---|---|---|---|
+| `environment.inspect` | Installation wizard computer diagnosis | `actions::environment_inspect` | Read |
+| `tool.list` | My AI / tool catalogue | `actions::tool_list` | Read |
+| `driver.status` | Provider switch current-state display | `actions::driver_status` | Read |
+
+The existing Tauri commands remain compatible. They are thin adapters to the
+same action functions used by:
+
+```text
+U-King.exe action list --json
+U-King.exe action describe <action-id> --json
+U-King.exe action manifest --json
+U-King.exe action run <action-id> --json --no-input
+```
+
+All three GUI paths now have stable `data-action-id` selectors.
+
+## Security decision
+
+The initial plan proposed exposing the provider catalogue. Inspection showed
+that custom provider records can contain a stored `api_key`. Returning the
+existing GUI payload through a machine CLI would disclose that secret.
+
+The implemented slice therefore exposes `driver.status`, which reports active
+providers and models without credentials. This is a practical standard-design
+lesson: surface parity must not mean copying privileged GUI payloads into an
+agent-visible interface. The action contract is also a disclosure boundary.
+
+## Measured evidence
+
+- ActionParity validation:
+  - actions: 3;
+  - headless: 3/3;
+  - required bindings: 6/6;
+  - strict parity: 100%;
+  - errors: 0;
+  - warnings: 0.
+- Rust tests: 21 passed.
+- Rust `cargo check`: passed; one unrelated existing dead-code warning remains.
+- React/TypeScript production build: passed.
+- Debug executable:
+  - `environment.inspect`: 987 ms;
+  - `driver.status`: 38 ms;
+  - `tool.list`: 6,629 ms.
+- Release executable (Windows GUI subsystem):
+  - action discovery returned parseable JSON with exit code 0;
+  - real `environment.inspect` returned parseable JSON in 816 ms;
+  - an unknown input field returned `invalid_input` in 0 ms with exit code 2;
+  - stdout contained the JSON result and stderr remained empty.
+
+The release-mode check matters because a Windows GUI executable can behave
+differently from a debug console executable. The result proves that AI
+subprocess capture works against the actual release subsystem shape.
 
 ## Safety boundary
 
-The pilot MUST run against isolated U-King data and configuration.
+This stage intentionally performed only read operations. It did not:
 
-It MUST NOT:
+- write `~/.claude`, `~/.codex`, ClawX, Hermes, or U-King user state;
+- apply or test a provider;
+- install, launch, stop, upgrade, or uninstall software;
+- use `UKING_TEST_KEY`;
+- modify the production version;
+- publish an exe or trigger the U-King update chain.
 
-- alter a customer's real OpenClaw configuration;
-- stop or replace a real production gateway;
-- perform an actual upgrade;
-- delete real logs or credentials;
-- silently disable security controls.
+Future write-action tests must use `UKING_TEST_HOME`, validate all input before
+side effects, require explicit confirmation, and prove rollback behavior.
 
-Use a dedicated test home, deterministic fixture data, mock providers where practical, and an explicit test gateway port.
-
-## Phase A — GUI automation baseline
-
-Before refactoring, launch U-King and inspect it with Microsoft WinApp CLI:
-
-```powershell
-winapp ui status -a U-King --json
-winapp ui inspect -a U-King --interactive
-winapp ui screenshot -a U-King --output artifacts/uking-home.png
-```
-
-Record:
-
-- number of visible meaningful controls;
-- number with stable accessible names;
-- number with unique stable automation identifiers;
-- controls exposed only as anonymous containers;
-- controls requiring coordinate clicks;
-- critical workflows currently testable.
-
-For Tauri WebView markup:
-
-- use semantic HTML controls;
-- give icon-only controls accessible names;
-- maintain correct roles and focus behavior;
-- avoid click-only `div` elements;
-- expose enabled, selected, expanded, and value state;
-- assign stable test identifiers without coupling tests to layout.
-
-## Phase B — Action inventory
-
-Create an inventory with:
+## Architecture result
 
 ```text
-Action ID
-User intent
-Current GUI control
-Current implementation location
-Inputs
-Outputs
-Side effects
-Risk
-Rollback
-Required surfaces
-Tests
+Tauri GUI command ─┐
+                   ├─> actions.rs ─> existing U-King domain modules
+AI action CLI ─────┤
+legacy selfcheck ──┘
 ```
 
-Classify presentation-only interactions separately.
+This is the useful meaning of “GUI floating on a CLI river”: not that the CLI
+renders or controls pixels, but that every important user intent has one
+canonical action below all presentation surfaces.
 
-## Phase C — First vertical slice
+## Next production slice
 
-Implement these lower-risk actions first:
+The next stage should stay incremental:
 
-```text
-environment.diagnose
-gateway.status
-gateway.start
-gateway.stop
-provider.test
-logs.export
-```
+1. add a redacted provider catalogue rather than exposing `ProviderPreset`
+   directly;
+2. expose health-report preview separately from health-report file export;
+3. expose cleanup scan as read-only before any cleanup action;
+4. define one sandboxed write action with confirmation, audit metadata, and a
+   tested rollback;
+5. add one Windows WebView2/UI Automation journey for each current selector;
+6. only then consider MCP generation.
 
-Each Action must:
-
-- run without the GUI;
-- return structured results;
-- use isolated test state;
-- emit an execution ID;
-- declare timeout and cancellation behavior;
-- produce testable state transitions;
-- have GUI and CLI bindings;
-- gain an MCP binding after the core behavior stabilizes.
-
-## Phase D — Adapter shape
-
-Recommended conceptual layout:
-
-```text
-packages/
-  action-core/
-    registry
-    actions
-    state
-    events
-    policy
-  action-cli/
-  action-mcp/
-  action-tauri/
-  action-tests/
-```
-
-The exact folders may differ. The invariant is that the Tauri handlers, CLI commands, and MCP tools remain thin adapters.
-
-## Phase E — Tests
-
-### Core test
-
-Invoke `environment.diagnose` directly with fixture state and validate its schema and findings.
-
-### Binding test
-
-Invoke the GUI diagnosis control and prove that `environment.diagnose` is recorded with the resulting execution ID.
-
-### Cross-surface test
-
-Start the test gateway through CLI and observe running state in the open GUI.
-
-### Real-GUI test
-
-Use WinApp CLI or Appium to:
-
-- launch U-King;
-- reach the diagnosis page;
-- invoke diagnosis;
-- inspect progress and final result;
-- capture screenshot evidence;
-- verify accessible state.
-
-### Failure test
-
-Inject a known invalid provider configuration and prove GUI, CLI, and MCP receive the same stable error code and remediation data.
-
-## Metrics
-
-Publish before-and-after:
-
-- strict ActionParity score;
-- headless action coverage;
-- stable GUI selector coverage;
-- test duration;
-- flake rate across repeated runs;
-- number of screenshot-only steps;
-- mean time to locate a failed layer;
-- number of duplicated implementations removed.
-
-## Exit criteria
-
-The U-King flagship milestone is complete when:
-
-- at least six actions satisfy AP-2;
-- at least three satisfy AP-3;
-- critical GUI bindings have stable semantic selectors;
-- one cross-surface state synchronization test passes repeatedly;
-- one clean Windows machine reproduces the report;
-- no test touches real user state;
-- the report and lessons are published.
+This stage demonstrates AP-1/AP-2. It does not claim AP-4 real-GUI certification
+or customer release completion.

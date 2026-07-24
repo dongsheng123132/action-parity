@@ -1,7 +1,7 @@
 # Reference Pilot Selection
 
-**Assessment date:** 2026-07-24  
-**Decision:** T-King first, U-Model second, UU-Switch deferred, U-King flagship later.
+**Assessment date:** 2026-07-25
+**Decision:** T-King first, U-Model second, U-King production stage 1 complete, UU-Switch deferred.
 
 The first reference implementation should prove ActionParity with the smallest
 credible change, not start with the most commercially important application.
@@ -101,8 +101,9 @@ work and are not claimed as complete. See
 2. **UU-Switch:** package a reusable Tauri adapter before attempting a
    high-value configuration slice such as
    `provider.list`, `provider.switch`, and `provider.test`.
-3. **U-King:** use the proven adapter to expose six or more production actions,
-   then add Windows real-GUI verification.
+3. **U-King (stage 1 implemented):** three production read actions now share
+   one Rust action layer across GUI and generic CLI. Next add a redacted
+   catalogue, one sandboxed write action, and Windows real-GUI verification.
 4. **External application:** recruit one unrelated project. A standard validated
    only on related in-house Tauri applications is still a house convention, not
    an ecosystem standard.

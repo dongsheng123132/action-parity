@@ -127,7 +127,7 @@ ActionParity 要补的空位是：
 
 完整对比见 [docs/LANDSCAPE.md](docs/LANDSCAPE.md)。
 
-## 两个真实试点：T-King + U-Model
+## 三个真实试点：T-King + U-Model + U-King
 
 第一个参考实现是 T-King。它已有 Tauri GUI、无头工位测试和
 `TKING_TEST_HOME` 沙箱，现已完成：
@@ -142,7 +142,12 @@ ActionParity 要补的空位是：
 Tauri/Rust：真实调用在约 12 秒内读出本机硬件并返回结构化模型推荐，
 53 项原有与新增测试全部通过。
 
-这两个项目都没有推倒重写。短期代码量会增加，因为需要清单、适配器和
+第三个试点进入正在使用的 U-King 0.9.67，统一了电脑体检、工具清单和
+驱动状态三个只读动作。release 模式的正式 exe 已验证可被 AI 子进程捕获
+纯 JSON；非法字段在 0 毫秒被拒绝。审计还发现供应商完整列表可能包含自定义
+API Key，因此没有机械地把它暴露给 CLI，而是改用不含密钥的驱动状态。
+
+三个项目都没有推倒重写。短期代码量会增加，因为需要清单、适配器和
 契约测试；长期收益来自业务规则只改一处，GUI、CLI、AI 不再各维护一份。
 详细数据、已证明的优势和未完成边界见
 [docs/PILOT-RESULTS.md](docs/PILOT-RESULTS.md)。
@@ -150,7 +155,8 @@ Tauri/Rust：真实调用在约 12 秒内读出本机硬件并返回结构化模
 详细判断见 [docs/PILOT-SELECTION.md](docs/PILOT-SELECTION.md)，兼容旧标准的原则见
 [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)，样例见
 [examples/t-king/action-parity.json](examples/t-king/action-parity.json) 和
-[examples/u-model/action-parity.json](examples/u-model/action-parity.json)。
+[examples/u-model/action-parity.json](examples/u-model/action-parity.json)，以及
+[examples/u-king/action-parity.json](examples/u-king/action-parity.json)。
 
 ## 开源与商业价值
 
@@ -175,7 +181,7 @@ Tauri/Rust：真实调用在约 12 秒内读出本机硬件并返回结构化模
 目前阶段的目标不是宣称标准已经完成，而是：
 
 1. 发布清晰、可讨论的规范；
-2. 用 T-King 和 U-Model 两种技术栈验证，再迁移 UU-Switch 和 U-King；
+2. 用 T-King、U-Model 和 U-King 三个真实产品验证，再迁移 UU-Switch 和外部项目；
 3. 发布验证器和测试证据；
 4. 吸引更多桌面应用提交实现报告；
 5. 在真实实现基础上推进 v1.0。

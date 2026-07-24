@@ -1,6 +1,6 @@
-# Pilot Results: T-King and U-Model
+# Pilot Results: T-King, U-Model, and U-King
 
-**Date:** 2026-07-24  
+**Date:** 2026-07-25
 **Scope:** AP-1/AP-2 implementation evidence, not AP-4 certification.
 
 ## Executive answer
@@ -26,6 +26,7 @@ action, discoverable through every declared surface, is the advantage.**
 |---|---|---:|---:|---|
 | T-King 0.2.1 | Tauri + React + Rust | 3 | 9/9 | `78efde0` |
 | U-Model 1.0.0 | stdlib Python + Web Components | 2 | 6/6 | `653c5f5` |
+| U-King 0.9.67 | Tauri + React + Rust | 3 | 6/6 | `28d901f` |
 
 T-King actions:
 
@@ -38,9 +39,19 @@ U-Model actions:
 - `hardware.inspect`
 - `model.recommend`
 
+U-King actions:
+
+- `environment.inspect`
+- `tool.list`
+- `driver.status`
+
 Both keep their existing GUI and legacy CLI. Both add `action
 list/describe/manifest/run`, stable JSON envelopes, validation before side
 effects, stable GUI `data-action-id` selectors, and executable manifests.
+
+U-King keeps its existing GUI and `--selfcheck` path while adding the same
+generic action CLI and selectors. Its first production slice is deliberately
+read-only.
 
 ## Measured evidence
 
@@ -84,6 +95,34 @@ The implementation does not claim cancellation support that the pipeline lacks.
 These numbers are evidence of behavior, not a cross-project productivity
 benchmark.
 
+### U-King
+
+- Work was isolated from the dirty production worktree on
+  `codex/action-parity-production-pilot`.
+- Pilot change: 9 files, 863 insertions, 17 deletions.
+- Rust tests: 21 passed.
+- Rust compile check and React/TypeScript production build: passed.
+- Manifest report:
+  - headless actions: 3/3;
+  - required bindings: 6/6;
+  - strict parity across desktop and generic CLI: 100%;
+  - errors and warnings: zero.
+- Real debug executable timings:
+  - `environment.inspect`: 987 ms;
+  - `driver.status`: 38 ms;
+  - `tool.list`: 6,629 ms.
+- Real release executable validation:
+  - action discovery returned parseable JSON with exit code 0;
+  - environment inspection returned parseable JSON in 816 ms;
+  - unknown input failed in 0 ms with `invalid_input` and exit code 2;
+  - stdout contained results only and stderr was empty.
+- The planned provider-list action was rejected during implementation because
+  custom records may contain stored API keys. `driver.status` provides the
+  useful state without exposing credentials.
+
+No version was bumped and no executable was packaged, signed, deployed, or
+served to customers.
+
 ## Advantages demonstrated
 
 1. **Fast functional testing without pixels.** Contract and error-path tests run
@@ -105,6 +144,8 @@ benchmark.
    support can adapt the action registry instead of reimplementing the product.
 9. **Machine-auditable gaps.** The T-King validator exposed missing cancellation
    and risky long timeouts instead of allowing optimistic documentation.
+10. **A safer disclosure boundary.** U-King inspection caught a credential leak
+    that a mechanical “make every GUI call a CLI” conversion would have created.
 
 ## Does development become faster?
 
@@ -134,6 +175,7 @@ already begun to drift.
 
 - no long-term cycle-time or defect-rate benchmark;
 - no AP-4 real GUI journey report;
+- no U-King customer release or clean-machine UI journey;
 - no live paid T-King render/decompose equivalence run;
 - no cross-vendor implementation;
 - no reusable installer-quality adapter packages yet;

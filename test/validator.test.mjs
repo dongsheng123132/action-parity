@@ -18,15 +18,16 @@ test("minimal manifest is valid and has full parity", async () => {
   assert.equal(report.summary.errors, 0);
 });
 
-test("U-King pilot manifest is valid and has full declared parity", async () => {
+test("U-King production pilot has full desktop and CLI parity", async () => {
   const manifest = await fixture("../examples/u-king/action-parity.json");
   const report = validateManifestObject(manifest);
 
   assert.equal(report.ok, true);
-  assert.equal(report.summary.actions, 6);
-  assert.equal(report.summary.required_surfaces, 3);
-  assert.equal(report.summary.present_required_bindings, 18);
+  assert.equal(report.summary.actions, 3);
+  assert.equal(report.summary.required_surfaces, 2);
+  assert.equal(report.summary.present_required_bindings, 6);
   assert.equal(report.summary.strict_parity_percent, 100);
+  assert.equal(report.summary.warnings, 0);
 });
 
 test("T-King implementation binds desktop, generic CLI, and legacy CLI", async () => {
