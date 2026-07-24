@@ -37,12 +37,12 @@ action-parity
 
 ## 60-second demo
 
-Show one U-King action:
+Show one T-King action:
 
-1. click **Diagnose** in the GUI;
-2. show the emitted `environment.diagnose` Action ID and execution ID;
-3. run the same Action from CLI with JSON output;
-4. invoke it as an MCP tool;
+1. click **Render** in the GUI;
+2. show the emitted `project.render` Action ID and execution ID;
+3. run the same Action through its existing legacy CLI flag;
+4. run it through the new generic Action CLI with JSON output;
 5. show the GUI updating from the CLI invocation;
 6. break one binding;
 7. run the validator and show the parity failure;
@@ -87,7 +87,7 @@ ActionParity proposes a stricter architecture:
 
 MCP makes tools callable. UI Automation makes screens operable. ActionParity proves they perform the same action.
 
-The v0.1 draft includes a specification, JSON Schema, validator, U-King pilot manifest, governance, adoption plan, and commercial-neutrality model.
+The v0.1 draft includes a specification, JSON Schema, validator, T-King and U-King pilot manifests, governance, adoption plan, and commercial-neutrality model.
 
 This is an early working draft. We are looking for desktop app maintainers, QA engineers, accessibility experts, and agent-tool developers to challenge it with real implementations.
 ```
@@ -109,7 +109,7 @@ AI 已经可以写出大量 GUI 软件，但它往往无法可靠测试自己做
 
 MCP 让工具可以调用，UI Automation 让界面可以操作，ActionParity 证明它们做的是同一件事。
 
-v0.1 工作草案已经包含规范、JSON Schema、验证器、U-King 示例、治理方案、推广路线与商业中立原则。
+v0.1 工作草案已经包含规范、JSON Schema、验证器、T-King 与 U-King 示例、治理方案、推广路线与商业中立原则。
 
 这不是已经完成的行业共识，而是一次公开邀请：欢迎桌面应用开发者、测试工程师、无障碍专家和 Agent 工具开发者拿真实项目来挑战它。
 ```
@@ -120,18 +120,18 @@ v0.1 工作草案已经包含规范、JSON Schema、验证器、U-King 示例、
 
 - Publish the repository and v0.1.0 draft release.
 - Enable Discussions.
-- Pin the manifesto, specification, and U-King pilot issues.
+- Pin the manifesto, specification, and T-King pilot issues.
 - Record the short concept demo.
 
 ### Week 2
 
-- Run the UI Automation baseline against U-King.
+- Run the UI Automation baseline against T-King.
 - Publish control-tree findings and screenshots.
-- Open the Electron adapter design RFC.
+- Open the Tauri adapter design RFC.
 
 ### Week 3
 
-- Implement the first two U-King Actions.
+- Implement the first two T-King Actions.
 - Publish CLI and GUI binding tests.
 - Invite maintainers from Electron, Tauri, .NET, MCP, and QA communities.
 
@@ -153,4 +153,3 @@ v0.1 工作草案已经包含规范、JSON Schema、验证器、U-King 示例、
 - contributors from accessibility and security communities.
 
 Stars and impressions are useful distribution signals, but they are not evidence of a standard.
-

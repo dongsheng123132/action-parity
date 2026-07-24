@@ -1,12 +1,14 @@
-# U-King ActionParity Pilot
+# U-King ActionParity Flagship Plan
 
-U-King is the first reference implementation for ActionParity.
+U-King is the planned production flagship after the smaller T-King reference
+pilot validates the adapter pattern.
 
-The pilot must improve real release confidence; it is not only a documentation example.
+The flagship implementation must improve real release confidence; it is not only
+a documentation example.
 
 ## Objectives
 
-1. Make the existing Electron GUI inspectable and operable through Windows UI Automation.
+1. Make the existing Tauri GUI inspectable and operable through Windows UI Automation.
 2. Extract a small set of business actions from GUI event handlers.
 3. Expose those actions through GUI, CLI, MCP, and tests.
 4. Prove cross-surface state synchronization.
@@ -45,7 +47,7 @@ Record:
 - controls requiring coordinate clicks;
 - critical workflows currently testable.
 
-For Electron markup:
+For Tauri WebView markup:
 
 - use semantic HTML controls;
 - give icon-only controls accessible names;
@@ -112,11 +114,11 @@ packages/
     policy
   action-cli/
   action-mcp/
-  action-electron/
+  action-tauri/
   action-tests/
 ```
 
-The exact folders may differ. The invariant is that the Electron handlers, CLI commands, and MCP tools remain thin adapters.
+The exact folders may differ. The invariant is that the Tauri handlers, CLI commands, and MCP tools remain thin adapters.
 
 ## Phase E — Tests
 
@@ -162,7 +164,7 @@ Publish before-and-after:
 
 ## Exit criteria
 
-The first pilot milestone is complete when:
+The U-King flagship milestone is complete when:
 
 - at least six actions satisfy AP-2;
 - at least three satisfy AP-3;
@@ -171,4 +173,3 @@ The first pilot milestone is complete when:
 - one clean Windows machine reproduces the report;
 - no test touches real user state;
 - the report and lessons are published.
-

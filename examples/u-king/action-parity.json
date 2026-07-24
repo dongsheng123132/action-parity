@@ -19,7 +19,7 @@
       "kind": "gui",
       "required_for_parity": true,
       "test_driver": "windows-uia",
-      "description": "Electron desktop GUI tested through Windows UI Automation."
+      "description": "Tauri desktop GUI tested through Windows UI Automation."
     },
     {
       "id": "cli",

@@ -115,7 +115,11 @@ export function validateManifestObject(manifest) {
 
       boundSurfaceIds.add(binding.surface);
 
-      if (surface.kind === "cli" && !binding.target.includes("--json")) {
+      const exposesJson =
+        binding.target.includes("--json") ||
+        binding.target.startsWith("cli:always-json/");
+
+      if (surface.kind === "cli" && !exposesJson) {
         issues.push(
           issue(
             "warning",
@@ -327,4 +331,3 @@ function roundPercent(numerator, denominator) {
 export function schemaPath() {
   return fileURLToPath(schemaUrl);
 }
-

@@ -110,7 +110,7 @@ ActionParity does **not** require one CLI command for every visual control. Tabs
 }
 ```
 
-See the complete [normative draft](SPEC.md), the [minimal example](examples/minimal/action-parity.json), and the [U-King pilot manifest](examples/u-king/action-parity.json).
+See the complete [normative draft](SPEC.md), the [minimal example](examples/minimal/action-parity.json), and the [T-King pilot manifest](examples/t-king/action-parity.json).
 
 ## Conformance levels
 
@@ -161,15 +161,21 @@ Read the evidence and detailed comparison in [docs/LANDSCAPE.md](docs/LANDSCAPE.
 
 **v0.1.0 working draft.** The ideas are implementable; the exact schema and conformance language are intentionally open to revision before v1.0.
 
-The first reference application is U-King, a Windows desktop application. The pilot is designed to prove that an existing Electron application can gain:
+The first reference implementation is T-King, an existing Tauri desktop
+application that already has headless station tests and an isolated test home.
+The pilot is designed to prove that a legacy GUI and CLI can converge without
+breaking either interface:
 
 - a headless Action Core;
-- CLI and MCP adapters;
+- legacy and generic CLI adapters, with MCP as a later optional surface;
 - Windows UI Automation coverage;
 - binding and parity reports;
 - safe, sandboxed AI-driven tests.
 
-See [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md).
+See the [pilot selection](docs/PILOT-SELECTION.md), the
+[T-King manifest](examples/t-king/action-parity.json), and the
+[compatibility design](docs/COMPATIBILITY.md). U-King remains the planned
+production flagship after this smaller pilot proves the adapter pattern.
 
 ## Participate
 
@@ -188,6 +194,8 @@ Read the short [ActionParity Manifesto](MANIFESTO.md) and the practical [launch 
 An open standard can support a healthy commercial ecosystem without making conformance pay-to-play. Potential businesses include managed CI, independent certification, migration tooling, enterprise policy and audit, conformance labs, training, and adapter support.
 
 The proposed model and neutrality safeguards are documented in [docs/BUSINESS.md](docs/BUSINESS.md).
+Brand protection, namespace reservation, and certification-mark timing are
+covered in [docs/BRAND-AND-TRADEMARK.md](docs/BRAND-AND-TRADEMARK.md).
 
 ## License
 

@@ -127,16 +127,21 @@ ActionParity 要补的空位是：
 
 完整对比见 [docs/LANDSCAPE.md](docs/LANDSCAPE.md)。
 
-## U-King 试点
+## 首个试点：T-King
 
-U-King 将作为第一个参考应用，分两条路线推进：
+首个参考实现改为 T-King。它已经有 Tauri GUI、无头工位测试和
+`TKING_TEST_HOME` 沙箱，能用较小改动验证“旧 GUI、旧 CLI、同一个动作核心”：
 
-1. 给现有 Electron GUI 补齐语义控件、ARIA、稳定标识和 Windows UI Automation 测试；
-2. 逐步把检测、配置、网关控制、修复、升级、日志导出等功能抽成 Action Core，并生成 CLI、MCP 与一致性报告。
+1. 先统一 `engine.install`、`project.decompose`、`project.render` 三个动作；
+2. 保留现有 `--engine-test` / `--station-test`，让它们成为兼容别名；
+3. 增加通用 `action list/describe/run/manifest` 命令和稳定 GUI 标识；
+4. 在沙箱里验证 GUI 与 CLI 的输入、结果、状态和错误完全一致。
 
-这样不需要推倒重写，就能逐步从“只能看屏幕测试”升级为“业务动作无界面测试 + 真实 GUI 验证”。
+这样不需要推倒重写，就能逐步从“只能看屏幕测试”升级为“业务动作无界面测试 + 真实 GUI 验证”。T-King 是实验室，UU-Switch 是第二个迁移样板，U-King 在模式跑通后做旗舰。
 
-详细计划见 [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md)。
+详细判断见 [docs/PILOT-SELECTION.md](docs/PILOT-SELECTION.md)，兼容旧标准的原则见
+[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)，样例见
+[examples/t-king/action-parity.json](examples/t-king/action-parity.json)。
 
 ## 开源与商业价值
 
@@ -151,6 +156,8 @@ U-King 将作为第一个参考应用，分两条路线推进：
 - 行业测试包、培训和认证课程。
 
 标准必须保持中立：自测永远免费，认证规则公开，商业客户不能购买标准条款。详见 [docs/BUSINESS.md](docs/BUSINESS.md)。
+商标、域名、命名空间与认证标志的先后顺序见
+[docs/BRAND-AND-TRADEMARK.md](docs/BRAND-AND-TRADEMARK.md)。
 
 ## 当前状态
 
@@ -159,7 +166,7 @@ U-King 将作为第一个参考应用，分两条路线推进：
 目前阶段的目标不是宣称标准已经完成，而是：
 
 1. 发布清晰、可讨论的规范；
-2. 用 U-King 做真实改造；
+2. 先用 T-King 做真实改造，再迁移 UU-Switch 和 U-King；
 3. 发布验证器和测试证据；
 4. 吸引更多桌面应用提交实现报告；
 5. 在真实实现基础上推进 v1.0。
@@ -168,6 +175,8 @@ U-King 将作为第一个参考应用，分两条路线推进：
 推广路线：[docs/ADOPTION.md](docs/ADOPTION.md)  
 项目宣言：[MANIFESTO.md](MANIFESTO.md)  
 首发手册：[docs/LAUNCH.md](docs/LAUNCH.md)  
+兼容设计：[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
+试点选型：[docs/PILOT-SELECTION.md](docs/PILOT-SELECTION.md)
 参与方式：[CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## 许可证

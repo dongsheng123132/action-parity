@@ -29,6 +29,20 @@ test("U-King pilot manifest is valid and has full declared parity", async () => 
   assert.equal(report.summary.strict_parity_percent, 100);
 });
 
+test("T-King pilot plan preserves always-JSON legacy CLI bindings", async () => {
+  const manifest = await fixture("../examples/t-king/action-parity.json");
+  const report = validateManifestObject(manifest);
+
+  assert.equal(report.ok, true);
+  assert.equal(report.summary.actions, 3);
+  assert.equal(report.summary.required_surfaces, 2);
+  assert.equal(report.summary.present_required_bindings, 6);
+  assert.equal(report.summary.strict_parity_percent, 100);
+  assert.ok(
+    !report.issues.some((item) => item.code === "cli_binding_json_not_visible")
+  );
+});
+
 test("missing required binding fails strict parity", async () => {
   const manifest = await fixture("../examples/minimal/action-parity.json");
   manifest.actions[0].bindings = manifest.actions[0].bindings.filter(
@@ -63,4 +77,3 @@ test("rollback action must exist", async () => {
   assert.equal(report.ok, false);
   assert.ok(report.issues.some((item) => item.code === "unknown_rollback_action"));
 });
-
