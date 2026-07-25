@@ -140,6 +140,14 @@ U-King 将作为第一个参考应用，分两条路线推进：
 
 详细计划见 [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md)。
 
+## 试点回馈
+
+真实应用改造中发现的规范问题会写成案例回馈，作为 v1.0 的输入：
+
+- [docs/CASE-CC-SWITCH.zh-CN.md](docs/CASE-CC-SWITCH.zh-CN.md) —— cc-switch / uu-switch（Tauri + React，270 个命令、零机器入口）。
+  暴露的核心问题：**一个零机器入口的纯 GUI 应用，不写一行代码就能通过 AP-2 校验、拿到 66.7% 严格分数**——
+  `ipc` 与 `test` surface 缺少可达性要求，且验证器无法检测实现漂移。
+
 ## 开源与商业价值
 
 规范、Schema、验证器和参考适配器保持开放。商业价值可以来自：

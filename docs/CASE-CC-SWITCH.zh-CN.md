@@ -1,0 +1,197 @@
+# 案例：cc-switch / uu-switch 试点回馈
+
+> 日期：2026-07-26 · 规范版本：0.1.0 工作草案
+> 试点对象：[cc-switch](https://github.com/farion1231/cc-switch) v3.18.0 的下游分支 uu-switch
+> 形态：Tauri 2 + React 桌面应用，270 个 `#[tauri::command]`，**零 CLI、零 MCP、零 API**
+> 试点产物：一份过验证器的清单（8 个动作，严格分数 66.7%，0 错 0 警）
+
+这是继 U-King、Open365 之后的第三个试点，也是第一个**「完全没有机器入口」的纯 GUI 应用**。
+和 Open365（本来就有引擎 CLI）不同，这个案例暴露的问题集中在**规范的可信度**上：
+一个连 CLI 都没有的应用，一行代码不写就拿到 66.7% 严格分数并通过 AP-2 校验。
+
+---
+
+## 一、试点确实兑现了标准的核心承诺
+
+先说成立的部分，因为下面的批评建立在"这套东西有用"的前提上。
+
+**填 `effects.confirmation` 字段当场抓到一个真实安全缺陷。** cc-switch 的删除供应商动作：
+
+```
+GUI:  App.tsx:1622 <ConfirmDialog> → handleConfirmAction() → deleteProvider(id)
+Rust: commands/provider.rs:62 delete_provider() → ProviderService::delete()   ← 无任何闸门
+```
+
+唯一的安全边界是一个 React 弹窗。今天没暴露，是因为只有自家 webview 能到 IPC 层；
+一旦按计划开放 CLI 或让另一个产品驱动它，破坏性动作就是零确认。
+
+这正是 §11.2 要防的事，而且**只有被这张表逼着回答"确认在哪一层"才会发现**。
+和 Open365 那个 `apps: null` 一样，属于"没有契约就会长期潜伏"的缺陷。
+
+同类收获还有两条：覆盖式写入不留底（填 `reversible` 时暴露）、跨产品共写同一批配置文件的
+last-writer-wins 风险（填 `effects.notes` 时被迫结构化）。
+
+---
+
+## 二、发现的规范问题
+
+### F1（严重）`ipc` 与 `test` surface 没有可达性要求，严格分数可以凭空虚高
+
+试点应用的实测结果：
+
+```
+Surface desktop  8/8  100%
+Surface ipc      8/8  100%     ← 一行新代码没写
+Surface cli      0/8    0%
+Strict parity   66.7%  Errors 0
+```
+
+`ipc` 这 100% 是白拿的：Tauri 的 `#[tauri::command]` **本来就是** IPC surface。
+但 Tauri IPC **只有本应用的 webview 能调**，外部进程、脚本、Agent 一个都够不到。
+从"能不能被机器使用"的角度，它的价值等于零，分数却和一个真 API 一样。
+
+`test` kind 有同样的问题，而且更直接：§8.2 明文把"可直接调用的测试适配器"列为合法机器
+Surface，验证器的 `machine_surface_missing` 检查也认它。于是一个只能被 `cargo test`
+调到的适配器就满足了"每个 GUI 动作必须有非可视机器入口"。**这不是给 Agent 用的入口。**
+
+后果：任何 Tauri / Electron 应用都能声明 `ipc` 必需、拿到高分、通过 AP-2，
+而实际上仍然是个纯 GUI 应用。这会直接损害认证的可信度。
+
+**建议**：给 surface 加一个必填的可达性维度，并让 AP-2 及以上要求至少一个**外部可达**的机器 Surface。
+
+```jsonc
+{
+  "id": "ipc",
+  "kind": "ipc",
+  "reachability": "in-process",   // in-process | local-ipc | external
+  "required_for_parity": true
+}
+```
+
+- `in-process`：仅应用自身进程/webview 可达（Tauri invoke、Electron ipcRenderer）
+- `local-ipc`：本机其他进程可达（named pipe、unix socket、localhost）
+- `external`：跨主机可达（HTTP API）
+
+AP-2 应要求 `reachability != "in-process"` 的机器 Surface 至少一个；
+`test` kind 建议直接**排除在 §8.2 的机器 Surface 之外**，只作为无头执行的**证据**存在。
+
+### F2（严重）验证器无法检测标准存在的意义——实现漂移
+
+§5 的架构不变式是"一个规范语义、一条规范实现路径"。但今天的清单是**纯声明**：
+我可以给 `provider.switch` 写上 GUI 绑定和 CLI 绑定，二者实际调用两份独立实现，
+验证器一个字都不会说。
+
+Open365 用"清单由 `core/registry.ps1` 生成 + 测试卡住手改"解决了，但那是**项目自己的
+工程约定，不是规范要求**。规范目前只在 AP-4 才要求 `binding.test`。
+
+**建议**：把绑定证据提前到 AP-2。要么
+
+- (a) AP-2 要求 `binding.test` 对每条必需绑定非空；要么
+- (b) 清单顶层加 `generated_from`（生成器路径 + 内容哈希），AP-2 要求清单为生成产物。
+
+否则 AP-2 的"证明这些 Surface 调用同一个动作核心"这句话在工具链上是空的。
+
+### F3（中）`headless: true` 是自证的，清单里没有放证据的地方
+
+AP-1 的核心要求是无头执行，但清单只有一个布尔值。试点的 8 个动作里只有 3 个有真实测试
+证据，其余 5 个是我从"命令层不碰 `AppHandle`"推断的——**结构上极可能对，但没验过**，
+而验证器给出 `Headless 8/8`，读者无从分辨。
+
+**建议**：`execution` 加可选 `headless_evidence`（测试路径 / 命令），AP-1 要求非空。
+这和 F2 的 (a) 是同一类修补：让"声称"和"证据"在清单里可区分。
+
+### F4（中）Webview 类 GUI 没有自然的控件级绑定目标
+
+§12 要求"为有意义的交互控件提供稳定自动化标识"，这在原生工具包（WinForms、Swift、Qt）
+里是自然的。React 应用里控件由渲染函数产生，没有稳定身份，加 `data-testid` 是纯增量负担；
+真正稳定的收窄点是**前端 IPC 封装模块**——试点里 8 个动作全部经过
+`src/lib/api/providers.ts` 这一个文件，天然满足"GUI 不能有第二份实现"。
+
+试点把绑定目标写成了 `src/lib/api/providers.ts#switchProvider`，但规范没说这算不算合法。
+
+**建议**：规范显式承认"在 Surface 的唯一调用收窄点绑定"是 AP-2 的合法形态，
+控件级稳定标识作为 **AP-4** 的要求。现在的写法会让 Web 技术栈的应用不知道该怎么填。
+
+### F5（中）跨应用共享状态没有位置可写
+
+试点应用和另一个产品（U-King）**写同一批配置文件**（`~/.claude/settings.json` 等），
+last-writer-wins。§10.1 只管"同一应用的各 Surface 观察同一份规范状态"，
+跨应用共写完全在射程外——但这恰恰是现实中最容易漂的地方。
+
+试点只能把它塞进 `effects.notes` 的自由文本里，机器读不到。
+
+**建议**：`state` 加可选 `external_resources`，声明本应用读/写的外部真相源及是否独占：
+
+```jsonc
+"state": {
+  "external_resources": [
+    { "path": "~/.claude/settings.json", "access": "read-write", "exclusive": false }
+  ]
+}
+```
+
+配合乐观并发（写入带 `expected_state_version`，状态陈旧则返回冲突）作为 AP-3 的建议项。
+"最后写入者获胜"不应该成为未声明的默认。
+
+### F6（中）规范没有说什么时候**不要**采用
+
+试点最重要的判断不是"能不能改"，而是"该不该改"。cc-switch 有 270 个命令，
+全量改造会直接破坏它跟上游同步的能力（错误信封、JSON Schema 都要动上游核心文件），
+收益却集中在其中 8~12 个动作上。
+
+`docs/ADOPTION.md` 讲怎么推广，`SPEC.md` 全文没有一句讲边界。一个只说"该用"的标准
+不可信；**明确说出不适用场景，反而是可信度的来源。**
+
+**建议**：`SPEC.md` 增设一节「适用性」，至少写清：
+
+- 触发条件：出现第二个界面 / 要被 Agent 操作 / 要跨设备同步；
+- 反向条件：单界面、行为稳定、无 Agent 场景的小工具——首次改造是净增代码，回本在第二个界面之后；
+- 部分采用是**头等公民**：只对核心域声明符合性、其余功能显式留在射程外，应当被鼓励而不是被当成不完整。
+
+### F7（小）几处规范/工具细节
+
+1. **人类可读报告漏掉了例外，§8.3 的"必须包含在符合性报告中"没兑现。**
+   计分本身是对的：例外免掉 `missing_required_binding` 错误但不加分子，分数确实被拉低了。
+   问题在 `printHumanReport` 没有输出 `declared_exceptions`（JSON 报告里有，人读的没有）。
+   于是读者看到的是"66.7%、0 错、0 警"，看不到背后挂着 **8 条待复查的例外**——
+   而这 8 条才是真正的待办。建议人类报告增加一行 `Exceptions  8`，
+   并把逼近复查日期（`review_by`）的例外升级为警告。
+
+2. **`conformance_targets` 是自我声明，与实际达成不区分。** 试点写 `["AP-1","AP-2"]`
+   表示**目标**，验证器却按它来加严检查并输出 `VALID`——读者容易读成"已达成 AP-2"。
+   建议拆成 `conformance_targets`（目标）与 `conformance_claimed`（声称达成），
+   或在报告里明确输出 "targets: AP-2 / achieved: none"。
+
+3. **`audit_required` 语义含混。** 它读起来像"这个动作需要审计"（需求），
+   但 AP-3 检查把它当成"已经有审计"（事实）。试点里写 `false` 是诚实的（确实没有审计），
+   却也可以被读成"我认为这个写操作不需要审计"。建议改名或拆成
+   `audit_required` + `audit_implemented`。
+
+---
+
+## 三、给标准的一句话总结
+
+这次试点最有价值的数据点是：**一个零机器入口的纯 GUI 应用，不写一行代码就能通过 AP-2 校验、
+拿到 66.7% 严格分数。**
+
+标准的架构主张（动作核心单一、绑定可查、效果声明化）在这个案例上是**成立且有产出的**——
+它抓到了一个真实的确认闸门缺陷。但**分数和等级目前度量的是"架构长得对不对"，
+不是"机器到底够不够得着"**。F1 + F2 不修，AP-2 徽章会很快变得没有意义。
+
+---
+
+## 附：试点数据
+
+| 项 | 值 |
+|---|---|
+| 应用 | uu-switch 3.18.0（cc-switch v3.18.0 下游） |
+| `#[tauri::command]` 总数 | 270 |
+| 依赖 `AppHandle`/`Window` 的 | 13（约 5%） |
+| 清单覆盖动作 | 8（核心「切驱动」域） |
+| 无头声明 / 有测试证据 | 8 / 3 |
+| 必需 Surface | desktop(gui)、ipc(ipc)、cli(cli) |
+| 严格分数 | 66.7%（16/24） |
+| 一致性例外 | 8（全部为 cli，复查日期 2026-10-31） |
+| 错误 / 警告 | 0 / 0 |
+
+下游评估全文见 uu-switch 仓库 `docs/影核协议评估.md`。
