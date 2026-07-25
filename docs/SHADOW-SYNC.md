@@ -129,6 +129,12 @@ Required envelope concepts:
 The [ClawMe task-delta example](../examples/sync/clawme-task-delta.json)
 demonstrates the smallest useful event batch.
 
+The confirmed-write fixtures show both successful and stale-device outcomes:
+
+- [`sync.command`](../examples/sync/clawme-attention-decision-command.json);
+- [`sync.result`](../examples/sync/clawme-attention-decision-result.json);
+- [`sync.conflict`](../examples/sync/clawme-attention-decision-conflict.json).
+
 ## 5. Message roles
 
 The initial profile uses seven roles:
@@ -163,6 +169,31 @@ semantics or make transport-specific data the new source of truth.
 - If history has been compacted, the owner sends a snapshot and a new cursor.
 - A shadow MAY render optimistic presentation state, but MUST reconcile it with
   the committed result and event stream.
+
+### 6.1 Reliable remote writes
+
+A remote write is not “send JSON and hope.” A conforming owner applies this
+gate before invoking the Action Core:
+
+1. authenticate the device and authorize the Action and resource;
+2. look up the idempotency key before checking expiry;
+3. if the key already committed the same request, return the original result;
+4. if the same key names different input or execution identity, reject it;
+5. reject an expired command and validate any required confirmation challenge;
+6. compare `expected_state_version` with authoritative state;
+7. return `sync.conflict` without executing when the state is stale;
+8. commit the effect, result, event, and idempotency record atomically where the
+   storage model permits it.
+
+The envelope's `confirmation` records the mode, challenge identity, and time.
+It MUST NOT contain a biometric template, device secret, or reusable proof.
+The owner validates confirmation through its trusted platform channel.
+
+Distributed transports normally provide at-least-once delivery, not magic
+exactly-once execution. Observable exactly-once behavior therefore depends on
+the idempotency ledger and the business effect sharing an atomic boundary. When
+that is impossible, the Action MUST itself be idempotent or have an explicit
+reconciliation/compensation design.
 
 ## 7. Capability negotiation
 

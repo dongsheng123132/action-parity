@@ -63,6 +63,12 @@ Do not include credentials, private user data, or destructive test instructions.
 - Update `CHANGELOG.md`.
 - Explain compatibility impact.
 - Use clear, compact commit messages.
+- Sign commits with `Signed-off-by` to certify the
+  [Developer Certificate of Origin 1.1](https://developercertificate.org/).
+
+The DCO records that contributors have the right to submit their work under the
+project license. It does not transfer ownership to a commercial company and
+does not require a separate contributor license agreement.
 
 ## Developer setup
 
@@ -91,4 +97,3 @@ Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 ## License
 
 By contributing, you agree that your contribution is licensed under the Apache License 2.0.
-

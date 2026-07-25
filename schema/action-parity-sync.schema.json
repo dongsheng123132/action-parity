@@ -186,6 +186,32 @@
       },
       "additionalProperties": false
     },
+    "confirmation": {
+      "type": "object",
+      "required": [
+        "mode",
+        "challenge_id",
+        "confirmed_at"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "explicit",
+            "biometric",
+            "system"
+          ]
+        },
+        "challenge_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confirmed_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
     "hello": {
       "type": "object",
       "required": [
@@ -398,6 +424,13 @@
           "type": "integer",
           "minimum": 0
         },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "confirmation": {
+          "$ref": "#/$defs/confirmation"
+        },
         "input": {}
       },
       "additionalProperties": false
@@ -453,6 +486,30 @@
           "minimum": 0
         }
       },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "ok"
+            ],
+            "properties": {
+              "ok": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "error"
+            ],
+            "properties": {
+              "error": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      ],
       "additionalProperties": false
     },
     "ack": {
@@ -470,12 +527,17 @@
     "conflict": {
       "type": "object",
       "required": [
+        "action_id",
         "execution_id",
         "expected_state_version",
         "current_state_version",
         "resolution"
       ],
       "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
         "execution_id": {
           "type": "string",
           "minLength": 1

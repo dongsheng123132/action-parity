@@ -7,6 +7,23 @@
 This document is a project strategy, not legal advice or a trademark clearance
 opinion.
 
+## Current decision
+
+ActionParity should be public now as a **working draft and design-partner
+invitation**, not promoted as an established industry standard or certified
+program.
+
+Before a paid mass-publicity campaign:
+
+1. decide whether an individual or company will own the initial word mark;
+2. complete professional clearance in the first target jurisdictions;
+3. reserve the primary domains, organization, package scopes, and social names;
+4. file the plain `ACTIONPARITY` word mark if clearance is favorable; and
+5. publish the interim [`TRADEMARKS.md`](../TRADEMARKS.md) policy.
+
+Public implementation work should continue during this process. The project
+needs adoption evidence; it does not need to hide the specification.
+
 ## Recommendation
 
 Registering a trademark is worthwhile if ActionParity will be used for
@@ -100,6 +117,39 @@ It should prohibit:
 
 The trademark should protect trust in the conformance claim, not give its owner a
 private veto over implementations of the open specification.
+
+## What stays open and what stays protected
+
+| Open for maximum adoption | Protected or access-controlled |
+|---|---|
+| specification and schemas | ActionParity name and official logo |
+| validator and conformance vectors | official certification badge and signing keys |
+| reference SDKs and framework adapters | customer data and private test evidence |
+| public implementation reports | hosted-service credentials and abuse controls |
+| truthful compatibility statements | certification registry integrity |
+| independent compatible implementations | confidential commercial operations |
+
+The standard text is deliberately not the moat. The durable business assets are
+trusted evidence, migration automation, cross-platform test infrastructure,
+enterprise integrations, historical reliability data, and certification
+reputation.
+
+## Patent and trade-secret checkpoint
+
+The broad “one Action Core, many native shadows” architecture should remain
+open and should not be used as a patent tollgate for adoption.
+
+If future work produces a specific technical invention believed to be novel,
+pause public disclosure of that narrow invention and obtain patent advice
+before publishing it. Public disclosure can destroy novelty in many
+jurisdictions. Alternatively, intentionally publish it as defensive prior art
+when openness is the chosen strategy.
+
+Keep only genuinely confidential commercial material as a trade secret:
+customer datasets, private evaluation corpora, infrastructure controls,
+fraud/abuse signals, pricing strategy, and non-public deployment know-how.
+Trade-secret treatment requires real access controls and confidentiality
+practice; merely labeling an already public idea “secret” provides no moat.
 
 ## Ownership and neutrality
 

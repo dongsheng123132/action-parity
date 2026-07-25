@@ -12,7 +12,13 @@ All notable project changes will be documented here.
 - recognize legacy CLI bindings that always emit JSON through the
   `cli:always-json/` target namespace;
 - document trademark, namespace, domain, and certification-mark sequencing;
-- correct the U-King example to identify its Tauri desktop surface.
+- correct the U-King example to identify its Tauri desktop surface;
+- define the One Core, Many Shadows delta-sync profile;
+- add confirmed remote-write command, result, and conflict fixtures;
+- require structured errors for failed sync results and correlate conflicts by
+  Action ID;
+- publish an interim trademark-use policy and staged public-launch gates;
+- adopt Developer Certificate of Origin sign-off for new contributions.
 
 ## 0.1.0 - 2026-07-24
 

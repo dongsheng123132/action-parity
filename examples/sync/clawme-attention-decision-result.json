@@ -1,0 +1,20 @@
+{
+  "protocol": "action-parity/sync@0.1",
+  "type": "sync.result",
+  "stream_id": "task:task_demo_42",
+  "message_id": "msg_result_attention_01",
+  "sent_at": "2026-07-25T05:30:01Z",
+  "payload": {
+    "action_id": "attention.decision",
+    "execution_id": "exec_attention_01",
+    "ok": true,
+    "data": {
+      "attention_id": "attention_17",
+      "decision": "approve",
+      "status": "accepted"
+    },
+    "error": null,
+    "cursor": "cursor_task_demo_42_43",
+    "state_version": 43
+  }
+}

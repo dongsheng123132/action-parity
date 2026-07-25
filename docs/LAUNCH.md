@@ -2,6 +2,38 @@
 
 This document turns the specification into a public launch.
 
+## Recommended launch mode
+
+Launch publicly, but in evidence-led stages.
+
+### Now: controlled public draft
+
+- publish the repository and say “working draft,” not “industry standard”;
+- show the real U-King GUI/Action journey and ClawMe delta-sync evidence;
+- invite 10 design partners from different frameworks;
+- open Discussions and RFC issues;
+- measure implementations, reconnect behavior, GUI flake rate, and bytes
+  transferred.
+
+### After identity is reserved: broad developer launch
+
+- complete trademark clearance and reserve the important namespaces;
+- tag a reproducible draft release;
+- publish a 60–90 second demo and two implementation reports;
+- contact framework, testing, accessibility, and agent-tool communities.
+
+### After independent adoption: major campaign
+
+- wait for at least three independent applications, two operating systems, and
+  reproducible public conformance runs;
+- establish multi-party technical governance;
+- announce the standardization effort broadly;
+- do not offer an official certification badge until its neutral rules and
+  appeal process exist.
+
+This sequencing protects the name without slowing adoption. It also prevents a
+large publicity spike from producing attention without credible evidence.
+
 ## Repository metadata
 
 **Name**
