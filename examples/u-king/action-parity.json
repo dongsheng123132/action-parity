@@ -84,13 +84,13 @@
       "bindings": [
         {
           "surface": "desktop",
-          "target": "selector:[data-action-id=\"environment.inspect\"] -> tauri:command/detect_stack",
-          "test": "src-tauri/src/actions.rs"
+          "target": "selector:[data-action-id=\"environment.inspect\"] -> action-core",
+          "test": "private-release-gate:desktop-action-binding"
         },
         {
           "surface": "cli",
-          "target": "cli:U-King.exe action run environment.inspect --json --no-input",
-          "test": "src-tauri/src/action_cli.rs"
+          "target": "cli:action run environment.inspect --json --no-input",
+          "test": "private-release-gate:cli-action-binding"
         }
       ]
     },
@@ -141,13 +141,13 @@
       "bindings": [
         {
           "surface": "desktop",
-          "target": "selector:[data-action-id=\"tool.list\"] -> tauri:command/list_tools",
-          "test": "src-tauri/src/actions.rs"
+          "target": "selector:[data-action-id=\"tool.list\"] -> action-core",
+          "test": "private-release-gate:desktop-action-binding"
         },
         {
           "surface": "cli",
-          "target": "cli:U-King.exe action run tool.list --json --no-input",
-          "test": "src-tauri/src/action_cli.rs"
+          "target": "cli:action run tool.list --json --no-input",
+          "test": "private-release-gate:cli-action-binding"
         }
       ]
     },
@@ -200,13 +200,13 @@
       "bindings": [
         {
           "surface": "desktop",
-          "target": "selector:[data-action-id=\"driver.status\"] -> tauri:command/get_driver_status",
-          "test": "src-tauri/src/actions.rs"
+          "target": "selector:[data-action-id=\"driver.status\"] -> action-core",
+          "test": "private-release-gate:desktop-action-binding"
         },
         {
           "surface": "cli",
-          "target": "cli:U-King.exe action run driver.status --json --no-input",
-          "test": "src-tauri/src/action_cli.rs"
+          "target": "cli:action run driver.status --json --no-input",
+          "test": "private-release-gate:cli-action-binding"
         }
       ]
     },
@@ -282,13 +282,13 @@
       "bindings": [
         {
           "surface": "desktop",
-          "target": "selector:[data-action-id=\"provider.catalog\"] -> tauri:command/list_provider_catalog",
-          "test": "src-tauri/src/actions.rs"
+          "target": "selector:[data-action-id=\"provider.catalog\"] -> action-core",
+          "test": "private-release-gate:desktop-action-binding"
         },
         {
           "surface": "cli",
-          "target": "cli:U-King.exe action run provider.catalog --json --no-input",
-          "test": "src-tauri/src/action_cli.rs"
+          "target": "cli:action run provider.catalog --json --no-input",
+          "test": "private-release-gate:cli-action-binding"
         }
       ]
     },
@@ -346,13 +346,13 @@
       "bindings": [
         {
           "surface": "desktop",
-          "target": "selector:[data-action-id=\"cleanup.scan\"] -> tauri:command/cleanup_scan",
-          "test": "src-tauri/src/actions.rs"
+          "target": "selector:[data-action-id=\"cleanup.scan\"] -> action-core",
+          "test": "private-release-gate:desktop-action-binding"
         },
         {
           "surface": "cli",
-          "target": "cli:U-King.exe action run cleanup.scan --json --no-input",
-          "test": "src-tauri/src/action_cli.rs"
+          "target": "cli:action run cleanup.scan --json --no-input",
+          "test": "private-release-gate:cli-action-binding"
         }
       ]
     },
@@ -397,13 +397,13 @@
       "bindings": [
         {
           "surface": "desktop",
-          "target": "selector:[data-action-id=\"health.report.preview\"] -> tauri:command/preview_health_report",
-          "test": "src-tauri/src/actions.rs"
+          "target": "selector:[data-action-id=\"health.report.preview\"] -> action-core",
+          "test": "private-release-gate:desktop-action-binding"
         },
         {
           "surface": "cli",
-          "target": "cli:U-King.exe action run health.report.preview --json --no-input",
-          "test": "src-tauri/src/action_cli.rs"
+          "target": "cli:action run health.report.preview --json --no-input",
+          "test": "private-release-gate:cli-action-binding"
         }
       ]
     }

@@ -101,9 +101,8 @@ benchmark.
 
 ### U-King
 
-- Both stages were isolated from the dirty production worktree on
-  `codex/action-parity-production-pilot`.
-- Stage 2 change: 11 files, 693 insertions, 167 deletions.
+- Both stages were isolated from the active production worktree.
+- The private implementation was independently reviewed as an isolated change.
 - Rust tests: 23 passed.
 - Rust compile check and React/TypeScript production build: passed.
 - Manifest report:
@@ -117,8 +116,8 @@ benchmark.
   - `tool.list`: 6,629 ms.
 - Real release executable validation:
   - action discovery returned all six actions with exit code 0;
-  - provider catalogue returned six records and no `api_key` property;
-  - cleanup scan returned 17 footprints without deleting anything;
+  - provider catalogue returned redacted records and no `api_key` property;
+  - cleanup scan returned eligible footprints without deleting anything;
   - health preview returned a report longer than 700 characters with the key
     hidden and left the cached identity file unchanged;
   - unknown input failed in 0 ms with `invalid_input` and exit code 2;
@@ -132,7 +131,8 @@ benchmark.
   test.
 
 No version was bumped and no executable was packaged, signed, deployed, or
-served to customers.
+served to customers. Raw CLI output, test directories, source paths, and
+credentials are intentionally retained only in the closed release evidence.
 
 ## Advantages demonstrated
 

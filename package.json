@@ -12,10 +12,11 @@
     "action-parity": "./bin/action-parity.mjs"
   },
   "scripts": {
-    "check": "npm test && npm run validate && npm run check:links",
+    "check": "npm test && npm run validate && npm run check:links && npm run check:public-pilot",
     "check:links": "node scripts/check-links.mjs",
     "validate": "node bin/action-parity.mjs validate examples/minimal/action-parity.json && node bin/action-parity.mjs validate examples/t-king/action-parity.json && node bin/action-parity.mjs validate examples/u-model/action-parity.json && node bin/action-parity.mjs validate examples/u-king/action-parity.json",
     "report": "node bin/action-parity.mjs report examples/u-king/action-parity.json",
+    "check:public-pilot": "node scripts/check-public-u-king-pilot.mjs",
     "test": "node --test"
   },
   "dependencies": {

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { validateManifestObject } from "../src/validator.mjs";
+import { auditPublicPilot } from "../scripts/check-public-u-king-pilot.mjs";
 
 async function fixture(relativePath) {
   const url = new URL(relativePath, import.meta.url);
@@ -28,6 +29,32 @@ test("U-King production pilot has full desktop and CLI parity", async () => {
   assert.equal(report.summary.present_required_bindings, 12);
   assert.equal(report.summary.strict_parity_percent, 100);
   assert.equal(report.summary.warnings, 0);
+});
+
+test("U-King public manifest does not expose a credential-shaped property", async () => {
+  const manifest = await fixture("../examples/u-king/action-parity.json");
+  const serialized = JSON.stringify(manifest);
+
+  assert.doesNotMatch(serialized, /\"api_key\"\s*:/i);
+});
+
+test("public pilot disclosure gate rejects private paths and credential fields", () => {
+  const failures = auditPublicPilot(
+    { output_schema: { properties: { api_key: { type: "string" } } } },
+    [{ name: "report.md", text: "Evidence is in src-tauri/src/actions.rs." }]
+  );
+
+  assert.ok(failures.some((failure) => failure.includes("internal source path")));
+  assert.ok(failures.some((failure) => failure.includes("forbidden credential property")));
+});
+
+test("public pilot disclosure gate permits semantic evidence", () => {
+  const failures = auditPublicPilot(
+    { output_schema: { properties: { has_saved_key: { type: "boolean" } } } },
+    [{ name: "report.md", text: "The release gate proved a redacted provider catalogue." }]
+  );
+
+  assert.deepEqual(failures, []);
 });
 
 test("T-King implementation binds desktop, generic CLI, and legacy CLI", async () => {

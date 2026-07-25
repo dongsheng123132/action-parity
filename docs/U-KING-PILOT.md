@@ -4,11 +4,9 @@
 
 **Product baseline:** U-King 0.9.67
 
-**Branch:** `codex/action-parity-production-pilot`
-
-**Stage 1 commit:** `28d901f`
-
-**Stage 2 commit:** `0106bec`
+The detailed implementation, fixtures, and raw release output remain in the
+closed U-King release repository. This public report is a deliberately
+sanitized evidence summary, not a substitute for that private release gate.
 
 U-King is the first production application to adopt the T-King/U-Model adapter
 pattern. The work was isolated from an active dirty production worktree and did
@@ -17,7 +15,7 @@ customer configuration.
 
 ## Implemented slice
 
-| Action ID | Existing GUI path | Shared Rust entry | Effect |
+| Action ID | Existing GUI capability | Shared action | Effect |
 |---|---|---|---|
 | `environment.inspect` | Installation wizard computer diagnosis | `actions::environment_inspect` | Read |
 | `tool.list` | My AI / tool catalogue | `actions::tool_list` | Read |
@@ -36,7 +34,7 @@ U-King.exe action manifest --json
 U-King.exe action run <action-id> --json --no-input
 ```
 
-All six GUI paths now have stable `data-action-id` selectors.
+All six GUI paths now have stable semantic automation identifiers.
 
 ## Security decision
 
@@ -63,7 +61,7 @@ boundary.
   - strict parity: 100%;
   - errors: 0;
   - warnings: 0.
-- Stage 2 change: 11 files, 693 insertions, 167 deletions.
+- The private implementation was independently reviewed as an isolated change.
 - Rust tests: 23 passed.
 - Rust `cargo check`: passed; one unrelated existing dead-code warning remains.
 - React/TypeScript production build: passed.
@@ -73,10 +71,10 @@ boundary.
   - `tool.list`: 6,629 ms.
 - Release executable (Windows GUI subsystem):
   - action discovery returned all six actions with exit code 0;
-  - `provider.catalog` returned six records and no `api_key` property;
-  - `cleanup.scan` returned 17 footprints without deleting anything;
+  - `provider.catalog` returned redacted records and no `api_key` property;
+  - `cleanup.scan` returned eligible footprints without deleting anything;
   - `health.report.preview` returned a report longer than 700 characters with
-    the key hidden and left `device.json` hash and modification time unchanged;
+    the key hidden and left the cached identity state unchanged;
   - an unknown input field returned `invalid_input` in 0 ms with exit code 2;
   - stdout contained the JSON result and stderr remained empty.
 
@@ -94,18 +92,18 @@ This stage intentionally performed only read operations. It did not:
 - write `~/.claude`, `~/.codex`, ClawX, Hermes, or U-King user state;
 - apply or test a provider;
 - install, launch, stop, upgrade, or uninstall software;
-- use `UKING_TEST_KEY`;
+- use any test or production credential;
 - modify the production version;
 - publish an exe or trigger the U-King update chain.
 
-Future write-action tests must use `UKING_TEST_HOME`, validate all input before
-side effects, require explicit confirmation, and prove rollback behavior.
+Future write-action tests must use an isolated test home, validate all input
+before side effects, require explicit confirmation, and prove rollback behavior.
 
 ## Architecture result
 
 ```text
 Tauri GUI command ─┐
-                   ├─> actions.rs ─> existing U-King domain modules
+                   ├─> Action Core ─> existing U-King domain modules
 AI action CLI ─────┤
 legacy selfcheck ──┘
 ```
