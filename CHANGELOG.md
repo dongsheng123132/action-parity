@@ -2,6 +2,39 @@
 
 All notable project changes will be documented here.
 
+## Unreleased
+
+- define the adopt-map-converge-verify compatibility approach for existing CLI,
+  MCP, OpenAPI, OpenRPC, Tauri, accessibility, and automation identifiers;
+- select T-King as the first reference pilot after comparing T-King, UU-Switch,
+  and U-King;
+- add a proposed three-action T-King manifest;
+- recognize legacy CLI bindings that always emit JSON through the
+  `cli:always-json/` target namespace;
+- document trademark, namespace, domain, and certification-mark sequencing;
+- correct the U-King example to identify its Tauri desktop surface;
+- define the One Core, Many Shadows delta-sync profile;
+- add confirmed remote-write command, result, and conflict fixtures;
+- require structured errors for failed sync results and correlate conflicts by
+  Action ID;
+- publish an interim trademark-use policy and staged public-launch gates;
+- adopt Developer Certificate of Origin sign-off for new contributions;
+- name the cross-device profile “影核协议 / ActionParity ShadowCore Profile”
+  without changing the stable wire identifier;
+- add owner-issued `sync.challenge` envelopes bound to actor, input digest, and
+  state version;
+- restate the ShadowCore Profile description around one authoritative Action
+  Core, native shadows, and machine verification;
+- specify the four verification layers, the exposure requirements, and the
+  unattended agent loop that let an agent test a product without pixels;
+- publish the Chinese ShadowCore Profile at `docs/SHADOW-SYNC.zh-CN.md`
+  alongside the English text;
+- accept PowerShell `-Json` and classic Windows `/json` as machine-readable CLI
+  modes so non-POSIX ecosystems are not warned for following their own
+  conventions;
+- record two ShadowCore implementations: Open365 (PowerShell engines and a
+  WinForms desktop) and ClawMe (relay plus native iOS shadow).
+
 ## 0.1.0 - 2026-07-24
 
 Initial working draft:
@@ -14,4 +47,3 @@ Initial working draft:
 - adjacent-standards landscape;
 - adoption and commercialization plans;
 - open governance and contribution process.
-

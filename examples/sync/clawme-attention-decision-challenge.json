@@ -1,0 +1,21 @@
+{
+  "protocol": "action-parity/sync@0.1",
+  "type": "sync.challenge",
+  "stream_id": "task:task_demo_42",
+  "message_id": "msg_challenge_attention_01",
+  "sent_at": "2026-07-25T05:29:50Z",
+  "payload": {
+    "challenge_id": "challenge_attention_17",
+    "action_id": "attention.decision",
+    "actor": {
+      "id": "device_ios_demo",
+      "kind": "device",
+      "surface": "ios"
+    },
+    "mode": "explicit",
+    "input_sha256": "7882e9720c44f6569c2912f27dc9c79c220d671edcbc37b765ee571a9512d8e9",
+    "expected_state_version": 42,
+    "issued_at": "2026-07-25T05:29:50Z",
+    "expires_at": "2026-07-25T05:35:00Z"
+  }
+}

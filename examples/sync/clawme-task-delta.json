@@ -1,0 +1,31 @@
+{
+  "protocol": "action-parity/sync@0.1",
+  "type": "sync.delta",
+  "stream_id": "clawme:machine_pc-7995",
+  "message_id": "msg_01",
+  "sent_at": "2026-07-25T10:00:01Z",
+  "payload": {
+    "previous_cursor": "cursor_41",
+    "cursor": "cursor_42",
+    "state_version": 42,
+    "events": [
+      {
+        "event_id": "evt_42",
+        "sequence": 42,
+        "kind": "task.status.changed",
+        "occurred_at": "2026-07-25T10:00:00Z",
+        "action_id": "task.pause",
+        "execution_id": "exec_pause_01",
+        "entity": {
+          "type": "task",
+          "id": "task_123"
+        },
+        "payload": {
+          "from": "running",
+          "to": "paused",
+          "reason": "user_requested"
+        }
+      }
+    ]
+  }
+}

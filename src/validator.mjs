@@ -115,13 +115,21 @@ export function validateManifestObject(manifest) {
 
       boundSurfaceIds.add(binding.surface);
 
-      if (surface.kind === "cli" && !binding.target.includes("--json")) {
+      // A machine-readable mode may be spelled `--json` (POSIX), `-Json`
+      // (PowerShell), or `/json` (classic Windows). The requirement is that a
+      // caller can see how to get structured output, not that every ecosystem
+      // adopt POSIX flag syntax.
+      const exposesJson =
+        /(^|\s)(--json|-json|\/json)(=|\s|$)/i.test(binding.target) ||
+        binding.target.startsWith("cli:always-json/");
+
+      if (surface.kind === "cli" && !exposesJson) {
         issues.push(
           issue(
             "warning",
             "cli_binding_json_not_visible",
             `${bindingPath}/target`,
-            `${action.id} CLI binding does not show a --json mode.`
+            `${action.id} CLI binding does not show a machine-readable JSON mode.`
           )
         );
       }
@@ -327,4 +335,3 @@ function roundPercent(numerator, denominator) {
 export function schemaPath() {
   return fileURLToPath(schemaUrl);
 }
-

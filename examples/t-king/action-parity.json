@@ -1,0 +1,269 @@
+{
+  "$schema": "../../schema/action-parity.schema.json",
+  "spec_version": "0.1.0",
+  "application": {
+    "id": "org.t-king.desktop",
+    "name": "T-King",
+    "version": "0.2.1",
+    "description": "Implemented ActionParity vertical slice shared by T-King's GUI, generic action CLI, and legacy CLI."
+  },
+  "conformance_targets": [
+    "AP-1",
+    "AP-2"
+  ],
+  "surfaces": [
+    {
+      "id": "desktop",
+      "kind": "gui",
+      "required_for_parity": true,
+      "test_driver": "windows-uia-and-webview2",
+      "description": "Tauri desktop GUI with stable semantic selectors added by the pilot."
+    },
+    {
+      "id": "cli",
+      "kind": "cli",
+      "required_for_parity": true,
+      "description": "Discoverable non-interactive action list, describe, manifest, and run commands."
+    },
+    {
+      "id": "legacy-cli",
+      "kind": "cli",
+      "required_for_parity": true,
+      "description": "Existing non-interactive --engine-test and --station-test compatibility aliases."
+    }
+  ],
+  "actions": [
+    {
+      "id": "engine.install",
+      "title": "Install engine",
+      "description": "Install and verify one declared T-King engine through the shared engine installer.",
+      "tags": [
+        "pilot",
+        "engine"
+      ],
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "engine_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "engine_id"
+        ]
+      },
+      "output_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "engine_id": {
+            "type": "string"
+          },
+          "verification": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "engine_id",
+          "verification",
+          "verified"
+        ]
+      },
+      "effects": {
+        "class": "external",
+        "risk": "medium",
+        "reversible": true,
+        "confirmation": "conditional",
+        "audit_required": true,
+        "notes": "Downloads and writes only inside TKING_TEST_HOME during conformance testing."
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": true,
+        "cancellable": false,
+        "timeout_ms": 900000,
+        "progress_events": true
+      },
+      "bindings": [
+        {
+          "surface": "desktop",
+          "target": "selector:[data-action-id=\"engine.install\"] -> tauri:command/install_engine",
+          "test": "src-tauri/src/actions.rs"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:t-king action run engine.install --input <json> --json --no-input --yes",
+          "test": "src-tauri/src/action_cli.rs"
+        },
+        {
+          "surface": "legacy-cli",
+          "target": "cli:always-json/--engine-test <engine_id>",
+          "test": "src-tauri/src/actions.rs"
+        }
+      ]
+    },
+    {
+      "id": "project.decompose",
+      "title": "Decompose project",
+      "description": "Run the existing VLM decomposition pipeline for one sandboxed project.",
+      "tags": [
+        "pilot",
+        "pipeline"
+      ],
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      },
+      "output_schema": {
+        "type": "object",
+        "description": "The validated DecomposeJson result.",
+        "additionalProperties": true
+      },
+      "effects": {
+        "class": "external",
+        "risk": "medium",
+        "reversible": true,
+        "confirmation": "conditional",
+        "audit_required": true,
+        "notes": "Calls external AI services and writes generated files; tests use TKING_TEST_HOME."
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": true,
+        "cancellable": false,
+        "timeout_ms": 3600000,
+        "progress_events": true
+      },
+      "bindings": [
+        {
+          "surface": "desktop",
+          "target": "selector:[data-action-id=\"project.decompose\"] -> tauri:command/decompose_run",
+          "test": "src-tauri/src/actions.rs"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:t-king action run project.decompose --input <json> --json --no-input --yes",
+          "test": "src-tauri/src/action_cli.rs"
+        },
+        {
+          "surface": "legacy-cli",
+          "target": "cli:always-json/--station-test decompose <project_id>",
+          "test": "src-tauri/src/actions.rs"
+        }
+      ]
+    },
+    {
+      "id": "project.render",
+      "title": "Render project",
+      "description": "Render a sandboxed project through the shared station 4 pipeline.",
+      "tags": [
+        "pilot",
+        "pipeline"
+      ],
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "media_files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          },
+          "voice": {
+            "type": "string",
+            "default": "alloy"
+          },
+          "bgm_file": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "project_id"
+        ]
+      },
+      "output_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "output_path": {
+            "type": "string"
+          },
+          "cover_path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output_path"
+        ]
+      },
+      "effects": {
+        "class": "external",
+        "risk": "medium",
+        "reversible": true,
+        "confirmation": "conditional",
+        "audit_required": true,
+        "notes": "May call image and speech services and writes video artifacts inside the sandbox."
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": true,
+        "cancellable": false,
+        "timeout_ms": 3600000,
+        "progress_events": true
+      },
+      "bindings": [
+        {
+          "surface": "desktop",
+          "target": "selector:[data-action-id=\"project.render\"] -> tauri:command/render_run",
+          "test": "src-tauri/src/actions.rs"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:t-king action run project.render --input <json> --json --no-input --yes",
+          "test": "src-tauri/src/action_cli.rs"
+        },
+        {
+          "surface": "legacy-cli",
+          "target": "cli:always-json/--station-test render <project_id> [media...] [--voice <voice>] [--bgm <file>]",
+          "test": "src-tauri/src/actions.rs"
+        }
+      ]
+    }
+  ],
+  "state": {
+    "queries": [
+      "project.decompose",
+      "project.render"
+    ],
+    "events": [
+      "action.started",
+      "action.progress",
+      "action.completed",
+      "action.failed"
+    ]
+  }
+}

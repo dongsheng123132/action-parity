@@ -110,7 +110,7 @@ ActionParity does **not** require one CLI command for every visual control. Tabs
 }
 ```
 
-See the complete [normative draft](SPEC.md), the [minimal example](examples/minimal/action-parity.json), and the [U-King pilot manifest](examples/u-king/action-parity.json).
+See the complete [normative draft](SPEC.md), the [minimal example](examples/minimal/action-parity.json), the [T-King pilot manifest](examples/t-king/action-parity.json), the [U-Model Python/Web pilot](examples/u-model/action-parity.json), and the [U-King production pilot](examples/u-king/action-parity.json).
 
 ## Conformance levels
 
@@ -161,15 +161,65 @@ Read the evidence and detailed comparison in [docs/LANDSCAPE.md](docs/LANDSCAPE.
 
 **v0.1.0 working draft.** The ideas are implementable; the exact schema and conformance language are intentionally open to revision before v1.0.
 
-The first reference application is U-King, a Windows desktop application. The pilot is designed to prove that an existing Electron application can gain:
+The first three reference implementations are now working:
+
+- **T-King:** Tauri/React/Rust, three external pipeline actions, generic and
+  legacy CLI adapters, and stable GUI selectors.
+- **U-Model:** stdlib Python/Web Components, two read-only hardware/model
+  actions, a real hardware invocation, and legacy `--recommend --json`.
+- **U-King:** production Tauri/React/Rust, six low-risk actions shared by the
+  existing GUI and release-mode executable, including a redacted provider
+  catalogue, read-only cleanup scan, and in-memory health-report preview.
+
+Together they show that existing GUI and CLI surfaces can converge without
+breaking either interface:
 
 - a headless Action Core;
-- CLI and MCP adapters;
+- legacy and generic CLI adapters, with MCP as a later optional surface;
 - Windows UI Automation coverage;
 - binding and parity reports;
 - safe, sandboxed AI-driven tests.
 
-See [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md).
+See the [measured pilot results](docs/PILOT-RESULTS.md), the
+[pilot selection](docs/PILOT-SELECTION.md), and the
+[compatibility design](docs/COMPATIBILITY.md). The pilots establish AP-1/AP-2
+evidence; real GUI journeys and live external workflows remain AP-4 work.
+
+## ShadowCore Profile (影核协议)
+
+For products that run on more than one device, the
+[ActionParity ShadowCore Profile](docs/SHADOW-SYNC.md)
+([中文版](docs/SHADOW-SYNC.zh-CN.md)) extends the standard across machines:
+
+> One product, one authoritative Action Core. Every interface — a Windows
+> window, a phone screen, a terminal, an MCP tool, a test harness — is a native
+> shadow of the same Actions, State, Events, and Policy. Devices exchange
+> actions, state, and events. They do not exchange screens.
+
+It specifies versioned Action/State/Event contracts, native
+Windows/macOS/iOS/Android/HarmonyOS projections, cursor-based delta sync instead
+of screen streaming, and a reliable remote-write gate built from challenges,
+idempotency keys, and state versions.
+
+It also makes a product testable by a machine. Because every meaningful action
+is invocable and assertable without a UI, an agent can verify behavior — local,
+remote, and multi-device — with no screenshots, mouse coordinates, or vision
+model, and reserve real-GUI tests for what genuinely needs a window. See
+[Machine verification](docs/SHADOW-SYNC.md#10-machine-verification).
+
+The [naming decision](docs/NAMING.md) keeps ActionParity as the umbrella
+standard while using “一核多影 / One Core, Many Shadows” as the cross-device
+architecture.
+
+Two implementations now build on the profile, in two different ecosystems:
+
+- **Open365** — PowerShell maintenance engines behind one action core; the
+  WinForms desktop, the CLI, and an agent invoke the same ten action IDs, with
+  a deny-by-default gate on system-changing actions and a headless `verify`
+  loop that needs no window.
+- **ClawMe** — relay plus native iOS shadow; a published manifest and a
+  headless conformance test prove every declared binding exists without a
+  device in the loop.
 
 ## Participate
 
@@ -188,6 +238,8 @@ Read the short [ActionParity Manifesto](MANIFESTO.md) and the practical [launch 
 An open standard can support a healthy commercial ecosystem without making conformance pay-to-play. Potential businesses include managed CI, independent certification, migration tooling, enterprise policy and audit, conformance labs, training, and adapter support.
 
 The proposed model and neutrality safeguards are documented in [docs/BUSINESS.md](docs/BUSINESS.md).
+Brand protection, namespace reservation, and certification-mark timing are
+covered in [docs/BRAND-AND-TRADEMARK.md](docs/BRAND-AND-TRADEMARK.md).
 
 ## License
 

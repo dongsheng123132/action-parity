@@ -1,0 +1,175 @@
+{
+  "$schema": "../../schema/action-parity.schema.json",
+  "spec_version": "0.1.0",
+  "application": {
+    "id": "org.u-claw.u-model",
+    "name": "U-Model",
+    "version": "1.0.0",
+    "description": "Portable offline model recommendation with shared Web GUI, AI CLI, and legacy CLI actions."
+  },
+  "conformance_targets": [
+    "AP-1",
+    "AP-2"
+  ],
+  "surfaces": [
+    {
+      "id": "web",
+      "kind": "gui",
+      "required_for_parity": true,
+      "test_driver": "browser",
+      "description": "Local offline Web GUI served by launcher.py."
+    },
+    {
+      "id": "cli",
+      "kind": "cli",
+      "required_for_parity": true,
+      "description": "Discoverable non-interactive action commands."
+    },
+    {
+      "id": "legacy-cli",
+      "kind": "cli",
+      "required_for_parity": true,
+      "description": "Compatible --recommend entry with optional structured JSON."
+    }
+  ],
+  "actions": [
+    {
+      "id": "hardware.inspect",
+      "title": "Inspect hardware",
+      "description": "Detect CPU, RAM, and GPU capabilities without modifying the host.",
+      "tags": [
+        "hardware",
+        "read-only"
+      ],
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "output_schema": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "effects": {
+        "class": "read",
+        "risk": "low",
+        "reversible": true,
+        "confirmation": "never",
+        "audit_required": false
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": true,
+        "cancellable": false,
+        "timeout_ms": 30000,
+        "progress_events": false
+      },
+      "bindings": [
+        {
+          "surface": "web",
+          "target": "selector:[data-action-id=\"hardware.inspect\"] -> GET /api/hardware",
+          "test": "tests/test_action_parity.py"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:python launcher.py action run hardware.inspect --json --no-input",
+          "test": "tests/test_action_parity.py"
+        },
+        {
+          "surface": "legacy-cli",
+          "target": "cli:python launcher.py --recommend --json",
+          "test": "tests/test_action_parity.py"
+        }
+      ]
+    },
+    {
+      "id": "model.recommend",
+      "title": "Recommend models",
+      "description": "Score the model catalogue against detected hardware and return ranked recommendations.",
+      "tags": [
+        "model",
+        "read-only"
+      ],
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "runnable_only": {
+            "type": "boolean",
+            "default": false
+          },
+          "limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "maximum": 100,
+            "default": null
+          }
+        }
+      },
+      "output_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "hardware": {
+            "type": "object"
+          },
+          "models": {
+            "type": "array"
+          },
+          "total": {
+            "type": "integer"
+          },
+          "runnable": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hardware",
+          "models",
+          "total",
+          "runnable"
+        ]
+      },
+      "effects": {
+        "class": "read",
+        "risk": "low",
+        "reversible": true,
+        "confirmation": "never",
+        "audit_required": false
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": true,
+        "cancellable": false,
+        "timeout_ms": 30000,
+        "progress_events": false
+      },
+      "bindings": [
+        {
+          "surface": "web",
+          "target": "selector:[data-action-id=\"model.recommend\"] -> GET /api/models",
+          "test": "tests/test_action_parity.py"
+        },
+        {
+          "surface": "cli",
+          "target": "cli:python launcher.py action run model.recommend --input <json> --json --no-input",
+          "test": "tests/test_action_parity.py"
+        },
+        {
+          "surface": "legacy-cli",
+          "target": "cli:python launcher.py --recommend --json",
+          "test": "tests/test_action_parity.py"
+        }
+      ]
+    }
+  ],
+  "state": {
+    "queries": [
+      "hardware.inspect",
+      "model.recommend"
+    ],
+    "events": []
+  }
+}
