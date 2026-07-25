@@ -213,10 +213,15 @@ architecture.
 
 Two implementations now build on the profile, in two different ecosystems:
 
-- **Open365** — PowerShell maintenance engines behind one action core; the
-  WinForms desktop, the CLI, and an agent invoke the same ten action IDs, with
-  a deny-by-default gate on system-changing actions and a headless `verify`
-  loop that needs no window.
+- **Open365** — seven PowerShell engines, each a self-contained CLI whose first
+  positional parameter is a `ValidateSet`-constrained action, twenty-nine in
+  total. The default action of every engine is read-only, only system-changing
+  actions require elevation, and the WinForms desktop reaches every engine
+  through one helper that always appends `-Json`, so the button and the command
+  run the same action. Six read-only actions are declared in a validated
+  manifest at strict parity; the remaining twenty-three are not yet declared.
+  Desktop controls still carry no runtime automation identifier, so those
+  bindings are traceable only through code call sites.
 - **ClawMe** — relay plus native iOS shadow; a published manifest and a
   headless conformance test prove every declared binding exists without a
   device in the loop.
