@@ -57,6 +57,59 @@ test("public pilot disclosure gate permits semantic evidence", () => {
   assert.deepEqual(failures, []);
 });
 
+function cliJsonModeManifest(target) {
+  return {
+    spec_version: "0.1.0",
+    application: { id: "org.example.shell", name: "Shell", version: "1.0.0" },
+    surfaces: [{ id: "cli", kind: "cli", required_for_parity: true }],
+    actions: [
+      {
+        id: "thing.check",
+        title: "Check",
+        description: "Read state.",
+        input_schema: { type: "object" },
+        output_schema: { type: "object" },
+        effects: {
+          class: "read",
+          risk: "low",
+          reversible: true,
+          confirmation: "never",
+          audit_required: false
+        },
+        execution: {
+          headless: true,
+          idempotent: true,
+          cancellable: false,
+          timeout_ms: 1000
+        },
+        bindings: [{ surface: "cli", target }]
+      }
+    ]
+  };
+}
+
+test("a machine-readable CLI mode may use POSIX, PowerShell, or Windows syntax", () => {
+  for (const target of [
+    "cli:shell thing check --json",
+    "cli:shell.ps1 action run thing.check -Json",
+    "cli:shell.exe thing check /json"
+  ]) {
+    const report = validateManifestObject(cliJsonModeManifest(target));
+    assert.ok(
+      !report.issues.some((item) => item.code === "cli_binding_json_not_visible"),
+      `${target} should count as a machine-readable mode`
+    );
+  }
+});
+
+test("a CLI binding with no machine-readable mode still warns", () => {
+  const report = validateManifestObject(cliJsonModeManifest("cli:shell thing check"));
+
+  assert.ok(
+    report.issues.some((item) => item.code === "cli_binding_json_not_visible")
+  );
+});
+
 test("T-King implementation binds desktop, generic CLI, and legacy CLI", async () => {
   const manifest = await fixture("../examples/t-king/action-parity.json");
   const report = validateManifestObject(manifest);

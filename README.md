@@ -211,6 +211,19 @@ The [naming decision](docs/NAMING.md) keeps ActionParity as the umbrella
 standard while using “一核多影 / One Core, Many Shadows” as the cross-device
 architecture.
 
+Three implementations now build on the profile, in three different ecosystems:
+
+- **Open365** — PowerShell maintenance engines behind one action core; the
+  WinForms desktop, the CLI, and an agent invoke the same ten action IDs, with
+  a deny-by-default gate on system-changing actions and a headless `verify`
+  loop that needs no window.
+- **UURescue** — the owner continuity runtime; its first confirmed write
+  (`checkpoint.create`) runs through one owner gate for the local GUI, the CLI,
+  an AI caller, and a remote shadow alike.
+- **ClawMe** — relay plus native iOS shadow; a published manifest and a
+  headless conformance test prove every declared binding exists without a
+  device in the loop.
+
 ## Participate
 
 - Read and challenge the [specification](SPEC.md).
