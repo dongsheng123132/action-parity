@@ -32,9 +32,8 @@ All notable project changes will be documented here.
 - accept PowerShell `-Json` and classic Windows `/json` as machine-readable CLI
   modes so non-POSIX ecosystems are not warned for following their own
   conventions;
-- record three ShadowCore implementations: Open365 (PowerShell engines and a
-  WinForms desktop), UURescue (owner continuity runtime with a confirmed write),
-  and ClawMe (relay plus native iOS shadow).
+- record two ShadowCore implementations: Open365 (PowerShell engines and a
+  WinForms desktop) and ClawMe (relay plus native iOS shadow).
 
 ## 0.1.0 - 2026-07-24
 

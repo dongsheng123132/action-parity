@@ -272,25 +272,6 @@ be rewritten:
 The first vertical slice should be one remote task:
 `task.status` → `task.events` → `task.pause/resume` → `approval.respond`.
 
-### 9.2 UURescue
-
-UURescue already has a task state machine, append-only event log, checkpoints,
-and recoverable takeover. It is a strong candidate for the canonical continuity
-runtime:
-
-1. expose `task.status` and `task.events` as read-only Actions;
-2. assign every event a stable sequence/cursor;
-3. export deltas without copying the complete task directory;
-4. add confirmed `checkpoint.create` and `takeover.start` Actions;
-5. let phone/desktop shadows project the same recovery state;
-6. use ClawMe's relay only as transport, not as a second source of truth.
-
-```text
-UURescue continuity state ── events/deltas ── ClawMe relay
-          │                                      │
-     owner execution                    native shadows
-```
-
 ## 10. Machine verification
 
 The hardest part of shipping GUI software is proving it still works. Driving a

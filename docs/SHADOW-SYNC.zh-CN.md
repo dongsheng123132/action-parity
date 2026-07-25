@@ -245,24 +245,6 @@ ClawMe 的边界本来就是对的：本地 owner agent、持久 relay、任务�
 第一个竖切面应当是一条远程任务：
 `task.status` → `task.events` → `task.pause/resume` → `approval.respond`。
 
-### 9.2 UURescue
-
-UURescue 已经有任务状态机、只追加事件日志、检查点和可恢复接班，很适合作为规范的
-连续性运行时：
-
-1. 把 `task.status` 和 `task.events` 暴露为只读动作；
-2. 给每条事件分配稳定序号/游标；
-3. 导出增量，而不是复制整个任务目录；
-4. 增加需确认的 `checkpoint.create` 与 `takeover.start`；
-5. 让手机/桌面影子投影同一份恢复状态；
-6. 只把 ClawMe relay 当传输通道，不当第二个事实源。
-
-```text
-UURescue 连续性状态 ── 事件/增量 ── ClawMe relay
-          │                            │
-      owner 执行                    原生影子
-```
-
 ## 10. 机器验证
 
 做 GUI 软件最难的部分不是写出来，而是证明它还能用。驱动真实窗口慢、脆、还受
