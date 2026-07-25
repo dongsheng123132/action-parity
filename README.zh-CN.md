@@ -159,6 +159,29 @@ Tauri/Rust：真实调用在约 12 秒内读出本机硬件并返回结构化模
 [examples/u-model/action-parity.json](examples/u-model/action-parity.json)，以及
 [examples/u-king/action-parity.json](examples/u-king/action-parity.json)。
 
+## 影核协议（跨设备子规范）
+
+产品一旦不止跑在一台机器上，就进入
+[影核协议](docs/SHADOW-SYNC.zh-CN.md)（英文：
+[ActionParity ShadowCore Profile](docs/SHADOW-SYNC.md)）的范围：
+
+> 一个产品只有一个权威动作核心。所有界面——Windows 窗口、手机屏幕、终端、
+> MCP 工具、测试夹具——都是同一套 Action、State、Event、Policy 的原生影子。
+> 设备之间同步动作、状态和事件，不同步屏幕。
+
+它规定了带版本的 Action/State/Event 契约、Windows/macOS/iOS/Android/鸿蒙 的
+原生投影、基于不透明游标的差量同步（而不是投屏），以及由挑战、幂等键和状态
+版本组成的可靠远程写闸门。
+
+它同时解决一个很现实的工程问题：**GUI 没法稳定自动化测试。**
+因为每个有业务意义的动作都能无界面调用、无界面断言，AI 可以把本地、远程和
+多设备路径整体验证一遍，不截图、不点坐标、不用视觉模型；真实 GUI 测试则缩回
+到只验证“人能不能看到、够得着、看得懂”。详见
+[机器验证](docs/SHADOW-SYNC.zh-CN.md#10-机器验证)。
+
+命名分层（ActionParity 是总标准，影核协议是跨端子规范）见
+[docs/NAMING.md](docs/NAMING.md)。
+
 ## 开源与商业价值
 
 规范、Schema、验证器和参考适配器保持开放。商业价值可以来自：

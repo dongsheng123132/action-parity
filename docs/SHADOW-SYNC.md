@@ -1,16 +1,31 @@
-# 影核协议 — ActionParity ShadowCore Profile
+# ActionParity ShadowCore Profile (影核协议)
 
 **Status:** non-normative ActionParity Shadow & Sync Profile 0.1
+**Wire identifier:** `action-parity/sync@0.1`
 **Scope:** Windows, macOS, iOS, Android, HarmonyOS, Linux, web, CLI/TUI, and remote agents
+**中文版:** [影核协议（中文版）](SHADOW-SYNC.zh-CN.md)
 
 **Principle:** One Core, Many Shadows / 一核多影
 
-> The core is the application. Every interface is a native shadow of its
-> Actions, State, Events, and Policy.
+> A product has exactly one authoritative Action Core. Every interface — a
+> Windows window, a phone screen, a terminal, an MCP tool, a test harness — is a
+> native shadow that projects the same Actions, State, Events, and Policy.
+> Devices exchange actions, state, and events. They do not exchange screens.
 
-中文定义：底层一致，不等于所有平台运行同一个二进制文件，也不等于远程传输
-屏幕。它是让每一端遵守同一套版本化 Action、State、Event、Policy 契约；各端
-用原生控件投影这些状态，只同步动作与状态差量。
+Three consequences follow, and they are the reason to adopt the profile.
+
+1. **Native on every platform without forking behavior.** Each platform draws
+   its own controls; none of them re-implements a business rule.
+2. **Remote control without pixel streaming.** A shadow resumes from an opaque
+   cursor and receives a small ordered delta instead of a framebuffer.
+3. **Verifiable by a machine.** Every meaningful action is invocable and
+   assertable without a UI, so an AI agent can test the product end to end —
+   including its remote and multi-device paths — without screenshots, mouse
+   coordinates, or a vision model. See
+   [§10 Machine verification](#10-machine-verification).
+
+What ShadowCore is **not**: not one binary for every platform, not a shared
+widget toolkit, and not remote desktop.
 
 ## 1. The important distinction
 
@@ -276,7 +291,75 @@ UURescue continuity state ── events/deltas ── ClawMe relay
      owner execution                    native shadows
 ```
 
-## 10. Development-speed effect
+## 10. Machine verification
+
+The hardest part of shipping GUI software is proving it still works. Driving a
+real window is slow, flaky, and resolution-, language-, theme-, focus-, and
+animation-dependent; driving several devices at once is worse. Teams therefore
+under-test exactly the paths that break in the field: reconnects, stale writes,
+duplicate commands, and cross-device state.
+
+A ShadowCore product does not need a vision model to answer *did the software do
+the right thing*. It needs four test layers with different costs.
+
+| Layer | Question it answers | Driver | Typical cost |
+|---|---|---|---|
+| Action Core contract | Did the action do the right thing? | direct call or `action run --json` | milliseconds, deterministic |
+| Binding parity | Does each surface invoke the same Action ID? | manifest + surface introspection | milliseconds, no window needed |
+| Sync conformance | Is the remote path correct under retry, reorder, and staleness? | recorded envelope fixtures | milliseconds, no second device needed |
+| Real GUI journey | Can a person see, reach, and understand it? | UI automation / accessibility | seconds, few cases |
+
+Only the last layer needs a real window, and it shrinks to what genuinely
+requires one: reachability, focus order, contrast, DPI, and labels.
+
+### 10.1 What an implementation MUST expose to be machine-verifiable
+
+- a manifest listing Action IDs, input/output schemas, effects, and surface
+  bindings;
+- headless invocation of every declared action, with a stable machine envelope
+  on stdout, diagnostics on stderr, and meaningful exit codes;
+- stable, non-visual binding identifiers on each GUI surface (automation ID,
+  `data-action-id`, accessibility ID) so a binding can be checked without
+  pixels;
+- an event stream with opaque cursors, so an effect can be asserted as an event
+  rather than as a screenshot diff;
+- a sandbox or seeded state root, so tests never touch real user data;
+- a fixture corpus of `sync.*` envelopes covering resume, empty delta, duplicate
+  idempotency key, expired challenge, and stale `expected_state_version`.
+
+### 10.2 The loop an agent can run unattended
+
+```text
+action list --json                 → discover what exists
+action describe <id> --json        → read the contract, not the docs
+action run <id> --json             → execute in a sandbox
+task.events --after <cursor>       → assert the committed effect
+binding check <id>                 → assert each surface maps to that Action ID
+replay fixtures/sync/*.json        → assert reconnect, retry, and conflict rules
+```
+
+Every step is text in, text out. An agent can run it in CI, on a bare machine,
+over SSH, or inside another agent's tool loop — no display, no driver, no
+screenshot budget.
+
+### 10.3 What this does not prove
+
+Passing the first three layers does not prove that a human can use the product.
+It does not prove that the button is visible, reachable by keyboard, correctly
+labelled for a screen reader, or legible at 200% scaling. Those remain real-GUI
+assertions, and a conforming implementation still publishes them. The profile's
+claim is narrower and more useful: *behavioral* regressions stop hiding behind
+UI automation flakiness.
+
+### 10.4 Replay as the debugging primitive
+
+Because state changes are ordered events, a field failure can be shipped back as
+a cursor range rather than a video. Replaying that range against the Action Core
+reproduces the defect on a developer machine with no device, account, or
+screen-recording involved. This is also how a shadow proves it is not inventing
+state: given the same delta, it MUST reach the same projection.
+
+## 11. Development-speed effect
 
 This architecture can materially accelerate development because:
 
@@ -296,7 +379,7 @@ offline conflicts must be designed, and complex media may still need separate
 transfer. The profile pays back first in products with multiple surfaces,
 remote control, long-running tasks, audit requirements, or AI automation.
 
-## 11. Adoption sequence
+## 12. Adoption sequence
 
 Do not begin by rewriting the whole product.
 
@@ -304,10 +387,11 @@ Do not begin by rewriting the whole product.
 2. Publish their input/output and State schemas.
 3. Add stable GUI bindings and direct Action tests.
 4. Append events for those Actions.
-5. sync only those events using opaque cursors;
-6. build a second native shadow;
-7. add one confirmed write Action;
-8. measure duplicated code, test duration, bytes transferred, reconnect
+5. Sync only those events using opaque cursors.
+6. Publish a fixture corpus so any agent can verify the sync rules offline.
+7. Build a second native shadow.
+8. Add one confirmed write Action.
+9. Measure duplicated code, test duration, bytes transferred, reconnect
    correctness, and defect reproduction time.
 
 Only after two independent products complete this loop should the Shadow & Sync

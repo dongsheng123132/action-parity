@@ -48,10 +48,22 @@ require a normal versioned compatibility proposal, not a marketing-only rename.
 
 ## Public wording
 
-Recommended:
+Recommended (Chinese):
 
-> 影核协议是 ActionParity 的跨端同步规范：一个动作核心，投射出多个平台原生
-> 界面；设备之间同步动作、状态和事件，而不是同步整块屏幕。
+> 影核协议是 ActionParity 的跨端子规范：一个产品只有一个权威动作核心，所有
+> 平台界面都是它的原生影子；设备之间同步动作、状态和事件，而不是同步屏幕。
+> 因为动作核心可以无界面调用和断言，AI 不用截图猜按钮就能自己把软件测一遍。
+
+Recommended (English):
+
+> The ActionParity ShadowCore Profile gives a product one authoritative Action
+> Core and makes every platform interface a native shadow of it. Devices
+> exchange actions, state, and events, not screens — and because the core is
+> invocable and assertable without a UI, an agent can verify the product
+> without screenshots or a vision model.
+
+Both documents are normative-in-intent drafts and must stay in sync:
+[English](SHADOW-SYNC.md) and [中文版](SHADOW-SYNC.zh-CN.md).
 
 Avoid:
 

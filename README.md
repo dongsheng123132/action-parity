@@ -185,12 +185,31 @@ See the [measured pilot results](docs/PILOT-RESULTS.md), the
 [compatibility design](docs/COMPATIBILITY.md). The pilots establish AP-1/AP-2
 evidence; real GUI journeys and live external workflows remain AP-4 work.
 
-For native multi-device products, read the proposed
-[影核协议 / ActionParity ShadowCore Profile](docs/SHADOW-SYNC.md): versioned
-Action/State/Event contracts, native Windows/macOS/iOS/Android/HarmonyOS
-projections, and cursor-based delta sync instead of screen streaming.
+## ShadowCore Profile (影核协议)
+
+For products that run on more than one device, the
+[ActionParity ShadowCore Profile](docs/SHADOW-SYNC.md)
+([中文版](docs/SHADOW-SYNC.zh-CN.md)) extends the standard across machines:
+
+> One product, one authoritative Action Core. Every interface — a Windows
+> window, a phone screen, a terminal, an MCP tool, a test harness — is a native
+> shadow of the same Actions, State, Events, and Policy. Devices exchange
+> actions, state, and events. They do not exchange screens.
+
+It specifies versioned Action/State/Event contracts, native
+Windows/macOS/iOS/Android/HarmonyOS projections, cursor-based delta sync instead
+of screen streaming, and a reliable remote-write gate built from challenges,
+idempotency keys, and state versions.
+
+It also makes a product testable by a machine. Because every meaningful action
+is invocable and assertable without a UI, an agent can verify behavior — local,
+remote, and multi-device — with no screenshots, mouse coordinates, or vision
+model, and reserve real-GUI tests for what genuinely needs a window. See
+[Machine verification](docs/SHADOW-SYNC.md#10-machine-verification).
+
 The [naming decision](docs/NAMING.md) keeps ActionParity as the umbrella
-standard while using “一核多影” as the cross-device architecture.
+standard while using “一核多影 / One Core, Many Shadows” as the cross-device
+architecture.
 
 ## Participate
 

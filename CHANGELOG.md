@@ -22,7 +22,13 @@ All notable project changes will be documented here.
 - name the cross-device profile “影核协议 / ActionParity ShadowCore Profile”
   without changing the stable wire identifier;
 - add owner-issued `sync.challenge` envelopes bound to actor, input digest, and
-  state version.
+  state version;
+- restate the ShadowCore Profile description around one authoritative Action
+  Core, native shadows, and machine verification;
+- specify the four verification layers, the exposure requirements, and the
+  unattended agent loop that let an agent test a product without pixels;
+- publish the Chinese ShadowCore Profile at `docs/SHADOW-SYNC.zh-CN.md`
+  alongside the English text.
 
 ## 0.1.0 - 2026-07-24
 
