@@ -46,7 +46,7 @@ When a person clicks, a script calls, an agent invokes, or a test verifies, they
 
 ---
 
-# ActionParity 宣言
+# 影核（ActionParity）宣言
 
 软件迎来了一种新的用户：AI Agent。
 

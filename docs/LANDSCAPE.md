@@ -97,7 +97,7 @@ One action. Every interface.
 Chinese:
 
 ```text
-ActionParity 动作同源标准
+影核（ActionParity）动作同源标准
 一个动作，所有界面。
 ```
 

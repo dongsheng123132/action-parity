@@ -167,7 +167,7 @@ After implementation maturity, consider submitting the work to an established st
 
 ### Chinese
 
-> ActionParity 是“动作同源”开放标准：GUI、CLI、MCP、AI 与测试共同调用同一个业务核心，并用机器报告证明没有漂移。
+> 影核（ActionParity）是“动作同源”开放标准：GUI、CLI、MCP、AI 与测试共同调用同一个业务核心，并用机器报告证明没有漂移。
 
 ### Avoid
 

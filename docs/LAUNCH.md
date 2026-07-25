@@ -67,7 +67,7 @@ We are drafting an open standard for apps where GUI and agent tools share one Ac
 ### Chinese developer communities
 
 ```text
-我们开源了 ActionParity：让 GUI、CLI、MCP 与 AI 共用同一个动作核心
+我们开源了影核（ActionParity）：让 GUI、CLI、MCP 与 AI 共用同一个动作核心
 ```
 
 ## First public post
@@ -77,7 +77,7 @@ AI can now write much of an application, but it still struggles to test and oper
 
 The usual workaround is Computer Use: screenshots, guessed buttons, injected clicks, and more screenshots. That remains useful for visual verification, but it is a fragile foundation for business behavior.
 
-ActionParity proposes a stricter architecture:
+ActionParity (影核), also known as the ShadowCore protocol, proposes a stricter architecture:
 
 - define each meaningful action once in a headless Action Core;
 - bind GUI, CLI, MCP, API, and tests to the same Action ID;
@@ -99,7 +99,7 @@ AI 已经可以写出大量 GUI 软件，但它往往无法可靠测试自己做
 
 现在的办法通常是 Computer Use：截图、猜按钮、模拟鼠标、再截图。这适合视觉验收和兼容旧软件，却不适合成为业务功能测试的地基。
 
-我们开源了 ActionParity（动作同源标准）：
+我们开源了影核（ActionParity，亦称 ShadowCore 协议）——一套动作同源开放标准：
 
 - 每个有业务意义的动作，只在无界面的 Action Core 中实现一次；
 - GUI、CLI、MCP、API 和测试全部绑定同一个 Action ID；
@@ -107,7 +107,9 @@ AI 已经可以写出大量 GUI 软件，但它往往无法可靠测试自己做
 - 构建时生成机器可验证的一致性报告；
 - 真实 GUI 仍通过 UI Automation、无障碍树和截图进行验证。
 
-MCP 让工具可以调用，UI Automation 让界面可以操作，ActionParity 证明它们做的是同一件事。
+MCP 让工具可以调用，UI Automation 让界面可以操作，影核证明它们做的是同一件事。
+
+一个产品只有一个权威动作核心，所有平台界面都是它的原生影子——这就是“影核”。
 
 v0.1 工作草案已经包含规范、JSON Schema、验证器、U-King 示例、治理方案、推广路线与商业中立原则。
 

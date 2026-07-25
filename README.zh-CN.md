@@ -1,8 +1,10 @@
-# ActionParity（动作同源标准）
+# 影核（ActionParity）
 
 > **一个动作，所有界面。**
 
-ActionParity 是一套面向 AI 时代的软件开放标准：让同一个应用同时成为“人类原生”和“Agent 原生”的应用。
+影核是一套面向 AI 时代的软件开放标准，英文名 **ActionParity**，亦称 **ShadowCore 协议**：让同一个应用同时成为“人类原生”和“Agent 原生”的应用。
+
+一个产品只有一个权威的动作核心，所有平台界面都是它的原生影子——这就是“影核”两个字的意思。命名规则见 [docs/NAMING.md](docs/NAMING.md)。
 
 每个有业务意义的动作，只在无界面的 **Action Core（动作核心）** 中实现一次，再由 GUI、CLI、TUI、MCP、API、自动化测试等不同入口共同调用。
 
@@ -26,7 +28,7 @@ GUI 不是软件本身，CLI 也不是软件本身。它们是同一套动作和
 
 这种方式适合兼容旧软件和验证最终视觉效果，但不应该成为 AI 调用业务功能的主要方式。它慢、贵、不稳定，容易被分辨率、语言、动画、遮挡、窗口焦点和版本变化影响。
 
-ActionParity 把测试分成两条：
+影核把测试分成两条：
 
 1. **软件有没有做对事情？** 直接测试 Action Core。
 2. **用户能不能正确操作并看懂？** 使用无障碍树、UI 自动化和截图测试真实 GUI。
@@ -68,7 +70,7 @@ ActionParity 把测试分成两条：
   └── 在按钮事件里直接改文件、调用网络、启动进程
 ```
 
-ActionParity 要求写成：
+影核要求写成：
 
 ```text
 GUI 按钮 ─┐
@@ -105,7 +107,7 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 - 键盘焦点顺序合理；
 - 屏幕阅读器和自动化工具可以理解控件。
 
-因此 ActionParity 不是要淘汰 Computer Use，而是让它回到正确位置：
+因此影核不是要淘汰 Computer Use，而是让它回到正确位置：
 
 > Action Core 是主测试层；UI Automation 是界面验证层；视觉 Computer Use 是最终兜底层。
 
@@ -121,7 +123,7 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 - AG-UI、ggui 关注 Agent 与前端界面的通信和生成；
 - Tauri Commands、Blender Operators、Apple App Intents 是很好的实现机制。
 
-ActionParity 要补的空位是：
+影核要补的空位是：
 
 > **规定一个真实应用的 GUI、CLI、MCP、自动化入口必须共享同一个业务动作核心，并且能通过机器验证证明没有漂移。**
 
@@ -143,7 +145,7 @@ U-King 将作为第一个参考应用，分两条路线推进：
 规范、Schema、验证器和参考适配器保持开放。商业价值可以来自：
 
 - 企业迁移与架构改造；
-- ActionParity CI 和可视化报告；
+- 影核 CI 和可视化报告；
 - 独立认证与兼容性实验室；
 - Electron、Tauri、.NET、Swift 等商业支持；
 - Agent 权限、审计与策略控制台；

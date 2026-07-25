@@ -1,8 +1,8 @@
-# ActionParity
+# ActionParity (影核)
 
 > **One action. Every interface.**
 
-ActionParity is an open standard for software that is equally operable by humans and AI agents.
+ActionParity (Chinese: **影核**), also known as the **ShadowCore protocol**, is an open standard for software that is equally operable by humans and AI agents.
 
 A conforming application defines each meaningful business action once in a headless **Action Core**, then exposes that same action through the interfaces it supports: GUI, CLI, TUI, MCP, API, automation, and tests.
 
@@ -16,7 +16,7 @@ Agent ── CLI / MCP / API ─┘
 
 The GUI is not the application. The CLI is not the application. They are projections of the same action and state model.
 
-**中文说明：** [README.zh-CN.md](README.zh-CN.md)
+**中文说明：** [README.zh-CN.md](README.zh-CN.md) · One standard, one name per language — see [docs/NAMING.md](docs/NAMING.md).
 
 ## Why ActionParity
 
