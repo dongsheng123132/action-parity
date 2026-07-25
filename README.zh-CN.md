@@ -127,71 +127,16 @@ ActionParity 要补的空位是：
 
 完整对比见 [docs/LANDSCAPE.md](docs/LANDSCAPE.md)。
 
-## 三个真实试点：T-King + U-Model + U-King
+## U-King 试点
 
-第一个参考实现是 T-King。它已有 Tauri GUI、无头工位测试和
-`TKING_TEST_HOME` 沙箱，现已完成：
+U-King 将作为第一个参考应用，分两条路线推进：
 
-1. 先统一 `engine.install`、`project.decompose`、`project.render` 三个动作；
-2. 保留现有 `--engine-test` / `--station-test`，让它们成为兼容别名；
-3. 增加通用 `action list/describe/run/manifest` 命令和稳定 GUI 标识；
-4. 新动作层、参数校验、前端构建、真实 exe 冒烟与规范校验。
+1. 给现有 Electron GUI 补齐语义控件、ARIA、稳定标识和 Windows UI Automation 测试；
+2. 逐步把检测、配置、网关控制、修复、升级、日志导出等功能抽成 Action Core，并生成 CLI、MCP 与一致性报告。
 
-第二个参考实现 U-Model 使用纯 Python + 浏览器 GUI，统一了
-`hardware.inspect` 和 `model.recommend`。它证明 ActionParity 不依赖
-Tauri/Rust：真实调用在约 12 秒内读出本机硬件并返回结构化模型推荐，
-53 项原有与新增测试全部通过。
+这样不需要推倒重写，就能逐步从“只能看屏幕测试”升级为“业务动作无界面测试 + 真实 GUI 验证”。
 
-第三个试点进入正在使用的 U-King 0.9.67，现已统一六个低风险动作：
-电脑体检、工具清单、驱动状态、脱敏供应商目录、只读清理扫描和内存体检报告
-预览。release 模式的正式 exe 已验证可被 AI 子进程捕获纯 JSON；非法字段在
-0 毫秒被拒绝。供应商完整记录仍然留在私有边界内，机器接口只返回
-`has_saved_key`，不返回 API Key；体检报告也不再显示 Key 前缀。
-
-三个项目都没有推倒重写。短期代码量会增加，因为需要清单、适配器和
-契约测试；长期收益来自业务规则只改一处，GUI、CLI、AI 不再各维护一份。
-详细数据、已证明的优势和未完成边界见
-[docs/PILOT-RESULTS.md](docs/PILOT-RESULTS.md)。
-
-详细判断见 [docs/PILOT-SELECTION.md](docs/PILOT-SELECTION.md)，兼容旧标准的原则见
-[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)，样例见
-[examples/t-king/action-parity.json](examples/t-king/action-parity.json) 和
-[examples/u-model/action-parity.json](examples/u-model/action-parity.json)，以及
-[examples/u-king/action-parity.json](examples/u-king/action-parity.json)。
-
-## 影核协议（跨设备子规范）
-
-产品一旦不止跑在一台机器上，就进入
-[影核协议](docs/SHADOW-SYNC.zh-CN.md)（英文：
-[ActionParity ShadowCore Profile](docs/SHADOW-SYNC.md)）的范围：
-
-> 一个产品只有一个权威动作核心。所有界面——Windows 窗口、手机屏幕、终端、
-> MCP 工具、测试夹具——都是同一套 Action、State、Event、Policy 的原生影子。
-> 设备之间同步动作、状态和事件，不同步屏幕。
-
-它规定了带版本的 Action/State/Event 契约、Windows/macOS/iOS/Android/鸿蒙 的
-原生投影、基于不透明游标的差量同步（而不是投屏），以及由挑战、幂等键和状态
-版本组成的可靠远程写闸门。
-
-它同时解决一个很现实的工程问题：**GUI 没法稳定自动化测试。**
-因为每个有业务意义的动作都能无界面调用、无界面断言，AI 可以把本地、远程和
-多设备路径整体验证一遍，不截图、不点坐标、不用视觉模型；真实 GUI 测试则缩回
-到只验证“人能不能看到、够得着、看得懂”。详见
-[机器验证](docs/SHADOW-SYNC.zh-CN.md#10-机器验证)。
-
-目前有两个实现建立在这个子规范上，分属两个不同生态：
-
-- **Open365** —— PowerShell 维护引擎收在一个动作核心之下；WinForms 桌面、CLI
-  和 Agent 调用同样的十个 Action ID，改动系统的动作默认拒绝，并有一条不需要
-  窗口的无界面 `verify` 回路。
-- **ClawMe** —— relay 加原生 iOS 影子；公开的清单和一份无界面一致性测试证明
-  每个已声明的绑定都存在，全程不需要真机接入。
-
-两者都是同一家的产品，所以这仍然**不是**跨厂商实现——跨生态和跨厂商是两件事，
-后者仍在[尚未证明](docs/PILOT-RESULTS.md)的清单里。
-
-命名分层（ActionParity 是总标准，影核协议是跨端子规范）见
-[docs/NAMING.md](docs/NAMING.md)。
+详细计划见 [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md)。
 
 ## 开源与商业价值
 
@@ -206,8 +151,6 @@ Tauri/Rust：真实调用在约 12 秒内读出本机硬件并返回结构化模
 - 行业测试包、培训和认证课程。
 
 标准必须保持中立：自测永远免费，认证规则公开，商业客户不能购买标准条款。详见 [docs/BUSINESS.md](docs/BUSINESS.md)。
-商标、域名、命名空间与认证标志的先后顺序见
-[docs/BRAND-AND-TRADEMARK.md](docs/BRAND-AND-TRADEMARK.md)。
 
 ## 当前状态
 
@@ -216,7 +159,7 @@ Tauri/Rust：真实调用在约 12 秒内读出本机硬件并返回结构化模
 目前阶段的目标不是宣称标准已经完成，而是：
 
 1. 发布清晰、可讨论的规范；
-2. 用 T-King、U-Model 和 U-King 三个真实产品验证，再迁移 UU-Switch 和外部项目；
+2. 用 U-King 做真实改造；
 3. 发布验证器和测试证据；
 4. 吸引更多桌面应用提交实现报告；
 5. 在真实实现基础上推进 v1.0。
@@ -225,9 +168,6 @@ Tauri/Rust：真实调用在约 12 秒内读出本机硬件并返回结构化模
 推广路线：[docs/ADOPTION.md](docs/ADOPTION.md)  
 项目宣言：[MANIFESTO.md](MANIFESTO.md)  
 首发手册：[docs/LAUNCH.md](docs/LAUNCH.md)  
-兼容设计：[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
-试点选型：[docs/PILOT-SELECTION.md](docs/PILOT-SELECTION.md)
-试点结果：[docs/PILOT-RESULTS.md](docs/PILOT-RESULTS.md)
 参与方式：[CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## 许可证

@@ -25,22 +25,21 @@ Deliverables:
 - JSON Schema and validator;
 - adjacent-standards analysis;
 - governance and RFC process;
-- T-King and U-King example manifests;
+- U-King example manifest;
 - public GitHub Discussions, issues, and implementation-report template.
 
 Success is not measured by stars alone. It is measured by substantive issues, independent implementations, and evidence that the schema survives real applications.
 
-## Phase 1 — Prove it on T-King
+## Phase 1 — Prove it on U-King
 
-**Goal:** demonstrate a before-and-after result on a real Windows Tauri application
-without breaking its existing CLI flags.
+**Goal:** demonstrate a before-and-after result on a real Windows Electron application.
 
 Publish:
 
-- inventory of meaningful T-King actions;
+- inventory of meaningful U-King actions;
 - baseline GUI automation coverage;
 - Action Core extraction for a small vertical slice;
-- legacy CLI, generic CLI, and GUI bindings for the same actions;
+- CLI, MCP, and GUI bindings for the same actions;
 - Windows UI Automation test recordings;
 - ActionParity report generated in CI;
 - measured comparison of test duration, flake rate, and failure diagnosis.
@@ -48,14 +47,15 @@ Publish:
 The first vertical slice should include:
 
 ```text
-engine.install
-project.decompose
-project.render
+environment.diagnose
+gateway.status
+gateway.start
+gateway.stop
+provider.test
+logs.export
 ```
 
-Keep `--engine-test` and `--station-test` as backward-compatible aliases. After
-this slice is reproducible, apply the adapter to UU-Switch and then use U-King as
-the production flagship.
+Avoid starting with upgrade installation or destructive repair because the safety and rollback requirements are higher.
 
 ## Phase 2 — Make adoption cheap
 
@@ -63,8 +63,8 @@ the production flagship.
 
 Build reference adapters in this order:
 
-1. Tauri / Rust;
-2. Electron / TypeScript;
+1. Electron / TypeScript;
+2. Tauri / Rust;
 3. .NET for WinUI, WPF, and WinForms;
 4. Python;
 5. Swift and App Intents;
@@ -189,9 +189,10 @@ Do not claim:
 - [x] Real application example
 - [x] Landscape and differentiation
 - [x] Open governance
-- [ ] T-King baseline implementation report
+- [ ] U-King baseline implementation report
 - [ ] Recorded multi-surface demo
 - [ ] First external adopter
 - [ ] Framework adapters
 - [ ] Public website
 - [ ] Community steering group
+
