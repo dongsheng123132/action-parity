@@ -1,0 +1,504 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://actionparity.org/schema/action-parity-sync.schema.json",
+  "title": "ActionParity Shadow & Sync envelope",
+  "type": "object",
+  "required": [
+    "protocol",
+    "type",
+    "stream_id",
+    "message_id",
+    "sent_at",
+    "payload"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "action-parity/sync@0.1"
+    },
+    "type": {
+      "enum": [
+        "sync.hello",
+        "sync.snapshot",
+        "sync.delta",
+        "sync.command",
+        "sync.result",
+        "sync.ack",
+        "sync.conflict"
+      ]
+    },
+    "stream_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "sync.hello"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/hello"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "sync.snapshot"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/snapshot"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "sync.delta"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/delta"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "sync.command"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/command"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "sync.result"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/result"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "sync.ack"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/ack"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "sync.conflict"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/conflict"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "cursor": {
+      "type": "string",
+      "minLength": 1
+    },
+    "actor": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "user",
+            "device",
+            "agent",
+            "service"
+          ]
+        },
+        "surface": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "hello": {
+      "type": "object",
+      "required": [
+        "device",
+        "capabilities"
+      ],
+      "properties": {
+        "device": {
+          "$ref": "#/$defs/actor"
+        },
+        "cursor": {
+          "$ref": "#/$defs/cursor"
+        },
+        "capabilities": {
+          "type": "object",
+          "required": [
+            "actions",
+            "features",
+            "schema_versions"
+          ],
+          "properties": {
+            "actions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "features": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "schema_versions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "snapshot": {
+      "type": "object",
+      "required": [
+        "cursor",
+        "state_version",
+        "state"
+      ],
+      "properties": {
+        "cursor": {
+          "$ref": "#/$defs/cursor"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "schema_version": {
+          "type": "string"
+        },
+        "state": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "event_id",
+        "sequence",
+        "kind",
+        "occurred_at",
+        "entity",
+        "payload"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "action_id": {
+          "type": "string"
+        },
+        "execution_id": {
+          "type": "string"
+        },
+        "entity": {
+          "type": "object",
+          "required": [
+            "type",
+            "id"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        },
+        "payload": {},
+        "blob_refs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "digest",
+              "media_type"
+            ],
+            "properties": {
+              "digest": {
+                "type": "string",
+                "minLength": 1
+              },
+              "media_type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "delta": {
+      "type": "object",
+      "required": [
+        "previous_cursor",
+        "cursor",
+        "state_version",
+        "events"
+      ],
+      "properties": {
+        "previous_cursor": {
+          "$ref": "#/$defs/cursor"
+        },
+        "cursor": {
+          "$ref": "#/$defs/cursor"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "has_more": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "command": {
+      "type": "object",
+      "required": [
+        "action_id",
+        "execution_id",
+        "idempotency_key",
+        "actor",
+        "input"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "idempotency_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actor": {
+          "$ref": "#/$defs/actor"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "input": {}
+      },
+      "additionalProperties": false
+    },
+    "result": {
+      "type": "object",
+      "required": [
+        "action_id",
+        "execution_id",
+        "ok"
+      ],
+      "properties": {
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "execution_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {},
+        "error": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "code",
+                "message"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            }
+          ]
+        },
+        "cursor": {
+          "$ref": "#/$defs/cursor"
+        },
+        "state_version": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "ack": {
+      "type": "object",
+      "required": [
+        "cursor"
+      ],
+      "properties": {
+        "cursor": {
+          "$ref": "#/$defs/cursor"
+        }
+      },
+      "additionalProperties": false
+    },
+    "conflict": {
+      "type": "object",
+      "required": [
+        "execution_id",
+        "expected_state_version",
+        "current_state_version",
+        "resolution"
+      ],
+      "properties": {
+        "execution_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "current_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resolution": {
+          "enum": [
+            "retry",
+            "refresh",
+            "manual_merge",
+            "rejected"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -185,6 +185,11 @@ See the [measured pilot results](docs/PILOT-RESULTS.md), the
 [compatibility design](docs/COMPATIBILITY.md). The pilots establish AP-1/AP-2
 evidence; real GUI journeys and live external workflows remain AP-4 work.
 
+For native multi-device products, read the proposed
+[One Core, Many Shadows profile](docs/SHADOW-SYNC.md): versioned
+Action/State/Event contracts, native Windows/macOS/iOS/Android/HarmonyOS
+projections, and cursor-based delta sync instead of screen streaming.
+
 ## Participate
 
 - Read and challenge the [specification](SPEC.md).
