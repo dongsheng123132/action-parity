@@ -186,9 +186,11 @@ See the [measured pilot results](docs/PILOT-RESULTS.md), the
 evidence; real GUI journeys and live external workflows remain AP-4 work.
 
 For native multi-device products, read the proposed
-[One Core, Many Shadows profile](docs/SHADOW-SYNC.md): versioned
+[影核协议 / ActionParity ShadowCore Profile](docs/SHADOW-SYNC.md): versioned
 Action/State/Event contracts, native Windows/macOS/iOS/Android/HarmonyOS
 projections, and cursor-based delta sync instead of screen streaming.
+The [naming decision](docs/NAMING.md) keeps ActionParity as the umbrella
+standard while using “一核多影” as the cross-device architecture.
 
 ## Participate
 

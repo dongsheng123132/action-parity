@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import crypto from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -18,6 +19,7 @@ async function validator() {
 }
 
 const fixtures = [
+  "../examples/sync/clawme-attention-decision-challenge.json",
   "../examples/sync/clawme-attention-decision-command.json",
   "../examples/sync/clawme-attention-decision-result.json",
   "../examples/sync/clawme-attention-decision-conflict.json"
@@ -33,10 +35,24 @@ test("reliable write command, result, and conflict fixtures validate", async () 
 });
 
 test("the reliable write fixtures correlate one execution and stream", async () => {
-  const command = await json(fixtures[0]);
-  const result = await json(fixtures[1]);
-  const conflict = await json(fixtures[2]);
+  const challenge = await json(fixtures[0]);
+  const command = await json(fixtures[1]);
+  const result = await json(fixtures[2]);
+  const conflict = await json(fixtures[3]);
 
+  assert.equal(challenge.payload.challenge_id, command.payload.confirmation.challenge_id);
+  assert.equal(challenge.payload.action_id, command.payload.action_id);
+  assert.deepEqual(challenge.payload.actor, command.payload.actor);
+  assert.equal(
+    challenge.payload.expected_state_version,
+    command.payload.expected_state_version,
+  );
+  assert.equal(
+    challenge.payload.input_sha256,
+    crypto.createHash("sha256")
+      .update(JSON.stringify(command.payload.input))
+      .digest("hex"),
+  );
   assert.equal(command.payload.action_id, result.payload.action_id);
   assert.equal(command.payload.action_id, conflict.payload.action_id);
   assert.equal(command.payload.execution_id, result.payload.execution_id);
@@ -50,7 +66,7 @@ test("the reliable write fixtures correlate one execution and stream", async () 
 
 test("a remote command cannot omit its retry identity", async () => {
   const validate = await validator();
-  const command = await json(fixtures[0]);
+  const command = await json(fixtures[1]);
   delete command.payload.idempotency_key;
 
   assert.equal(validate(command), false);
@@ -58,7 +74,7 @@ test("a remote command cannot omit its retry identity", async () => {
 
 test("a failed result must carry a structured error", async () => {
   const validate = await validator();
-  const result = await json(fixtures[1]);
+  const result = await json(fixtures[2]);
   result.payload.ok = false;
   delete result.payload.error;
 
@@ -67,7 +83,7 @@ test("a failed result must carry a structured error", async () => {
 
 test("confirmation metadata cannot smuggle platform proof fields", async () => {
   const validate = await validator();
-  const command = await json(fixtures[0]);
+  const command = await json(fixtures[1]);
   command.payload.confirmation.biometric_template = "must-not-travel";
 
   assert.equal(validate(command), false);

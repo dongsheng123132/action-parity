@@ -18,7 +18,11 @@ All notable project changes will be documented here.
 - require structured errors for failed sync results and correlate conflicts by
   Action ID;
 - publish an interim trademark-use policy and staged public-launch gates;
-- adopt Developer Certificate of Origin sign-off for new contributions.
+- adopt Developer Certificate of Origin sign-off for new contributions;
+- name the cross-device profile “影核协议 / ActionParity ShadowCore Profile”
+  without changing the stable wire identifier;
+- add owner-issued `sync.challenge` envelopes bound to actor, input digest, and
+  state version.
 
 ## 0.1.0 - 2026-07-24
 

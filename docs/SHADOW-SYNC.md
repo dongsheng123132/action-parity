@@ -1,7 +1,9 @@
-# One Core, Many Shadows
+# 影核协议 — ActionParity ShadowCore Profile
 
 **Status:** non-normative ActionParity Shadow & Sync Profile 0.1
 **Scope:** Windows, macOS, iOS, Android, HarmonyOS, Linux, web, CLI/TUI, and remote agents
+
+**Principle:** One Core, Many Shadows / 一核多影
 
 > The core is the application. Every interface is a native shadow of its
 > Actions, State, Events, and Policy.
@@ -137,13 +139,14 @@ The confirmed-write fixtures show both successful and stale-device outcomes:
 
 ## 5. Message roles
 
-The initial profile uses seven roles:
+The initial profile uses eight roles:
 
 | Type | Direction | Meaning |
 |---|---|---|
 | `sync.hello` | shadow → owner/relay | Negotiate profile, capabilities, and resume cursor |
 | `sync.snapshot` | owner/relay → shadow | Baseline state when no compatible cursor exists |
 | `sync.delta` | owner/relay → shadow | Ordered events after the acknowledged cursor |
+| `sync.challenge` | owner → shadow | Bind confirmation to actor, action, input digest, and state version |
 | `sync.command` | shadow → owner | Invoke one Action with authority and idempotency metadata |
 | `sync.result` | owner → shadow | Structured Action result correlated by execution ID |
 | `sync.ack` | shadow → owner/relay | Confirm a durable cursor |
@@ -176,13 +179,17 @@ A remote write is not “send JSON and hope.” A conforming owner applies this
 gate before invoking the Action Core:
 
 1. authenticate the device and authorize the Action and resource;
-2. look up the idempotency key before checking expiry;
-3. if the key already committed the same request, return the original result;
-4. if the same key names different input or execution identity, reject it;
-5. reject an expired command and validate any required confirmation challenge;
-6. compare `expected_state_version` with authoritative state;
-7. return `sync.conflict` without executing when the state is stale;
-8. commit the effect, result, event, and idempotency record atomically where the
+2. issue a short-lived `sync.challenge` bound to actor, Action ID, canonical
+   input digest, and current state version;
+3. look up the idempotency key before checking expiry;
+4. if the key already committed the same request, return the original result;
+5. if the same key names different input or execution identity, reject it;
+6. reject an expired command and compare `expected_state_version` with
+   authoritative state;
+7. return `sync.conflict` without consuming the challenge or executing when the
+   state is stale;
+8. verify and consume the matching confirmation challenge once;
+9. commit the effect, result, event, and idempotency record atomically where the
    storage model permits it.
 
 The envelope's `confirmation` records the mode, challenge identity, and time.

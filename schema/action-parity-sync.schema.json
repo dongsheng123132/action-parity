@@ -20,6 +20,7 @@
         "sync.hello",
         "sync.snapshot",
         "sync.delta",
+        "sync.challenge",
         "sync.command",
         "sync.result",
         "sync.ack",
@@ -43,6 +44,22 @@
     }
   },
   "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "sync.challenge"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/challenge"
+          }
+        }
+      }
+    },
     {
       "if": {
         "properties": {
@@ -391,6 +408,56 @@
         },
         "has_more": {
           "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "challenge": {
+      "type": "object",
+      "required": [
+        "challenge_id",
+        "action_id",
+        "actor",
+        "mode",
+        "input_sha256",
+        "expected_state_version",
+        "issued_at",
+        "expires_at"
+      ],
+      "properties": {
+        "challenge_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actor": {
+          "$ref": "#/$defs/actor"
+        },
+        "mode": {
+          "enum": [
+            "explicit",
+            "biometric",
+            "system"
+          ]
+        },
+        "input_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "expected_state_version": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "issued_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time"
         }
       },
       "additionalProperties": false
