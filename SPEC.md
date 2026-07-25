@@ -1,6 +1,6 @@
 # ActionParity Specification
 
-**Version:** 0.1.0 Working Draft  
+**Version:** 0.2.0 Working Draft  
 **Status:** Non-normative until 1.0.0  
 **Tagline:** One action. Every interface.
 
@@ -346,8 +346,14 @@ An AP-2 implementation satisfies AP-1 and:
 
 - declares required Surfaces;
 - binds every non-exempt Action to every required Surface;
-- proves those Surfaces invoke the same Action Core;
+- supplies a re-runnable test in `binding.test` for every required Binding;
 - reports all exceptions.
+
+A Binding without a test is a claim, not a demonstration. A manifest alone
+cannot show that two Surfaces reach the same Action Core: an implementation can
+declare one Action ID over two independent implementations and no static check
+will notice. AP-2 therefore requires binding evidence, and a validator MUST
+report evidenced coverage separately from declared coverage (§15).
 
 ### 14.3 AP-3 Agent
 
@@ -370,22 +376,47 @@ An AP-4 implementation satisfies AP-3 and:
 
 ## 15. Parity score
 
-The strict mapping score is:
+A conformance report MUST publish two scores, never one:
 
 ```text
-present required bindings / total required bindings × 100
+declared parity  = present required bindings   / total required bindings × 100
+evidenced parity = evidenced required bindings / total required bindings × 100
 ```
 
-where:
+where a required Binding is *evidenced* only when it names a re-runnable test,
+and:
 
 ```text
 total required bindings =
   number of non-presentation Actions × number of required Surfaces
 ```
 
-Exceptions remain in the denominator. Reports MAY also publish an adjusted score, but MUST NOT label it the strict score.
+Publishing declared parity alone is non-conformant reporting. The two numbers
+answer different questions — "is the manifest filled in?" and "can any of it be
+re-run?" — and a single number lets the first masquerade as the second.
 
-Scores measure declared coverage, not product quality. A high score does not replace security, accessibility, correctness, or usability review.
+Exceptions remain in the denominator and MUST appear in every report format,
+including human-readable output. An exception past its `review_by` date MUST be
+reported as a warning.
+
+Reports MAY also publish an adjusted score, but MUST NOT label it a parity score.
+
+Scores measure coverage, not product quality. A high score does not replace
+security, accessibility, correctness, or usability review.
+
+### 15.1 Targets versus achieved level
+
+`conformance_targets` states what an implementation is aiming for. It is
+self-declared and MUST NOT be reported as an outcome. A report MUST state the
+achieved level separately, derived only from what the manifest and its evidence
+demonstrate, and MUST list the blockers preventing the next level.
+
+AP-2 is the highest level derivable from a manifest and its declared evidence.
+AP-3 describes runtime behaviour — structured results, policy enforced below the
+interface layer, real audit records — and AP-4 requires a published conformance
+report. A static validator MUST NOT award either. In particular
+`audit_required: true` declares that an Action needs audit, not that audit
+exists, and MUST NOT be read as an AP-3 grade.
 
 ## 16. Versioning
 

@@ -18,6 +18,17 @@ function issue(severity, code, path, message) {
   return { severity, code, path, message };
 }
 
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// A Binding is evidence only when it names a re-runnable test. Everything else
+// in a manifest is a claim, and a claim cannot demonstrate that two Surfaces
+// reach the same Action Core.
+function isEvidenced(binding) {
+  return typeof binding?.test === "string" && binding.test.trim().length > 0;
+}
+
 function addSchemaIssues(issues) {
   for (const error of validateSchema.errors ?? []) {
     issues.push(
@@ -141,6 +152,17 @@ export function validateManifestObject(manifest) {
     for (const [exceptionIndex, exception] of (action.parity_exceptions ?? []).entries()) {
       const exceptionPath = `${actionPath}/parity_exceptions/${exceptionIndex}`;
       exceptionSurfaceIds.add(exception.surface);
+
+      if (exception.review_by < today()) {
+        issues.push(
+          issue(
+            "warning",
+            "parity_exception_overdue",
+            `${exceptionPath}/review_by`,
+            `${action.id} exception for ${exception.surface} passed its review date ${exception.review_by}.`
+          )
+        );
+      }
 
       if (!surfaceById.has(exception.surface)) {
         issues.push(
@@ -270,21 +292,30 @@ function buildReport(manifest, issues) {
   const requiredSurfaceIds = new Set(requiredSurfaces.map((surface) => surface.id));
 
   let presentRequiredBindings = 0;
+  let evidencedRequiredBindings = 0;
   let exceptionCount = 0;
   const perSurface = requiredSurfaces.map((surface) => {
     let mappedActions = 0;
+    let evidencedActions = 0;
     for (const action of actions) {
-      if ((action.bindings ?? []).some((binding) => binding.surface === surface.id)) {
+      const binding = (action.bindings ?? []).find((item) => item.surface === surface.id);
+      if (binding) {
         mappedActions += 1;
+        if (isEvidenced(binding)) {
+          evidencedActions += 1;
+        }
       }
     }
     presentRequiredBindings += mappedActions;
+    evidencedRequiredBindings += evidencedActions;
     return {
       id: surface.id,
       kind: surface.kind,
       mapped_actions: mappedActions,
+      evidenced_actions: evidencedActions,
       total_actions: actions.length,
-      coverage_percent: actions.length === 0 ? 0 : roundPercent(mappedActions, actions.length)
+      coverage_percent: actions.length === 0 ? 0 : roundPercent(mappedActions, actions.length),
+      evidenced_percent: actions.length === 0 ? 0 : roundPercent(evidencedActions, actions.length)
     };
   });
 
@@ -298,26 +329,96 @@ function buildReport(manifest, issues) {
   const errors = issues.filter((item) => item.severity === "error").length;
   const warnings = issues.filter((item) => item.severity === "warning").length;
 
+  const summary = {
+    actions: actions.length,
+    surfaces: surfaces.length,
+    required_surfaces: requiredSurfaces.length,
+    headless_actions: actions.filter((action) => action.execution?.headless).length,
+    present_required_bindings: presentRequiredBindings,
+    evidenced_required_bindings: evidencedRequiredBindings,
+    total_required_bindings: totalRequiredBindings,
+    declared_parity_percent:
+      totalRequiredBindings === 0 ? 0 : roundPercent(presentRequiredBindings, totalRequiredBindings),
+    evidenced_parity_percent:
+      totalRequiredBindings === 0 ? 0 : roundPercent(evidencedRequiredBindings, totalRequiredBindings),
+    declared_exceptions: exceptionCount,
+    errors,
+    warnings
+  };
+
   return {
     ok: errors === 0,
     spec_version: manifest?.spec_version ?? null,
     application: manifest?.application ?? null,
-    summary: {
-      actions: actions.length,
-      surfaces: surfaces.length,
-      required_surfaces: requiredSurfaces.length,
-      headless_actions: actions.filter((action) => action.execution?.headless).length,
-      present_required_bindings: presentRequiredBindings,
-      total_required_bindings: totalRequiredBindings,
-      strict_parity_percent:
-        totalRequiredBindings === 0 ? 0 : roundPercent(presentRequiredBindings, totalRequiredBindings),
-      declared_exceptions: exceptionCount,
-      errors,
-      warnings
-    },
+    summary,
+    conformance: assessConformance(manifest, summary),
     surfaces: perSurface,
     issues
   };
+}
+
+// Targets are what the manifest asks for. Achieved is what this manifest can
+// actually demonstrate. Reporting only the former lets a declaration-only
+// manifest read as a passing grade, which is what this function exists to stop.
+function assessConformance(manifest, summary) {
+  const targets = Array.isArray(manifest?.conformance_targets) ? manifest.conformance_targets : [];
+  const actions = Array.isArray(manifest?.actions) ? manifest.actions : [];
+  const surfaces = Array.isArray(manifest?.surfaces) ? manifest.surfaces : [];
+  const surfaceById = new Map(surfaces.filter((item) => item?.id).map((item) => [item.id, item]));
+  const blockers = [];
+
+  const hasMachineBinding = (action) =>
+    (action?.bindings ?? []).some((binding) =>
+      MACHINE_SURFACE_KINDS.has(surfaceById.get(binding.surface)?.kind)
+    );
+
+  if (summary.errors > 0) blockers.push(`${summary.errors} validation error(s)`);
+  if (actions.length === 0) blockers.push("no Actions declared");
+  const notHeadless = actions.filter((action) => action?.execution?.headless !== true).length;
+  if (notHeadless > 0) blockers.push(`${notHeadless} Action(s) not headless`);
+  const noMachine = actions.filter((action) => !hasMachineBinding(action)).length;
+  if (noMachine > 0) blockers.push(`${noMachine} Action(s) without a machine Surface`);
+
+  const ap1 = blockers.length === 0;
+
+  if (ap1) {
+    if (summary.declared_parity_percent < 100) {
+      blockers.push(`declared parity ${summary.declared_parity_percent}% (AP-2 needs 100%)`);
+    }
+    if (summary.evidenced_parity_percent < 100) {
+      blockers.push(
+        `evidenced parity ${summary.evidenced_parity_percent}% — ${
+          summary.total_required_bindings - summary.evidenced_required_bindings
+        } required Binding(s) name no test`
+      );
+    }
+  }
+
+  const ap2 = ap1 && blockers.length === 0;
+  const achieved = ap2 ? "AP-2" : ap1 ? "AP-1" : "none";
+
+  // AP-2 is the ceiling a static check can honestly award. AP-3 is about
+  // runtime behaviour — structured results, policy enforced below the interface,
+  // real audit records — and a manifest only contains claims about those.
+  // `audit_required: true` states that an Action needs audit, not that audit
+  // exists, so treating it as an AP-3 grade would repeat the mistake this
+  // function was written to prevent.
+  const notes = [];
+  if (ap2) {
+    notes.push(
+      "AP-3 and AP-4 are not derivable from a manifest: AP-3 requires runtime evidence of structured results, policy enforcement, and audit records; AP-4 requires a published conformance report."
+    );
+    const unaudited = actions.filter(
+      (action) => action?.effects?.class !== "read" && action?.effects?.audit_required !== true
+    ).length;
+    if (unaudited > 0) {
+      notes.push(
+        `${unaudited} state-changing Action(s) do not declare audit_required, which blocks an AP-3 claim before runtime evidence is even considered.`
+      );
+    }
+  }
+
+  return { targets, achieved, blockers, notes };
 }
 
 function roundPercent(numerator, denominator) {

@@ -42,7 +42,7 @@ ActionParity does **not** require one CLI command for every visual control. Tabs
 ```json
 {
   "$schema": "./schema/action-parity.schema.json",
-  "spec_version": "0.1.0",
+  "spec_version": "0.2.0",
   "application": {
     "id": "org.example.notes",
     "name": "Example Notes",
@@ -117,11 +117,11 @@ See the complete [normative draft](SPEC.md), the [minimal example](examples/mini
 | Level | Name | Meaning |
 |---|---|---|
 | AP-1 | Core | Actions are typed, discoverable, headless, and directly testable. |
-| AP-2 | Parity | Meaningful actions across declared interfaces map to the same Action Core. |
+| AP-2 | Parity | Every required binding is present **and names a re-runnable test**. A binding without a test is a claim, not evidence. |
 | AP-3 | Agent | Actions add structured results, policy, confirmation, audit, progress, and cancellation where applicable. |
 | AP-4 | Verified | A published conformance report proves Action Core, binding, accessibility, and real-GUI journey tests. |
 
-The levels are cumulative.
+The levels are cumulative. Reports publish **declared parity** and **evidenced parity** as two separate numbers, plus the achieved level alongside the self-declared targets — a manifest that is merely filled in must never read as a passing grade.
 
 ## Validate a manifest
 
@@ -159,7 +159,7 @@ Read the evidence and detailed comparison in [docs/LANDSCAPE.md](docs/LANDSCAPE.
 
 ## Project status
 
-**v0.1.0 working draft.** The ideas are implementable; the exact schema and conformance language are intentionally open to revision before v1.0.
+**v0.2.0 working draft.** The ideas are implementable; the exact schema and conformance language are intentionally open to revision before v1.0.
 
 The first reference application is U-King, a Windows desktop application. The pilot is designed to prove that an existing Electron application can gain:
 

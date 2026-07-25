@@ -1,6 +1,6 @@
 # 案例：cc-switch / uu-switch 试点回馈
 
-> 日期：2026-07-26 · 规范版本：0.1.0 工作草案
+> 日期：2026-07-26 · 规范版本：0.1.0 工作草案（F1、F3–F6 仍未修，F2、F7 已在 0.2.0 落地）
 > 试点对象：[cc-switch](https://github.com/farion1231/cc-switch) v3.18.0 的下游分支 uu-switch
 > 形态：Tauri 2 + React 桌面应用，270 个 `#[tauri::command]`，**零 CLI、零 MCP、零 API**
 > 试点产物：一份过验证器的清单（8 个动作，严格分数 66.7%，0 错 0 警）
