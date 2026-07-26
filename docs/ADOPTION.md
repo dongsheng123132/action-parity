@@ -57,6 +57,40 @@ logs.export
 
 Avoid starting with upgrade installation or destructive repair because the safety and rollback requirements are higher.
 
+## What adoption actually costs
+
+Measured on the cc-switch pilot, which converted a 270-command Tauri
+application under the 0.2.0 rules. State this before asking anyone to adopt;
+a standard that hides its cost structure is not credible about anything else.
+
+**AP-1 is nearly pure addition.** An action registry, a CLI entry point,
+manifest generation, and binding evidence are all new files. Nothing existing
+has to move, so the work is boring and parallelizable.
+
+**AP-2 spends almost all of its budget on the proving half, and that half
+reaches into existing code.** Two examples from the pilot:
+
+- pushing a confirmation gate below the interface meant changing upstream
+  function signatures, because the only gate was a dialog in the front end;
+- proving the command bridge and the CLI reach the same Action Core required
+  refactoring six upstream commands that took an injected application state and
+  therefore could not be constructed inside a test.
+
+The pattern generalizes: **what you can add is cheap, what you can prove is
+expensive.** Budget accordingly, and expect the proving work to touch code the
+team did not plan to reopen.
+
+For a downstream fork this cost lands twice, since every upstream file touched
+becomes a future merge conflict. That is a legitimate reason to declare partial
+conformance for a core domain and leave the rest explicitly out of scope
+(SPEC §3.1) rather than to convert everything.
+
+The inversion is intended. Under the 0.1.0 scoring the pilot looked best before
+any work was done — 66.7% and a passing AP-2 with zero new code. Doing real work
+moved it to AP-1, because the score had started measuring evidence instead of
+architectural shape. A number that drops when a team starts being honest is
+working correctly.
+
 ## Phase 2 — Make adoption cheap
 
 **Goal:** reduce implementation from an architecture project to a normal development task.

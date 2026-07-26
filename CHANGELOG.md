@@ -2,6 +2,26 @@
 
 All notable project changes will be documented here.
 
+## 0.4.0 - 2026-07-26
+
+Closes case F5. §10.1 governed the Surfaces of one application, which is not
+where drift happens: two products write the same configuration file and neither
+manifest mentions the other.
+
+- **`state.external_resources`** declares every truth source outside the
+  application that its Actions read or write, with `access` and `exclusive`.
+- **A shared written resource MUST declare `concurrency`** —
+  `last-writer-wins`, `optimistic`, `advisory-lock`, or `exclusive-lock`.
+  Omitting it is an error, because last-writer-wins is what silence already
+  means and nobody chose it. Declaring it is permitted and warns, since the
+  same policy is reasonable for scratch state and a data-loss defect for shared
+  configuration.
+- Reports list every shared resource, printing `NO CONCURRENCY POLICY` when
+  absent.
+- `docs/ADOPTION.md` states the measured cost structure: AP-1 is nearly pure
+  addition, AP-2 spends its budget on the proving half, and proving reaches into
+  code the team did not plan to reopen — twice over for a downstream fork.
+
 ## 0.3.0 - 2026-07-26
 
 Closes case F1: the score now measures whether a machine can actually reach the

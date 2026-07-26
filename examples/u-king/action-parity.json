@@ -1,6 +1,6 @@
 {
   "$schema": "../../schema/action-parity.schema.json",
-  "spec_version": "0.3.0",
+  "spec_version": "0.4.0",
   "application": {
     "id": "org.u-king.desktop",
     "name": "U-King",
@@ -457,6 +457,15 @@
       "action.completed",
       "action.failed",
       "gateway.changed"
+    ],
+    "external_resources": [
+      {
+        "path": "~/.claude/settings.json",
+        "access": "read-write",
+        "exclusive": false,
+        "concurrency": "optimistic",
+        "notes": "Other AI tooling on the same machine writes this file. Writes carry the observed version and fail with a conflict when it moved."
+      }
     ]
   }
 }

@@ -1,6 +1,6 @@
 # ActionParity Specification
 
-**Version:** 0.3.0 Working Draft  
+**Version:** 0.4.0 Working Draft  
 **Status:** Non-normative until 1.0.0  
 **Tagline:** One action. Every interface.
 
@@ -288,7 +288,49 @@ action.cancelled
 
 Events MUST carry an `execution_id`, `action_id`, timestamp, and relevant structured payload.
 
-### 10.3 Correlation and audit
+### 10.3 External truth sources
+
+§10.1 governs Surfaces of one application. Real drift is rarely that tidy: two
+separate products routinely write the same configuration file, and neither
+manifest mentions the other.
+
+An implementation MUST declare, in `state.external_resources`, every truth source
+outside the application that its Actions read or write:
+
+```jsonc
+"state": {
+  "external_resources": [
+    {
+      "path": "~/.claude/settings.json",
+      "access": "read-write",
+      "exclusive": false,
+      "concurrency": "optimistic"
+    }
+  ]
+}
+```
+
+`exclusive: false` states that another product may write the same resource. For
+any such resource that this application writes, `concurrency` is REQUIRED:
+
+| Value | Meaning |
+|---|---|
+| `last-writer-wins` | A concurrent write is overwritten without detection |
+| `optimistic` | Writes carry the observed version and fail with a conflict when it moved |
+| `advisory-lock` | Writers cooperate through a lock other writers may ignore |
+| `exclusive-lock` | Writers are serialized by an enforced lock |
+
+Last-writer-wins MUST NOT be an undeclared default. It is a legitimate choice
+for low-value state and a data-loss defect for shared configuration, and the
+difference is only visible when someone writes it down. A validator MUST report
+`last-writer-wins` on a shared written resource as a warning.
+
+An Action that writes a shared resource SHOULD carry the version it observed and
+return a conflict rather than overwrite a newer one. A future draft will specify
+that field for cross-device synchronization; declaring the policy here is what
+makes the gap visible in the meantime.
+
+### 10.4 Correlation and audit
 
 Every state-changing Action SHOULD be traceable from request through result, events, logs, and audit record using the same `execution_id`.
 

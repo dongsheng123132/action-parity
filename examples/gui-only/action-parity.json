@@ -1,13 +1,16 @@
 {
   "$schema": "../../schema/action-parity.schema.json",
-  "spec_version": "0.3.0",
+  "spec_version": "0.4.0",
   "application": {
     "id": "org.example.gui-only",
     "name": "Example GUI-only App",
     "version": "1.0.0",
     "description": "A webview desktop application whose only non-visual Surface is its own in-process IPC bridge. Under 0.2.0 this manifest reached AP-2; it is kept as the regression case for that flaw."
   },
-  "conformance_targets": ["AP-1", "AP-2"],
+  "conformance_targets": [
+    "AP-1",
+    "AP-2"
+  ],
   "surfaces": [
     {
       "id": "desktop",
@@ -31,16 +34,24 @@
       "input_schema": {
         "type": "object",
         "properties": {
-          "provider_id": { "type": "string" }
+          "provider_id": {
+            "type": "string"
+          }
         },
-        "required": ["provider_id"]
+        "required": [
+          "provider_id"
+        ]
       },
       "output_schema": {
         "type": "object",
         "properties": {
-          "deleted": { "type": "boolean" }
+          "deleted": {
+            "type": "boolean"
+          }
         },
-        "required": ["deleted"]
+        "required": [
+          "deleted"
+        ]
       },
       "effects": {
         "class": "destructive",
@@ -67,5 +78,15 @@
         }
       ]
     }
-  ]
+  ],
+  "state": {
+    "external_resources": [
+      {
+        "path": "~/.claude/settings.json",
+        "access": "read-write",
+        "exclusive": false,
+        "notes": "Written by this application and by at least one other product, with no policy for a concurrent write."
+      }
+    ]
+  }
 }

@@ -3,7 +3,7 @@
 import process from "node:process";
 import { readManifest, validateManifestObject } from "../src/validator.mjs";
 
-const VERSION = "0.3.0";
+const VERSION = "0.4.0";
 
 function usage() {
   return `ActionParity ${VERSION}
@@ -53,6 +53,14 @@ function printHumanReport(report, mode) {
   for (const surface of report.surfaces) {
     lines.push(
       `Surface ${surface.id}\t${surface.kind}/${surface.reachability}\t${surface.mapped_actions}/${surface.total_actions}\t${surface.coverage_percent}%\tevidenced ${surface.evidenced_percent}%`
+    );
+  }
+
+  for (const resource of summary.shared_external_resources ?? []) {
+    lines.push(
+      `Shared resource\t${resource.path}\t${resource.access}\t${
+        resource.concurrency ?? "NO CONCURRENCY POLICY"
+      }`
     );
   }
 

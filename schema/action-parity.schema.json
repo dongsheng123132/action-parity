@@ -16,7 +16,7 @@
       "type": "string"
     },
     "spec_version": {
-      "const": "0.3.0"
+      "const": "0.4.0"
     },
     "application": {
       "$ref": "#/$defs/application"
@@ -349,6 +349,52 @@
             "type": "string",
             "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z][a-z0-9_-]*)+$"
           }
+        },
+        "external_resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/externalResource"
+          },
+          "description": "Truth sources outside this application that its Actions read or write. Shared configuration is where cross-product drift actually happens."
+        }
+      }
+    },
+    "externalResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "access",
+        "exclusive"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Location of the shared truth, as a path, URI, or registry key."
+        },
+        "access": {
+          "enum": [
+            "read",
+            "write",
+            "read-write"
+          ]
+        },
+        "exclusive": {
+          "type": "boolean",
+          "description": "True only when this application is the sole writer. False means another product can write the same resource."
+        },
+        "concurrency": {
+          "enum": [
+            "last-writer-wins",
+            "optimistic",
+            "advisory-lock",
+            "exclusive-lock"
+          ],
+          "description": "How a concurrent write from another writer is handled. Required when the resource is shared and written."
+        },
+        "notes": {
+          "type": "string"
         }
       }
     }

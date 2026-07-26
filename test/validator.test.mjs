@@ -169,6 +169,36 @@ test("a stated exclusion reason clears the warning but stays in the report", asy
   assert.match(report.summary.excluded_machine_surfaces[0].reason, /one release behind/);
 });
 
+// Case F5: two products writing the same config file is where drift actually
+// happens, and neither manifest used to mention the other.
+test("a shared written resource without a concurrency policy is an error", async () => {
+  const manifest = await fixture("../examples/gui-only/action-parity.json");
+  const report = validateManifestObject(manifest);
+
+  assert.ok(report.issues.some((item) => item.code === "shared_resource_concurrency_undeclared"));
+  assert.equal(report.summary.shared_external_resources[0].concurrency, null);
+});
+
+test("last-writer-wins is allowed but never silent", async () => {
+  const manifest = await fixture("../examples/gui-only/action-parity.json");
+  manifest.state.external_resources[0].concurrency = "last-writer-wins";
+
+  const report = validateManifestObject(manifest);
+
+  assert.ok(!report.issues.some((item) => item.code === "shared_resource_concurrency_undeclared"));
+  assert.ok(report.issues.some((item) => item.code === "shared_resource_last_writer_wins"));
+});
+
+test("an exclusively owned resource needs no concurrency policy", async () => {
+  const manifest = await fixture("../examples/gui-only/action-parity.json");
+  manifest.state.external_resources[0].exclusive = true;
+
+  const report = validateManifestObject(manifest);
+
+  assert.ok(!report.issues.some((item) => item.code?.startsWith("shared_resource")));
+  assert.deepEqual(report.summary.shared_external_resources, []);
+});
+
 test("a test adapter is evidence, not a machine Surface", async () => {
   const manifest = await fixture("../examples/minimal/action-parity.json");
   for (const surface of manifest.surfaces) {

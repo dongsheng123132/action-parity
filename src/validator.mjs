@@ -131,6 +131,37 @@ export function validateManifestObject(manifest) {
     );
   }
 
+  // Cross-product drift happens in shared configuration, not inside one
+  // application. A resource another product can write is only safe when the
+  // implementation says how a concurrent write is resolved; silence resolves it
+  // as last-writer-wins without anyone choosing that.
+  for (const [resourceIndex, resource] of (manifest.state?.external_resources ?? []).entries()) {
+    const resourcePath = `/state/external_resources/${resourceIndex}`;
+    const written = resource.access === "write" || resource.access === "read-write";
+
+    if (written && !resource.exclusive && !resource.concurrency) {
+      issues.push(
+        issue(
+          "error",
+          "shared_resource_concurrency_undeclared",
+          `${resourcePath}/concurrency`,
+          `${resource.path} is written by this application and by others without a declared concurrency policy; last-writer-wins must be chosen, not inherited.`
+        )
+      );
+    }
+
+    if (written && !resource.exclusive && resource.concurrency === "last-writer-wins") {
+      issues.push(
+        issue(
+          "warning",
+          "shared_resource_last_writer_wins",
+          `${resourcePath}/concurrency`,
+          `${resource.path} is shared and resolves concurrent writes by last-writer-wins; a write from another product can be lost silently.`
+        )
+      );
+    }
+  }
+
   for (const [actionIndex, action] of manifest.actions.entries()) {
     const actionPath = `/actions/${actionIndex}`;
     const boundSurfaceIds = new Set();
@@ -403,6 +434,13 @@ function buildReport(manifest, issues) {
     headless_actions: actions.filter((action) => action.execution?.headless).length,
     headless_evidenced_actions: actions.filter((action) => action.execution?.headless_evidence).length,
     externally_reachable_actions: externallyReachableActions,
+    shared_external_resources: (manifest?.state?.external_resources ?? [])
+      .filter((resource) => !resource?.exclusive)
+      .map((resource) => ({
+        path: resource.path,
+        access: resource.access,
+        concurrency: resource.concurrency ?? null
+      })),
     excluded_machine_surfaces: surfaces
       .filter((surface) => MACHINE_SURFACE_KINDS.has(surface?.kind) && !surface?.required_for_parity)
       .map((surface) => ({
