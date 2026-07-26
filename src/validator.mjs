@@ -99,6 +99,23 @@ export function validateManifestObject(manifest) {
     issues.push(issue("error", "duplicate_surface_id", "/surfaces", `Duplicate Surface ID: ${id}`));
   }
 
+  // Demoting a Surface out of the required set is the cheapest way to raise
+  // evidenced parity, and the Surface hardest to prove is usually the one whose
+  // proof matters most. The denominator may shrink; it may not shrink quietly.
+  for (const [surfaceIndex, surface] of manifest.surfaces.entries()) {
+    if (!MACHINE_SURFACE_KINDS.has(surface.kind) || surface.required_for_parity) continue;
+    if (!surface.exclusion_reason) {
+      issues.push(
+        issue(
+          "warning",
+          "machine_surface_excluded_without_reason",
+          `/surfaces/${surfaceIndex}`,
+          `Machine Surface ${surface.id} is excluded from parity without a stated reason; the parity denominator shrinks silently.`
+        )
+      );
+    }
+  }
+
   for (const id of duplicateValues(manifest.actions.map((action) => action.id))) {
     issues.push(issue("error", "duplicate_action_id", "/actions", `Duplicate Action ID: ${id}`));
   }
@@ -386,6 +403,14 @@ function buildReport(manifest, issues) {
     headless_actions: actions.filter((action) => action.execution?.headless).length,
     headless_evidenced_actions: actions.filter((action) => action.execution?.headless_evidence).length,
     externally_reachable_actions: externallyReachableActions,
+    excluded_machine_surfaces: surfaces
+      .filter((surface) => MACHINE_SURFACE_KINDS.has(surface?.kind) && !surface?.required_for_parity)
+      .map((surface) => ({
+        id: surface.id,
+        kind: surface.kind,
+        reachability: reachabilityOf(surface),
+        reason: surface.exclusion_reason ?? null
+      })),
     present_required_bindings: presentRequiredBindings,
     evidenced_required_bindings: evidencedRequiredBindings,
     total_required_bindings: totalRequiredBindings,

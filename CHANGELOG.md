@@ -30,6 +30,14 @@ only non-visual Surface is its own command bridge — which is the point.
   target for rendered interfaces, keeping control-level identifiers at AP-4
   (case F4).
 
+- **Excluding a machine Surface can no longer be silent.** Reported by the pilot
+  once 0.2.0 landed: when a Surface sits at 0% evidence, demoting it out of the
+  required set is the cheapest way to raise the score, and the Surface that
+  resists proof is usually the one carrying §5 — if it cannot be tested next to
+  the GUI, it cannot show they reach the same Action Core. A machine Surface
+  with `required_for_parity: false` now requires `exclusion_reason`, and every
+  exclusion appears in the report.
+
 Still open: cross-application shared state has nowhere to be declared (case F5),
 and manifest provenance is not distinguished from hand authoring (case F2
 remainder).

@@ -128,6 +128,11 @@
             "external"
           ],
           "description": "Who can invoke this Surface. Absent means in-process for ipc and test, and the honest default for the kind otherwise. A Surface only its own application can reach is not machine access."
+        },
+        "exclusion_reason": {
+          "type": "string",
+          "minLength": 8,
+          "description": "Why this machine Surface is not required for parity. Demoting a Surface shrinks the parity denominator, so the reason must be stated rather than implied."
         }
       }
     },

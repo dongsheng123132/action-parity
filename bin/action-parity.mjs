@@ -56,6 +56,14 @@ function printHumanReport(report, mode) {
     );
   }
 
+  for (const excluded of summary.excluded_machine_surfaces ?? []) {
+    lines.push(
+      `Excluded ${excluded.id}\t${excluded.kind}/${excluded.reachability}\tnot required for parity\t${
+        excluded.reason ?? "NO REASON STATED"
+      }`
+    );
+  }
+
   for (const blocker of conformance.blockers) {
     lines.push(`BLOCKER\t${blocker}`);
   }

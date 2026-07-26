@@ -134,6 +134,41 @@ test("stating external reachability explicitly is what lifts an ipc Surface", as
   assert.ok(!report.issues.some((item) => item.code === "machine_surface_in_process_only"));
 });
 
+// Reported by the cc-switch pilot after 0.2.0 landed: the cheapest way to lift
+// evidenced parity is to demote the Surface you cannot prove, and that is
+// usually the one whose proof carries the architectural invariant.
+test("demoting an unprovable machine Surface is reported, never silent", async () => {
+  const manifest = await fixture("../examples/u-king/action-parity.json");
+  const mcp = manifest.surfaces.find((surface) => surface.kind === "mcp");
+  mcp.required_for_parity = false;
+  for (const action of manifest.actions) {
+    action.bindings = action.bindings.filter((binding) => binding.surface !== mcp.id);
+  }
+
+  const report = validateManifestObject(manifest);
+
+  assert.equal(report.summary.declared_parity_percent, 100, "the denominator did shrink");
+  assert.equal(report.summary.excluded_machine_surfaces.length, 1);
+  assert.equal(report.summary.excluded_machine_surfaces[0].reason, null);
+  assert.ok(report.issues.some((item) => item.code === "machine_surface_excluded_without_reason"));
+});
+
+test("a stated exclusion reason clears the warning but stays in the report", async () => {
+  const manifest = await fixture("../examples/u-king/action-parity.json");
+  const mcp = manifest.surfaces.find((surface) => surface.kind === "mcp");
+  mcp.required_for_parity = false;
+  mcp.exclusion_reason = "The MCP adapter ships one release behind the Action Core.";
+  for (const action of manifest.actions) {
+    action.bindings = action.bindings.filter((binding) => binding.surface !== mcp.id);
+  }
+
+  const report = validateManifestObject(manifest);
+
+  assert.ok(!report.issues.some((item) => item.code === "machine_surface_excluded_without_reason"));
+  assert.equal(report.summary.excluded_machine_surfaces.length, 1);
+  assert.match(report.summary.excluded_machine_surfaces[0].reason, /one release behind/);
+});
+
 test("a test adapter is evidence, not a machine Surface", async () => {
   const manifest = await fixture("../examples/minimal/action-parity.json");
   for (const surface of manifest.surfaces) {
