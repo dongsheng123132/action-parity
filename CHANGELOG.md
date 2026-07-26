@@ -2,6 +2,45 @@
 
 All notable project changes will be documented here.
 
+## 0.5.0 - 2026-07-26
+
+The standard had become a scoring system. `AP-1` through `AP-4` appeared 140
+times in the repository; `shadow` appeared zero times in `SPEC.md`. The chapter
+defining the architecture was 14 lines and the chapters defining the scoreboard
+were 92, and three consecutive releases had been about scoring. This release
+puts the architecture back in the middle and demotes the scoreboard to an
+optional profile. See [docs/PROPOSAL-CORE-FIRST.zh-CN.md](docs/PROPOSAL-CORE-FIRST.zh-CN.md).
+
+- **§2 states the two questions the standard exists to answer**, and both are
+  binary: can a behavior be built once and have every interface follow from it,
+  and can an agent discover, invoke, and assert it without pixels.
+- **§5 is now the center of the specification.** It defines Core and Shadow,
+  and states the four things a shadow must not contain: a second implementation,
+  a policy decision that exists only there, an independent source of truth, or an
+  action reachable only through it. Each is binary and each is located in code.
+- **§5.3 covers generating shadows from the core** — the development half of the
+  thesis, previously absent. Registering an Action once should produce its CLI,
+  MCP tool, API route, manifest entry, and test scaffolding. Adding a behavior
+  costs one implementation; adding a platform costs one shadow.
+- **`Shadow` is a defined term** (§4.3.1) instead of a word that appeared only in
+  the document about naming.
+- **Levels and scores moved to [docs/AUDIT-PROFILE.md](docs/AUDIT-PROFILE.md)**,
+  which opens by saying it is not the standard. Normative text no longer states
+  requirements in terms of levels: headless execution and external reachability
+  are required outright, not required "for AP-2".
+- **The validator leads with violations.** `report.violations` and
+  `report.unproven` are separate lists — a violation is fixed by moving code, an
+  unproven claim by writing a test — and `report.shadows` names each shadow with
+  its reachability and proof count. Percentages and levels moved under
+  `report.audit` and print below a `-- audit profile (optional) --` divider.
+  `report.conformance` is renamed to `report.audit`.
+- The shadow list deliberately does **not** claim a shadow holds no behavior of
+  its own. That is a property of code, and asserting it from a manifest would be
+  the overclaim this validator exists to catch.
+- `generated_from` may be declared and is reported, never verified: a validator
+  cannot re-run a generator it does not have (case F2 remainder, closed as
+  reported-not-scored).
+
 ## 0.4.0 - 2026-07-26
 
 Closes case F5. §10.1 governed the Surfaces of one application, which is not

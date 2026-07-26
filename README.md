@@ -18,18 +18,23 @@ The GUI is not the application. The CLI is not the application. They are project
 
 **中文说明：** [README.zh-CN.md](README.zh-CN.md) · One standard, one name per language — see [docs/NAMING.md](docs/NAMING.md).
 
-## Why ActionParity
+## Two questions, both yes or no
 
-Most desktop software was built for a person with a screen, mouse, and keyboard. AI agents are forced to infer intent from pixels, locate unstable controls, inject input, and guess whether a task succeeded.
+Software is now written and operated by AI as well as by people, and both are hard for the same reason: behavior lives inside the interface. So a second interface means writing the behavior again, and driving the application means driving pixels.
 
-UI automation remains essential for visual and interaction testing, but it should not be the primary way an agent invokes business capabilities.
+**Can it be built once?**
 
-ActionParity separates two questions:
+> A developer — human or AI — implements a behavior **once**, and the GUI, CLI, MCP, API, and test entry points follow from that single implementation instead of being written again per interface.
 
-1. **Did the application perform the right action?** Test the Action Core directly.
-2. **Can a person correctly reach and understand that action?** Test the real GUI through accessibility, UI automation, and visual assertions.
+Writing a capability three times and keeping the copies aligned is the dominant cost of building software usable by both people and agents. AI-assisted development makes that worse, not better: generating three implementations is easy, noticing they have drifted is not.
 
-This produces faster tests, reliable automation, safer agent access, and less duplicated product logic.
+**Can it be operated without pixels?**
+
+> An agent that has never seen the source can **discover** what the application does, learn each behavior's inputs, outputs, effects, and risk, **invoke** it, and **assert** the result — no screenshot, no vision model, no synthetic click.
+
+Screen-driving is the right tool for checking what a person sees, and the wrong foundation for invoking business behavior. An application that offers nothing else forces every agent onto it.
+
+Neither question has a percentage in it.
 
 ## The invariant
 
@@ -42,7 +47,7 @@ ActionParity does **not** require one CLI command for every visual control. Tabs
 ```json
 {
   "$schema": "./schema/action-parity.schema.json",
-  "spec_version": "0.4.0",
+  "spec_version": "0.5.0",
   "application": {
     "id": "org.example.notes",
     "name": "Example Notes",
@@ -113,18 +118,31 @@ ActionParity does **not** require one CLI command for every visual control. Tabs
 
 See the complete [normative draft](SPEC.md), the [minimal example](examples/minimal/action-parity.json), and the [U-King pilot manifest](examples/u-king/action-parity.json).
 
-## Conformance levels
+## What a shadow may not contain
 
-| Level | Name | Meaning |
-|---|---|---|
-| AP-1 | Core | Actions are typed, discoverable, and headless **with named evidence** for it. |
-| AP-2 | Parity | Every required binding is present and names a re-runnable test, and every action is reachable by a process **outside the application**. |
-| AP-3 | Agent | Actions add structured results, policy, confirmation, audit, progress, and cancellation where applicable. |
-| AP-4 | Verified | A published conformance report proves Action Core, binding, accessibility, and real-GUI journey tests. |
+Conformance is binary and it lives in four rules. A Surface — a **shadow** of the core — must not contain:
 
-The levels are cumulative. Reports publish **declared parity** and **evidenced parity** as two separate numbers, plus the achieved level alongside the self-declared targets — a manifest that is merely filled in must never read as a passing grade.
+1. **a second implementation** of a behavior;
+2. **a policy decision that exists only there** — a destructive action guarded only by a dialog in the front end is unguarded the moment a second shadow appears;
+3. **an independent source of truth** for state;
+4. **an action reachable only through that shadow**.
 
-An application whose only non-visual surface is its own webview command bridge (`#[tauri::command]`, `ipcRenderer`, and equivalents) has a private calling convention, not machine access. [`examples/gui-only`](examples/gui-only/action-parity.json) is kept as the regression case: it reached AP-2 under 0.2.0 and now reports `Achieved: none`.
+Presentation, input collection, and platform integration are what a shadow is *for*. Behavior is not.
+
+A validator reports violations and their locations. It does not grade:
+
+```text
+Shadow desktop   gui/in-process     6 action(s)   6 proven   checked
+Shadow cli       cli/external       6 action(s)   6 proven   checked
+Shadow mcp       mcp/local-ipc      6 action(s)   6 proven   checked
+
+Violations   0
+Unproven     0
+```
+
+An application whose only non-visual surface is its own webview command bridge (`#[tauri::command]`, `ipcRenderer`, and equivalents) has a private calling convention, not machine access — it violates rule 4. [`examples/gui-only`](examples/gui-only/action-parity.json) is kept as the regression case.
+
+**Graded levels are optional.** AP-1 through AP-4 and the coverage percentages that support them are an audit profile, not the standard: see [docs/AUDIT-PROFILE.md](docs/AUDIT-PROFILE.md), including [why they were moved out](docs/AUDIT-PROFILE.md#why-this-was-moved-out-of-the-specification). An implementation can conform completely and never produce a score.
 
 ## Validate a manifest
 
@@ -162,7 +180,7 @@ Read the evidence and detailed comparison in [docs/LANDSCAPE.md](docs/LANDSCAPE.
 
 ## Project status
 
-**v0.4.0 working draft.** The ideas are implementable; the exact schema and conformance language are intentionally open to revision before v1.0.
+**v0.5.0 working draft.** The ideas are implementable; the exact schema and conformance language are intentionally open to revision before v1.0.
 
 The first reference application is U-King, a Windows desktop application. The pilot is designed to prove that an existing Electron application can gain:
 

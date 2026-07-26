@@ -16,7 +16,7 @@
       "type": "string"
     },
     "spec_version": {
-      "const": "0.4.0"
+      "const": "0.5.0"
     },
     "application": {
       "$ref": "#/$defs/application"
@@ -49,6 +49,23 @@
     },
     "state": {
       "$ref": "#/$defs/state"
+    },
+    "generated_from": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "generator"
+      ],
+      "properties": {
+        "generator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string"
+        }
+      },
+      "description": "Where this manifest was generated from. Never treated as verified: a validator cannot re-run a generator it does not have."
     }
   },
   "$defs": {

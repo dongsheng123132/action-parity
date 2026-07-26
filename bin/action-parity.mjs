@@ -3,7 +3,7 @@
 import process from "node:process";
 import { readManifest, validateManifestObject } from "../src/validator.mjs";
 
-const VERSION = "0.4.0";
+const VERSION = "0.5.0";
 
 function usage() {
   return `ActionParity ${VERSION}
@@ -29,31 +29,37 @@ function jsonEnvelope(report, runtimeError = null) {
 
 function printHumanReport(report, mode) {
   const summary = report.summary;
-  const conformance = report.conformance ?? { targets: [], achieved: "none", blockers: [], notes: [] };
+  const audit = report.audit ?? { targets: [], achieved: "none", blockers: [], notes: [] };
+  const violations = report.violations ?? [];
+  const unproven = report.unproven ?? [];
   const lines = [
     `${report.application?.name ?? "Unknown application"} ${report.application?.version ?? ""}`.trim(),
     `Specification\t${report.spec_version ?? "unknown"}`,
     `Actions\t${summary.actions}`,
-    `Headless\t${summary.headless_actions}/${summary.actions}\t${summary.headless_evidenced_actions}/${summary.actions} with evidence`,
-    `Externally reachable\t${summary.externally_reachable_actions}/${summary.actions}`,
-    `Required bindings\t${summary.present_required_bindings}/${summary.total_required_bindings}`,
-    `Declared parity\t${summary.declared_parity_percent}%`,
-    `Evidenced parity\t${summary.evidenced_parity_percent}%\t${summary.evidenced_required_bindings}/${summary.total_required_bindings} with a test`,
-    `Exceptions\t${summary.declared_exceptions}`,
-    `Errors\t${summary.errors}`,
-    `Warnings\t${summary.warnings}`,
-    `Targets\t${conformance.targets.length > 0 ? conformance.targets.join(", ") : "none declared"}`,
-    `Achieved\t${conformance.achieved}`
+    ""
   ];
 
   if (mode === "validate") {
     lines.unshift(report.ok ? "VALID" : "INVALID");
   }
 
-  for (const surface of report.surfaces) {
+  // One core, many shadows: name the shadows before anything else.
+  for (const shadow of report.shadows ?? []) {
     lines.push(
-      `Surface ${surface.id}\t${surface.kind}/${surface.reachability}\t${surface.mapped_actions}/${surface.total_actions}\t${surface.coverage_percent}%\tevidenced ${surface.evidenced_percent}%`
+      `Shadow ${shadow.id}\t${shadow.kind}/${shadow.reachability}\t${shadow.actions} action(s)\t${
+        shadow.proven_bindings
+      } proven\t${shadow.checked ? "checked" : "NOT CHECKED"}`
     );
+  }
+
+  lines.push("", `Violations\t${violations.length}`);
+  for (const item of violations) {
+    lines.push(`  ${item.code}\t${item.path}\t${item.message}`);
+  }
+
+  lines.push("", `Unproven\t${unproven.length}`);
+  for (const item of unproven) {
+    lines.push(`  ${item.code}\t${item.path}\t${item.message}`);
   }
 
   for (const resource of summary.shared_external_resources ?? []) {
@@ -66,25 +72,35 @@ function printHumanReport(report, mode) {
 
   for (const excluded of summary.excluded_machine_surfaces ?? []) {
     lines.push(
-      `Excluded ${excluded.id}\t${excluded.kind}/${excluded.reachability}\tnot required for parity\t${
+      `Excluded ${excluded.id}\t${excluded.kind}/${excluded.reachability}\tnot checked\t${
         excluded.reason ?? "NO REASON STATED"
       }`
     );
   }
 
-  for (const blocker of conformance.blockers) {
-    lines.push(`BLOCKER\t${blocker}`);
-  }
-
-  for (const note of conformance.notes) {
-    lines.push(`NOTE\t${note}`);
-  }
-
-  if (report.issues.length > 0) {
+  const otherIssues = report.issues.filter(
+    (item) => !violations.includes(item) && !unproven.includes(item)
+  );
+  if (otherIssues.length > 0) {
     lines.push("");
-    for (const item of report.issues) {
+    for (const item of otherIssues) {
       lines.push(`${item.severity.toUpperCase()}\t${item.code}\t${item.path}\t${item.message}`);
     }
+  }
+
+  // Optional audit profile — docs/AUDIT-PROFILE.md. Annotation, not headline.
+  lines.push(
+    "",
+    `-- audit profile (optional) --`,
+    `Declared parity\t${summary.declared_parity_percent}%`,
+    `Evidenced parity\t${summary.evidenced_parity_percent}%\t${summary.evidenced_required_bindings}/${summary.total_required_bindings} with a test`,
+    `Exceptions\t${summary.declared_exceptions}`,
+    `Targets\t${audit.targets.length > 0 ? audit.targets.join(", ") : "none declared"}`,
+    `Achieved\t${audit.achieved}`
+  );
+
+  for (const blocker of audit.blockers) {
+    lines.push(`BLOCKER\t${blocker}`);
   }
 
   process.stdout.write(`${lines.join("\n")}\n`);
