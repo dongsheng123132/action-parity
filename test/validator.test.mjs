@@ -29,6 +29,38 @@ test("U-King pilot manifest is valid and has full declared parity", async () => 
   assert.equal(report.summary.declared_parity_percent, 100);
 });
 
+test("a non-POSIX ecosystem is not warned for its own JSON flag spelling", async () => {
+  const spellings = [
+    "notes note create --title <text> --json",
+    "engine/cleaner.ps1 scan -Json",
+    "open365.exe /json cleaner scan"
+  ];
+
+  for (const target of spellings) {
+    const manifest = await fixture("../examples/minimal/action-parity.json");
+    const binding = manifest.actions[0].bindings.find((item) => item.surface === "cli");
+    binding.target = target;
+
+    const report = validateManifestObject(manifest);
+
+    assert.equal(
+      report.issues.some((item) => item.code === "cli_binding_json_not_visible"),
+      false,
+      `${target} should count as a machine-readable mode`
+    );
+  }
+});
+
+test("a CLI binding with no visible JSON mode still warns", async () => {
+  const manifest = await fixture("../examples/minimal/action-parity.json");
+  const binding = manifest.actions[0].bindings.find((item) => item.surface === "cli");
+  binding.target = "notes note create --title <text>";
+
+  const report = validateManifestObject(manifest);
+
+  assert.ok(report.issues.some((item) => item.code === "cli_binding_json_not_visible"));
+});
+
 test("missing required binding fails declared parity", async () => {
   const manifest = await fixture("../examples/minimal/action-parity.json");
   manifest.actions[0].bindings = manifest.actions[0].bindings.filter(
@@ -64,6 +96,61 @@ test("rollback action must exist", async () => {
   assert.ok(report.issues.some((item) => item.code === "unknown_rollback_action"));
 });
 
+// SPEC §5.2 violations are the primary output. A level is an optional
+// annotation, so the report must be usable with the audit block ignored.
+test("violations are separated from unproven claims", async () => {
+  const manifest = await fixture("../examples/gui-only/action-parity.json");
+  const report = validateManifestObject(manifest);
+
+  const violationCodes = report.violations.map((item) => item.code);
+  const unprovenCodes = report.unproven.map((item) => item.code);
+
+  assert.ok(violationCodes.includes("machine_surface_in_process_only"));
+  assert.ok(violationCodes.includes("shared_resource_concurrency_undeclared"));
+  assert.ok(unprovenCodes.includes("headless_evidence_missing"));
+  assert.equal(
+    violationCodes.filter((code) => unprovenCodes.includes(code)).length,
+    0,
+    "a finding belongs to exactly one list"
+  );
+  for (const item of report.violations) {
+    assert.ok(item.path.startsWith("/"), "every violation names a location");
+  }
+});
+
+test("a conforming manifest reports zero violations", async () => {
+  const manifest = await fixture("../examples/u-king/action-parity.json");
+  const report = validateManifestObject(manifest);
+
+  assert.deepEqual(report.violations, []);
+  assert.deepEqual(report.unproven, []);
+});
+
+// The shadow list must not assert what static analysis cannot see. Whether a
+// Surface holds its own implementation is a property of code.
+test("the shadow list reports reachability and proof, and claims nothing more", async () => {
+  const manifest = await fixture("../examples/u-king/action-parity.json");
+  const report = validateManifestObject(manifest);
+
+  const cli = report.shadows.find((shadow) => shadow.kind === "cli");
+  assert.equal(cli.reachability, "external");
+  assert.equal(cli.actions, 6);
+  assert.equal(cli.proven_bindings, 6);
+  assert.equal(cli.checked, true);
+  assert.equal(Object.hasOwn(cli, "violations"), false);
+});
+
+test("an unchecked shadow says so instead of disappearing", async () => {
+  const manifest = await fixture("../examples/u-king/action-parity.json");
+  const mcp = manifest.surfaces.find((surface) => surface.kind === "mcp");
+  mcp.required_for_parity = false;
+  mcp.exclusion_reason = "The MCP adapter ships one release behind the Action Core.";
+
+  const report = validateManifestObject(manifest);
+
+  assert.equal(report.shadows.find((shadow) => shadow.kind === "mcp").checked, false);
+});
+
 // The cc-switch pilot passed AP-2 validation with zero re-runnable evidence.
 // Declared and evidenced parity must not be the same number, or a manifest
 // written entirely by hand reads as a passing grade.
@@ -94,9 +181,9 @@ test("achieved level ignores self-declared targets when evidence is absent", asy
 
   const report = validateManifestObject(manifest);
 
-  assert.deepEqual(report.conformance.targets, ["AP-1", "AP-2", "AP-3"]);
-  assert.equal(report.conformance.achieved, "AP-1");
-  assert.ok(report.conformance.blockers.some((item) => item.includes("evidenced parity")));
+  assert.deepEqual(report.audit.targets, ["AP-1", "AP-2", "AP-3"]);
+  assert.equal(report.audit.achieved, "AP-1");
+  assert.ok(report.audit.blockers.some((item) => item.includes("evidenced parity")));
 });
 
 // AP-2 is the ceiling for static analysis. Awarding AP-3 from declared fields
@@ -107,9 +194,9 @@ test("a fully evidenced manifest reaches AP-2 and never claims AP-3", async () =
   const report = validateManifestObject(manifest);
 
   assert.equal(report.summary.evidenced_parity_percent, 100);
-  assert.equal(report.conformance.achieved, "AP-2");
-  assert.deepEqual(report.conformance.blockers, []);
-  assert.ok(report.conformance.notes.some((item) => item.includes("AP-3 and AP-4")));
+  assert.equal(report.audit.achieved, "AP-2");
+  assert.deepEqual(report.audit.blockers, []);
+  assert.ok(report.audit.notes.some((item) => item.includes("AP-3 and AP-4")));
 });
 
 // The regression that motivated 0.3.0: this manifest shape passed AP-2 in
@@ -120,7 +207,7 @@ test("a GUI-only app whose only machine Surface is in-process fails AP-2", async
 
   assert.equal(report.ok, false);
   assert.equal(report.summary.externally_reachable_actions, 0);
-  assert.equal(report.conformance.achieved, "none");
+  assert.equal(report.audit.achieved, "none");
   assert.ok(report.issues.some((item) => item.code === "machine_surface_in_process_only"));
 });
 
@@ -217,7 +304,7 @@ test("declaring AP-3 as a target does not raise the achieved level", async () =>
 
   const report = validateManifestObject(manifest);
 
-  assert.equal(report.conformance.achieved, "AP-2");
+  assert.equal(report.audit.achieved, "AP-2");
 });
 
 test("overdue parity exceptions are reported instead of hidden", async () => {

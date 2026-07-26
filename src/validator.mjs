@@ -40,6 +40,26 @@ function issue(severity, code, path, message) {
   return { severity, code, path, message };
 }
 
+// SPEC §5.2 violations are the primary output. They are binary and located.
+// Everything else a validator emits is an annotation on this list.
+const SHADOW_VIOLATION_CODES = new Set([
+  "machine_surface_missing",
+  "machine_surface_in_process_only",
+  "unsafe_confirmation_policy",
+  "shared_resource_concurrency_undeclared",
+  "action_not_headless"
+]);
+
+// Not violations: places the manifest asserts something it cannot demonstrate.
+// Kept apart from violations because the remedy is different — a violation is
+// fixed by moving code, an unproven claim is settled by writing a test.
+const UNPROVEN_CODES = new Set([
+  "headless_evidence_missing",
+  "binding_test_missing",
+  "machine_surface_excluded_without_reason",
+  "shared_resource_last_writer_wins"
+]);
+
 function today() {
   return new Date().toISOString().slice(0, 10);
 }
@@ -196,13 +216,19 @@ export function validateManifestObject(manifest) {
 
       boundSurfaceIds.add(binding.surface);
 
-      if (surface.kind === "cli" && !binding.target.includes("--json")) {
+      // A machine-readable mode is spelled `--json` on POSIX, `-Json` in
+      // PowerShell, and `/json` in classic Windows tools. The requirement is
+      // that a caller can see how to get structured output, not that every
+      // ecosystem adopt POSIX flag syntax.
+      const exposesJson = /(^|\s)(--json|-json|\/json)(=|\s|$)/i.test(binding.target);
+
+      if (surface.kind === "cli" && !exposesJson) {
         issues.push(
           issue(
             "warning",
             "cli_binding_json_not_visible",
             `${bindingPath}/target`,
-            `${action.id} CLI binding does not show a --json mode.`
+            `${action.id} CLI binding does not show a machine-readable JSON mode.`
           )
         );
       }
@@ -461,15 +487,43 @@ function buildReport(manifest, issues) {
     warnings
   };
 
+  const violations = issues.filter((item) => SHADOW_VIOLATION_CODES.has(item.code));
+  const unproven = issues.filter((item) => UNPROVEN_CODES.has(item.code));
+
   return {
     ok: errors === 0,
     spec_version: manifest?.spec_version ?? null,
     application: manifest?.application ?? null,
+    // SPEC §5.2 first. The audit block below is an optional profile.
+    violations,
+    unproven,
+    shadows: describeShadows(manifest),
     summary,
-    conformance: assessConformance(manifest, summary),
+    audit: assessConformance(manifest, summary),
     surfaces: perSurface,
     issues
   };
+}
+
+// One line per shadow. It reports what is known about each Surface, and stays
+// silent about what static analysis cannot see: whether a shadow holds its own
+// implementation is a property of code, not of a manifest. Saying "no behavior
+// of its own" here would be the same overclaim this validator exists to catch.
+function describeShadows(manifest) {
+  const actions = Array.isArray(manifest?.actions) ? manifest.actions : [];
+  return (Array.isArray(manifest?.surfaces) ? manifest.surfaces : []).map((surface) => {
+    const bindings = actions
+      .flatMap((action) => action?.bindings ?? [])
+      .filter((binding) => binding.surface === surface.id);
+    return {
+      id: surface.id,
+      kind: surface.kind,
+      reachability: reachabilityOf(surface),
+      checked: surface.required_for_parity === true,
+      actions: bindings.length,
+      proven_bindings: bindings.filter(isEvidenced).length
+    };
+  });
 }
 
 // Targets are what the manifest asks for. Achieved is what this manifest can
