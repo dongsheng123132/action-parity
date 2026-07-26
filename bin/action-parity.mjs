@@ -3,7 +3,7 @@
 import process from "node:process";
 import { readManifest, validateManifestObject } from "../src/validator.mjs";
 
-const VERSION = "0.2.0";
+const VERSION = "0.3.0";
 
 function usage() {
   return `ActionParity ${VERSION}
@@ -34,7 +34,8 @@ function printHumanReport(report, mode) {
     `${report.application?.name ?? "Unknown application"} ${report.application?.version ?? ""}`.trim(),
     `Specification\t${report.spec_version ?? "unknown"}`,
     `Actions\t${summary.actions}`,
-    `Headless\t${summary.headless_actions}/${summary.actions}`,
+    `Headless\t${summary.headless_actions}/${summary.actions}\t${summary.headless_evidenced_actions}/${summary.actions} with evidence`,
+    `Externally reachable\t${summary.externally_reachable_actions}/${summary.actions}`,
     `Required bindings\t${summary.present_required_bindings}/${summary.total_required_bindings}`,
     `Declared parity\t${summary.declared_parity_percent}%`,
     `Evidenced parity\t${summary.evidenced_parity_percent}%\t${summary.evidenced_required_bindings}/${summary.total_required_bindings} with a test`,
@@ -51,7 +52,7 @@ function printHumanReport(report, mode) {
 
   for (const surface of report.surfaces) {
     lines.push(
-      `Surface ${surface.id}\t${surface.mapped_actions}/${surface.total_actions}\t${surface.coverage_percent}%\tevidenced ${surface.evidenced_percent}%`
+      `Surface ${surface.id}\t${surface.kind}/${surface.reachability}\t${surface.mapped_actions}/${surface.total_actions}\t${surface.coverage_percent}%\tevidenced ${surface.evidenced_percent}%`
     );
   }
 

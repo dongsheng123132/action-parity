@@ -1,6 +1,6 @@
 # ActionParity Specification
 
-**Version:** 0.2.0 Working Draft  
+**Version:** 0.3.0 Working Draft  
 **Status:** Non-normative until 1.0.0  
 **Tagline:** One action. Every interface.
 
@@ -35,6 +35,19 @@ ActionParity does not:
 - standardize visual design;
 - grant an AI agent unrestricted authority;
 - claim that headless tests replace real interface tests.
+
+### 3.1 Applicability
+
+A standard that only describes when to adopt it cannot be trusted about cost. Adoption is worthwhile when at least one of these is true:
+
+- a second Surface exists or is planned;
+- the product must be operable or testable by an agent;
+- state or actions must synchronize across devices;
+- business behavior must be verifiable without a display.
+
+Adoption is **not** worthwhile for a single-Surface tool with stable behavior and no agent scenario. The first conversion is a net increase in code — an Action Core, a manifest, adapters, and tests replace a working click handler — and it repays only at the second Surface or the first significant behavior change. Converting such a tool to raise a conformance score is waste.
+
+Partial adoption is a first-class outcome, not an incomplete one. An implementation MAY declare conformance for a core domain and place the rest explicitly out of scope; a large application whose upstream sync would break under full conversion SHOULD do exactly that. What conformance forbids is silence: an Action omitted without a declared exception (§8.3).
 
 ## 4. Terms
 
@@ -203,7 +216,21 @@ The GUI MUST invoke the canonical Action Core. It MUST NOT maintain an independe
 
 Every meaningful GUI Action MUST have at least one non-visual machine Surface unless a documented parity exception applies.
 
-Valid machine Surfaces include CLI, MCP, API, IPC, and a directly callable test adapter.
+Machine Surface kinds are `cli`, `mcp`, `api`, and `ipc`. A `test` Surface is **not** a machine Surface: an adapter reachable only from the build system demonstrates headless execution, but it is not an interface another program or agent can use. Declare it as `headless_evidence` instead.
+
+#### 8.2.1 Reachability
+
+Every Surface has a reachability, declared as `reachability` or defaulted:
+
+| Value | Meaning |
+|---|---|
+| `in-process` | Only the application's own process or webview can invoke it |
+| `local-ipc` | Another process on the same machine can invoke it |
+| `external` | Another host can invoke it |
+
+Defaults when `reachability` is absent: `cli` and `api` are `external`, `mcp` is `local-ipc`, and `ipc` and `test` are **`in-process`**. The ambiguous case fails closed, because a webview command bridge — `#[tauri::command]`, `ipcRenderer`, and equivalents — is callable only from the application's own front end. Such an implementation MUST declare a higher reachability explicitly, and that declaration is a factual claim about the product.
+
+An AP-2 implementation MUST provide, for every non-exempt Action, at least one machine Surface whose reachability is not `in-process`. An application whose only non-visual Surface is its own command bridge has not achieved machine access; it has a private calling convention.
 
 ### 8.3 Exceptions
 
@@ -306,6 +333,18 @@ An AP-4 GUI Surface:
 
 Coordinate injection and screenshot reasoning MAY be used as fallbacks, but MUST NOT be the only evidence when semantic automation is available.
 
+### 12.1 Binding target for generated interfaces
+
+Control-level automation identifiers are natural in native toolkits, where a control has a stable identity. In a rendered interface — React, Vue, or any other component tree — controls are produced by render functions and have no inherent identity, and adding identifiers to every control is pure overhead if nothing consumes them.
+
+For such Surfaces, an AP-2 Binding MAY target the Surface's single call chokepoint instead of a control:
+
+```text
+src/lib/api/providers.ts#switchProvider
+```
+
+This is conforming when the chokepoint is the *only* path from that Surface to the Action, which is exactly the property §5 requires. Control-level identifiers remain an AP-4 requirement, because real-GUI journey tests need to reach the control a person actually clicks.
+
 ## 13. Testing model
 
 ActionParity defines four complementary test classes.
@@ -338,7 +377,10 @@ An AP-1 implementation:
 - exposes stable Action IDs;
 - declares input and output schemas;
 - executes all claimed business Actions headlessly;
+- names `execution.headless_evidence` for every Action;
 - passes Action contract tests.
+
+`headless: true` is a boolean an implementer can set without running anything. The evidence field is what separates an Action proven to run without a display from one assumed to.
 
 ### 14.2 AP-2 Parity
 
@@ -346,6 +388,7 @@ An AP-2 implementation satisfies AP-1 and:
 
 - declares required Surfaces;
 - binds every non-exempt Action to every required Surface;
+- provides every non-exempt Action with a machine Surface that is not `in-process` (§8.2.1);
 - supplies a re-runnable test in `binding.test` for every required Binding;
 - reports all exceptions.
 

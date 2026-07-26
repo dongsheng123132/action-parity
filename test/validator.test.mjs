@@ -112,6 +112,40 @@ test("a fully evidenced manifest reaches AP-2 and never claims AP-3", async () =
   assert.ok(report.conformance.notes.some((item) => item.includes("AP-3 and AP-4")));
 });
 
+// The regression that motivated 0.3.0: this manifest shape passed AP-2 in
+// 0.2.0 while no external process could invoke a single Action.
+test("a GUI-only app whose only machine Surface is in-process fails AP-2", async () => {
+  const manifest = await fixture("../examples/gui-only/action-parity.json");
+  const report = validateManifestObject(manifest);
+
+  assert.equal(report.ok, false);
+  assert.equal(report.summary.externally_reachable_actions, 0);
+  assert.equal(report.conformance.achieved, "none");
+  assert.ok(report.issues.some((item) => item.code === "machine_surface_in_process_only"));
+});
+
+test("stating external reachability explicitly is what lifts an ipc Surface", async () => {
+  const manifest = await fixture("../examples/gui-only/action-parity.json");
+  manifest.surfaces.find((surface) => surface.id === "ipc").reachability = "local-ipc";
+
+  const report = validateManifestObject(manifest);
+
+  assert.equal(report.summary.externally_reachable_actions, 1);
+  assert.ok(!report.issues.some((item) => item.code === "machine_surface_in_process_only"));
+});
+
+test("a test adapter is evidence, not a machine Surface", async () => {
+  const manifest = await fixture("../examples/minimal/action-parity.json");
+  for (const surface of manifest.surfaces) {
+    if (surface.kind === "cli") surface.kind = "test";
+  }
+
+  const report = validateManifestObject(manifest);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.issues.some((item) => item.code === "machine_surface_missing"));
+});
+
 test("declaring AP-3 as a target does not raise the achieved level", async () => {
   const manifest = await fixture("../examples/u-king/action-parity.json");
   manifest.conformance_targets = ["AP-1", "AP-2", "AP-3", "AP-4"];

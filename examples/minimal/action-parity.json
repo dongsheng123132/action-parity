@@ -1,6 +1,6 @@
 {
   "$schema": "../../schema/action-parity.schema.json",
-  "spec_version": "0.2.0",
+  "spec_version": "0.3.0",
   "application": {
     "id": "org.example.notes",
     "name": "Example Notes",
@@ -68,7 +68,8 @@
         "idempotent": false,
         "cancellable": false,
         "timeout_ms": 5000,
-        "progress_events": false
+        "progress_events": false,
+        "headless_evidence": "tests/core/note-create.test.ts"
       },
       "bindings": [
         {

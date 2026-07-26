@@ -1,0 +1,71 @@
+{
+  "$schema": "../../schema/action-parity.schema.json",
+  "spec_version": "0.3.0",
+  "application": {
+    "id": "org.example.gui-only",
+    "name": "Example GUI-only App",
+    "version": "1.0.0",
+    "description": "A webview desktop application whose only non-visual Surface is its own in-process IPC bridge. Under 0.2.0 this manifest reached AP-2; it is kept as the regression case for that flaw."
+  },
+  "conformance_targets": ["AP-1", "AP-2"],
+  "surfaces": [
+    {
+      "id": "desktop",
+      "kind": "gui",
+      "required_for_parity": true,
+      "test_driver": "webdriver",
+      "description": "React webview."
+    },
+    {
+      "id": "ipc",
+      "kind": "ipc",
+      "required_for_parity": true,
+      "description": "Framework command bridge. Callable only from this application's own webview, so reachability is in-process."
+    }
+  ],
+  "actions": [
+    {
+      "id": "provider.delete",
+      "title": "Delete provider",
+      "description": "Delete a configured provider and its saved settings.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "provider_id": { "type": "string" }
+        },
+        "required": ["provider_id"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "deleted": { "type": "boolean" }
+        },
+        "required": ["deleted"]
+      },
+      "effects": {
+        "class": "destructive",
+        "risk": "high",
+        "reversible": false,
+        "confirmation": "always",
+        "audit_required": false,
+        "notes": "The only confirmation gate today is a dialog in the GUI. Opening any external Surface would expose an unguarded destructive Action."
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": true,
+        "cancellable": false,
+        "timeout_ms": 5000
+      },
+      "bindings": [
+        {
+          "surface": "desktop",
+          "target": "src/lib/api/providers.ts#deleteProvider"
+        },
+        {
+          "surface": "ipc",
+          "target": "delete_provider"
+        }
+      ]
+    }
+  ]
+}

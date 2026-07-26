@@ -12,7 +12,29 @@ const ajv = new Ajv2020({
 });
 const validateSchema = ajv.compile(schema);
 
-const MACHINE_SURFACE_KINDS = new Set(["cli", "mcp", "api", "ipc", "test"]);
+// `test` is deliberately absent. A test adapter reachable only from the build
+// system is evidence that an Action runs headlessly, not an interface an agent
+// or another program can use.
+const MACHINE_SURFACE_KINDS = new Set(["cli", "mcp", "api", "ipc"]);
+
+// Reachability defaults are the honest reading of each kind, and fail closed on
+// the ambiguous one: a Tauri or Electron `ipc` Surface is callable only from the
+// application's own webview unless the implementation states otherwise.
+const DEFAULT_REACHABILITY = {
+  cli: "external",
+  api: "external",
+  mcp: "local-ipc",
+  ipc: "in-process",
+  test: "in-process"
+};
+
+function reachabilityOf(surface) {
+  return surface?.reachability ?? DEFAULT_REACHABILITY[surface?.kind] ?? "in-process";
+}
+
+function isExternallyReachable(surface) {
+  return MACHINE_SURFACE_KINDS.has(surface?.kind) && reachabilityOf(surface) !== "in-process";
+}
 
 function issue(severity, code, path, message) {
   return { severity, code, path, message };
@@ -200,18 +222,40 @@ export function validateManifestObject(manifest) {
       }
     }
 
-    const hasMachineBinding = action.bindings.some((binding) => {
-      const surface = surfaceById.get(binding.surface);
-      return surface && MACHINE_SURFACE_KINDS.has(surface.kind);
-    });
+    const machineSurfaces = action.bindings
+      .map((binding) => surfaceById.get(binding.surface))
+      .filter((surface) => surface && MACHINE_SURFACE_KINDS.has(surface.kind));
 
-    if (!hasMachineBinding) {
+    if (machineSurfaces.length === 0) {
       issues.push(
         issue(
           "error",
           "machine_surface_missing",
           `${actionPath}/bindings`,
           `${action.id} has no non-visual machine Surface.`
+        )
+      );
+    } else if (!machineSurfaces.some(isExternallyReachable)) {
+      const reached = machineSurfaces.map((surface) => `${surface.id}=${reachabilityOf(surface)}`);
+      issues.push(
+        issue(
+          targetLevels.has("AP-2") || targetLevels.has("AP-3") || targetLevels.has("AP-4")
+            ? "error"
+            : "warning",
+          "machine_surface_in_process_only",
+          `${actionPath}/bindings`,
+          `${action.id} is reachable only from inside its own application (${reached.join(", ")}); no external process or agent can invoke it.`
+        )
+      );
+    }
+
+    if (!action.execution.headless_evidence) {
+      issues.push(
+        issue(
+          "warning",
+          "headless_evidence_missing",
+          `${actionPath}/execution`,
+          `${action.id} declares headless execution without naming evidence for it.`
         )
       );
     }
@@ -311,6 +355,7 @@ function buildReport(manifest, issues) {
     return {
       id: surface.id,
       kind: surface.kind,
+      reachability: reachabilityOf(surface),
       mapped_actions: mappedActions,
       evidenced_actions: evidencedActions,
       total_actions: actions.length,
@@ -329,11 +374,18 @@ function buildReport(manifest, issues) {
   const errors = issues.filter((item) => item.severity === "error").length;
   const warnings = issues.filter((item) => item.severity === "warning").length;
 
+  const surfaceById = new Map(surfaces.filter((item) => item?.id).map((item) => [item.id, item]));
+  const externallyReachableActions = actions.filter((action) =>
+    (action?.bindings ?? []).some((binding) => isExternallyReachable(surfaceById.get(binding.surface)))
+  ).length;
+
   const summary = {
     actions: actions.length,
     surfaces: surfaces.length,
     required_surfaces: requiredSurfaces.length,
     headless_actions: actions.filter((action) => action.execution?.headless).length,
+    headless_evidenced_actions: actions.filter((action) => action.execution?.headless_evidence).length,
+    externally_reachable_actions: externallyReachableActions,
     present_required_bindings: presentRequiredBindings,
     evidenced_required_bindings: evidencedRequiredBindings,
     total_required_bindings: totalRequiredBindings,
@@ -376,12 +428,22 @@ function assessConformance(manifest, summary) {
   if (actions.length === 0) blockers.push("no Actions declared");
   const notHeadless = actions.filter((action) => action?.execution?.headless !== true).length;
   if (notHeadless > 0) blockers.push(`${notHeadless} Action(s) not headless`);
+  const unevidencedHeadless = actions.length - summary.headless_evidenced_actions;
+  if (unevidencedHeadless > 0) {
+    blockers.push(`${unevidencedHeadless} Action(s) claim headless execution without evidence`);
+  }
   const noMachine = actions.filter((action) => !hasMachineBinding(action)).length;
   if (noMachine > 0) blockers.push(`${noMachine} Action(s) without a machine Surface`);
 
   const ap1 = blockers.length === 0;
 
   if (ap1) {
+    const unreachable = actions.length - summary.externally_reachable_actions;
+    if (unreachable > 0) {
+      blockers.push(
+        `${unreachable} Action(s) reachable only in-process — AP-2 needs a machine Surface an external process can invoke`
+      );
+    }
     if (summary.declared_parity_percent < 100) {
       blockers.push(`declared parity ${summary.declared_parity_percent}% (AP-2 needs 100%)`);
     }
