@@ -1,18 +1,26 @@
-# ActionParity (影核)
+<p align="center"><img src="docs/readme-assets/action-core.svg" alt="ActionParity：GUI、CLI、MCP、API 和自动化调用同一个 Action Core" width="100%" /></p>
 
-> **One action. Every interface.**
+<h1 align="center">ActionParity (影核)</h1>
+
+<p align="center"><strong>One action. Every interface.</strong></p>
+
+<p align="center">
+  <a href="SPEC.md">Read the specification</a> ·
+  <a href="#validate-a-manifest">Validate a manifest</a> ·
+  <a href="README.zh-CN.md">中文说明</a> ·
+  <a href="examples/minimal/action-parity.json">Minimal example</a>
+</p>
+
+> [!IMPORTANT]
+> Implement each meaningful business action once in a headless Action Core. GUI, CLI, MCP, API, automation, and tests are bindings to that core, not competing implementations.
+
+| One core owns | Every interface can do |
+| --- | --- |
+| State, policy, events, effects, and evidence | Discover, invoke, and assert the same action without depending on pixels. |
 
 ActionParity (Chinese: **影核**), also known as the **ShadowCore protocol**, is an open standard for software that is equally operable by humans and AI agents.
 
 A conforming application defines each meaningful business action once in a headless **Action Core**, then exposes that same action through the interfaces it supports: GUI, CLI, TUI, MCP, API, automation, and tests.
-
-```text
-Human ── GUI / TUI ───────┐
-                          ├── Action Core ── State / Events / Policy
-Agent ── CLI / MCP / API ─┘
-                                 │
-                       Conformance tests
-```
 
 The GUI is not the application. The CLI is not the application. They are projections of the same action and state model.
 

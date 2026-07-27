@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 480" role="img" aria-labelledby="title desc">
+  <title id="title">ActionParity interface-to-core model</title>
+  <desc id="desc">GUI, CLI, MCP, API and automation call one canonical Action Core, which owns state, policy and events.</desc>
+  <rect width="1280" height="480" fill="#17161e"/>
+  <path d="M0 383c183-56 352 39 537-11s314-113 743-13v121H0Z" fill="#252336"/>
+  <g font-family="Arial, sans-serif" fill="#f4f1ff"><text x="78" y="95" font-size="55" font-weight="700">ACTIONPARITY</text><text x="82" y="133" font-size="18" letter-spacing="3">ONE ACTION · EVERY INTERFACE</text></g>
+  <g transform="translate(74 198)" fill="#282641" stroke="#9f8cff" stroke-width="3"><rect width="164" height="52" rx="12"/><rect y="75" width="164" height="52" rx="12"/><rect y="150" width="164" height="52" rx="12"/></g>
+  <g transform="translate(74 198)" font-family="Arial, sans-serif" font-size="18" fill="#eeeaff"><text x="59" y="33">GUI / TUI</text><text x="64" y="108">CLI / MCP</text><text x="40" y="183">API / AUTOMATION</text></g>
+  <g fill="none" stroke="#9f8cff" stroke-width="3" stroke-linecap="round"><path d="M254 224h133"/><path d="M254 299h133"/><path d="M254 374h133"/><path d="m368 208 20 16-20 16"/><path d="m368 283 20 16-20 16"/><path d="m368 358 20 16-20 16"/></g>
+  <g transform="translate(422 184)"><rect width="423" height="220" rx="22" fill="#352d57" stroke="#ef8d64" stroke-width="5"/><text x="116" y="86" font-family="Arial, sans-serif" font-size="33" font-weight="700" fill="#fff2eb">ACTION CORE</text><path d="M70 119h283" stroke="#9f8cff" stroke-width="2"/><text x="88" y="157" font-family="Arial, sans-serif" font-size="19" fill="#e8ddff">state · policy · events · evidence</text></g>
+  <g fill="none" stroke="#64d6ac" stroke-width="3" stroke-linecap="round"><path d="M866 268h125"/><path d="m971 252 20 16-20 16"/></g>
+  <g transform="translate(1022 198)"><rect width="175" height="136" rx="15" fill="#1e4c49" stroke="#64d6ac" stroke-width="3"/><path d="M42 70 70 96l61-69" fill="none" stroke="#64d6ac" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/><text x="36" y="119" font-family="Arial, sans-serif" font-size="17" fill="#e2fff5">CONFORMANCE</text></g>
+</svg>
