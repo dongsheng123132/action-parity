@@ -44,9 +44,12 @@ test("verify executes declared tests and hashes a reproducible report", async ()
     "utf8"
   );
 
-  const report = await verifyManifest(manifestPath);
+  const outputPath = path.join(directory, "artifacts", "nested", "evidence.json");
+  const report = await verifyManifest(manifestPath, { outputPath });
+  const persisted = JSON.parse(await readFile(outputPath, "utf8"));
 
   assert.equal(report.verified, true);
+  assert.equal(persisted.report_sha256, report.report_sha256);
   assert.equal(report.bindings.verified, 2);
   assert.equal(report.audit.achieved, "AP-2");
   assert.equal(report.tests[0].exit_code, 0);

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -124,7 +124,9 @@ export async function verifyManifest(manifestPath, options = {}) {
   report.report_sha256 = sha256(stableStringify(report));
 
   if (options.outputPath) {
-    await writeFile(path.resolve(options.outputPath), `${stableStringify(report, 2)}\n`, "utf8");
+    const outputPath = path.resolve(options.outputPath);
+    await mkdir(path.dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, `${stableStringify(report, 2)}\n`, "utf8");
   }
   return report;
 }
