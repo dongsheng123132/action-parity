@@ -14,6 +14,8 @@ All notable project changes will be documented here.
   crates.io publication channels.
 - Record why public toolchain tags jumped from `v0.1.0` to `v0.6.0` and commit
   to normal patch/minor sequencing from that point onward.
+- Upgrade the validation workflow to the current Node 24-runtime GitHub
+  Actions, removing the Node 20 action-runtime deprecation warning.
 
 ## 0.6.0 - 2026-08-02
 
