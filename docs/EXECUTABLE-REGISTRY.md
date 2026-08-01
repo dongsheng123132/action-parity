@@ -121,6 +121,12 @@ through a registered but unselected Surface fails with
 `action_not_exposed_on_surface`. This keeps gradual adoption honest without
 forcing a GUI to expose internal or automation-only operations.
 
+Scope does not override parity requirements. Omitting a Surface whose
+`required_for_parity` is true fails Action registration. A gradual adopter must
+mark that Surface optional and provide an `exclusion_reason`; otherwise the SDK
+would be manufacturing a passing Manifest by silently weakening the declared
+contract.
+
 ## Current boundary
 
 This preview supplies the Rust Registry, Tauri forwarding boundary, generic
