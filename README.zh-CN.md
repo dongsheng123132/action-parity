@@ -82,6 +82,15 @@ action-parity context . --json
 
 Tauri/TypeScript 项目加上 `action-parity generate ... --typescript`，还会从同一 Registry 生成 Action 常量、输入输出类型、类型安全调用 client 和单命令 Tauri 桥。前端业务代码不再复制 Rust 中的 Action ID 字符串。
 
+已有运行时 Registry 不必先改写成 `action-parity-core`。只要它能导出有效的 0.5 Manifest，就可以只生成并检查 TypeScript client，不接管项目已有的 CLI/MCP：
+
+```text
+action-parity generate action-parity.json --out-dir src/generated --typescript
+action-parity generate action-parity.json --out-dir src/generated --typescript --check
+```
+
+第二条命令只读；生成文件缺失或被手改时以非零退出码失败。
+
 实现入口：[Rust Registry 样例](examples/rust-registry)、[Agent Profile Schema](schema/action-parity.agent-profile.schema.json)、[Agent 原生开发路线](docs/AGENT-NATIVE-DEVELOPMENT.zh-CN.md)。
 
 ## 一句话架构
@@ -171,9 +180,9 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 
 当前基准不再假设 U-King 是 Electron 样例，而是直接测量三个真实仓库：
 
-1. Redline：9 个稳定 Action 已共享 Rust 核心；上游 TypeScript/Tauri 生成桥已经可用，下一步是在 Redline 渐进接入并实测删掉 9 份前端字符串副本；
+1. Redline：9 个稳定 Action 已共享 Rust 核心；完整实接后前端手写 Action ID 从 9 降为 0，1,670 行协议产物全部生成；
 2. 照做：5 个外部 GUI 兼容 Action，用于测量无法改造的旧软件；
-3. U-King：46 个宿主 Action 已打通 Tauri GUI、通用 CLI 与 MCP，用它量化大项目的真实收益和胶水成本。
+3. U-King：46 个宿主 Action + 4 个动态小程序 Action 已导出有效 0.5 Manifest；50 个 Action 可生成 304 行严格 TypeScript client，但当前仍有 21 个跨 Rust/前端手写 ID，作为下一迁移基线。
 
 详细数据与开发优先级见 [三个真实项目基准](docs/REAL-PROJECT-BASELINE.zh-CN.md)，历史计划见 [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md)。
 

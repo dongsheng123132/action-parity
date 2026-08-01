@@ -3,8 +3,9 @@
 import path from "node:path";
 import process from "node:process";
 import {
-  materializeRegistryBundle,
-  readRegistryBundle
+  checkGenerationSource,
+  materializeGenerationSource,
+  readGenerationSource
 } from "../src/generator.mjs";
 import { readManifest, validateManifestObject } from "../src/validator.mjs";
 import { verifyManifest } from "../src/verifier.mjs";
@@ -19,7 +20,7 @@ function usage() {
 Usage:
   action-parity validate <manifest> [--json] [--quiet]
   action-parity report <manifest> [--json] [--quiet]
-  action-parity generate <registry-bundle> --out-dir <directory> [--typescript] [--json]
+  action-parity generate <registry-bundle|manifest> --out-dir <directory> [--typescript] [--check] [--json]
   action-parity verify <manifest> [--plan <plan>] [--out <report>] [--json] [--quiet]
   action-parity context [project-directory|action-parity.config.json] [--json] [--quiet]
   action-parity doctor [project-directory] [--json] [--quiet]
@@ -135,7 +136,7 @@ function positionalArgs(args) {
   for (let index = 0; index < args.length; index += 1) {
     if (values.has(args[index])) {
       index += 1;
-    } else if (!["--json", "--quiet", "-q", "--typescript"].includes(args[index])) {
+    } else if (!["--json", "--quiet", "-q", "--typescript", "--check"].includes(args[index])) {
       output.push(args[index]);
     }
   }
@@ -153,19 +154,27 @@ async function runStatic(mode, manifestPath, jsonMode, quiet) {
   process.exitCode = report.ok ? 0 : 1;
 }
 
-async function runGenerate(bundlePath, outputDirectory, jsonMode, typescript) {
+async function runGenerate(sourcePath, outputDirectory, jsonMode, typescript, check) {
   if (!outputDirectory) {
     failUsage("generate requires --out-dir <directory>.", jsonMode);
     return;
   }
-  const files = await materializeRegistryBundle(
-    await readRegistryBundle(bundlePath),
-    path.resolve(outputDirectory),
-    { typescript }
-  );
+  const source = await readGenerationSource(sourcePath);
+  const destination = path.resolve(outputDirectory);
+  if (check) {
+    const result = await checkGenerationSource(source, destination, { typescript });
+    if (jsonMode) process.stdout.write(`${JSON.stringify(jsonEnvelope(result))}\n`);
+    else {
+      for (const file of result.files) process.stdout.write(`${file.status}\t${file.path}\n`);
+    }
+    process.exitCode = result.ok ? 0 : 1;
+    return;
+  }
+
+  const files = await materializeGenerationSource(source, destination, { typescript });
   const result = { ok: true, files };
   if (jsonMode) process.stdout.write(`${JSON.stringify(jsonEnvelope(result))}\n`);
-  else process.stdout.write(`Generated ${files.length} artifact(s) in ${path.resolve(outputDirectory)}\n`);
+  else process.stdout.write(`Generated ${files.length} artifact(s) in ${destination}\n`);
 }
 
 async function runVerify(manifestPath, args, jsonMode, quiet) {
@@ -269,7 +278,13 @@ async function main() {
     } else if (mode === "validate" || mode === "report") {
       await runStatic(mode, input, jsonMode, quiet);
     } else if (mode === "generate") {
-      await runGenerate(input, optionValue(args, "--out-dir"), jsonMode, args.includes("--typescript"));
+      await runGenerate(
+        input,
+        optionValue(args, "--out-dir"),
+        jsonMode,
+        args.includes("--typescript"),
+        args.includes("--check")
+      );
     } else {
       await runVerify(input, args, jsonMode, quiet);
     }

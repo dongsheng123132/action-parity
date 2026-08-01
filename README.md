@@ -68,6 +68,15 @@ action-parity context . --json
 
 For Tauri/TypeScript projects, `action-parity generate ... --typescript` also derives Action constants, input/output types, a typed client, and a one-command Tauri transport helper. Frontend feature code imports those generated symbols instead of copying raw Action IDs from Rust.
 
+An existing runtime Registry does not have to migrate to `action-parity-core` first. If it already exports a valid 0.5 Manifest, generate and check only the TypeScript client without replacing its CLI or MCP implementation:
+
+```bash
+action-parity generate action-parity.json --out-dir src/generated --typescript
+action-parity generate action-parity.json --out-dir src/generated --typescript --check
+```
+
+The second command is read-only and exits nonzero for a missing or hand-edited client.
+
 See the [Rust Registry example](examples/rust-registry), the [Agent Profile Schema](schema/action-parity.agent-profile.schema.json), and the [agent-native development roadmap](docs/AGENT-NATIVE-DEVELOPMENT.zh-CN.md).
 
 ## A minimal manifest
