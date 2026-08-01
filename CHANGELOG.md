@@ -2,7 +2,20 @@
 
 All notable project changes will be documented here.
 
-## 0.6.0 - Unreleased
+## 0.6.1 - 2026-08-02
+
+- Separate the toolchain, Manifest specification, and adopter application
+  version identities in the public documentation.
+- Add `action-parity --version --json` so Codex, Claude Code, Hermes, and other
+  agents can discover the toolchain and supported Manifest versions without
+  guessing from a Git tag.
+- Correct the repository status after the first GitHub toolchain release and
+  distinguish the installable GitHub tarball from the still-pending npm and
+  crates.io publication channels.
+- Record why public toolchain tags jumped from `v0.1.0` to `v0.6.0` and commit
+  to normal patch/minor sequencing from that point onward.
+
+## 0.6.0 - 2026-08-02
 
 This release starts the executable toolchain: registering an Action should be
 less work than hand-maintaining its Shadows and Manifest.
