@@ -86,4 +86,3 @@ This preview supplies the Rust Registry, Tauri forwarding boundary, generic
 artifact generation, and executable verification. It does not yet perform
 framework source discovery (`doctor`) or run an MCP transport server. Those are
 consumers of the registry and should not delay proving the smaller loop.
-

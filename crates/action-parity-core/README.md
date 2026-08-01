@@ -28,4 +28,3 @@ registry.register(
 
 See `examples/rust-registry` in the ActionParity repository for a complete
 GUI/CLI/MCP example and executable evidence plan.
-

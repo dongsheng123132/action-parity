@@ -9,4 +9,3 @@ publish = false
 [dependencies]
 action-parity-core = { path = "../../crates/action-parity-core" }
 serde_json.workspace = true
-

@@ -15,7 +15,6 @@ export function canonicalize(value) {
   }
   return value;
 }
-
 export function stableStringify(value, space = 0) {
   return JSON.stringify(canonicalize(value), null, space);
 }
@@ -61,4 +60,3 @@ async function atomicWrite(target, content) {
   await writeFile(temporary, content, "utf8");
   await rename(temporary, target);
 }
-

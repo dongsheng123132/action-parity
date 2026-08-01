@@ -21,4 +21,3 @@ tool catalog, and registry bundle. `verify` then:
 
 Edit a generated GUI `target` by hand and verification fails at the generator
 comparison even though the edited JSON still passes schema validation.
-
