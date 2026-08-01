@@ -8,6 +8,7 @@ import {
 } from "../src/generator.mjs";
 import { readManifest, validateManifestObject } from "../src/validator.mjs";
 import { verifyManifest } from "../src/verifier.mjs";
+import { buildAgentContext } from "../src/project.mjs";
 
 const VERSION = "0.6.0";
 
@@ -19,6 +20,7 @@ Usage:
   action-parity report <manifest> [--json] [--quiet]
   action-parity generate <registry-bundle> --out-dir <directory> [--json]
   action-parity verify <manifest> [--plan <plan>] [--out <report>] [--json] [--quiet]
+  action-parity context [project-directory|action-parity.config.json] [--json] [--quiet]
   action-parity --version
 
 Evidence model:
@@ -190,6 +192,26 @@ async function runVerify(manifestPath, args, jsonMode, quiet) {
   process.exitCode = report.verified ? 0 : 1;
 }
 
+async function runContext(projectPath, jsonMode, quiet) {
+  const context = await buildAgentContext(projectPath ?? process.cwd());
+  if (jsonMode) {
+    process.stdout.write(`${JSON.stringify(jsonEnvelope(context))}\n`);
+  } else if (!quiet || !context.ok) {
+    process.stdout.write(
+      [
+        `${context.application?.name ?? "Unknown application"}`,
+        `Profile\t${context.profile_path}`,
+        `Registry sources\t${context.registry.source_paths.length}`,
+        `Actions\t${context.actions.length}`,
+        `Surfaces\t${context.surfaces.length}`,
+        `Manifest\t${context.manifest.valid ? "valid" : "INVALID"}`,
+        `Complete with\t${context.agent_policy.completion_command.join(" ")}`
+      ].join("\n") + "\n"
+    );
+  }
+  process.exitCode = context.ok ? 0 : 1;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const jsonMode = args.includes("--json");
@@ -201,13 +223,19 @@ async function main() {
     return;
   }
   const [mode, input] = positional;
-  if (!input || !["validate", "report", "generate", "verify"].includes(mode)) {
-    failUsage("Expected validate, report, generate, or verify and an input path.", jsonMode);
+  if (!mode || !["validate", "report", "generate", "verify", "context"].includes(mode)) {
+    failUsage("Expected validate, report, generate, verify, or context.", jsonMode);
+    return;
+  }
+  if (mode !== "context" && !input) {
+    failUsage(`${mode} requires an input path.`, jsonMode);
     return;
   }
 
   try {
-    if (mode === "validate" || mode === "report") {
+    if (mode === "context") {
+      await runContext(input, jsonMode, quiet);
+    } else if (mode === "validate" || mode === "report") {
       await runStatic(mode, input, jsonMode, quiet);
     } else if (mode === "generate") {
       await runGenerate(input, optionValue(args, "--out-dir"), jsonMode);
@@ -228,4 +256,3 @@ async function main() {
 }
 
 await main();
-

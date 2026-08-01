@@ -44,15 +44,36 @@ export async function readRegistryBundle(bundlePath) {
 export async function materializeRegistryBundle(bundle, outputDirectory) {
   validateRegistryBundle(bundle);
   await mkdir(outputDirectory, { recursive: true });
-  const artifacts = [
-    ["action-parity.json", bundle.manifest],
-    ["cli-help.json", bundle.cli_help],
-    ["mcp-tools.json", bundle.mcp_tools]
-  ];
+  const artifacts = registryArtifacts(bundle);
   for (const [filename, value] of artifacts) {
     await atomicWrite(path.join(outputDirectory, filename), `${stableStringify(value, 2)}\n`);
   }
   return artifacts.map(([filename]) => path.join(outputDirectory, filename));
+}
+
+export async function checkRegistryBundle(bundle, outputDirectory) {
+  validateRegistryBundle(bundle);
+  const files = [];
+  for (const [filename, value] of registryArtifacts(bundle)) {
+    const target = path.join(outputDirectory, filename);
+    const expected = `${stableStringify(value, 2)}\n`;
+    let actual = null;
+    try {
+      actual = await readFile(target, "utf8");
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+    files.push({ path: target, status: actual === expected ? "current" : actual === null ? "missing" : "drifted" });
+  }
+  return { ok: files.every((file) => file.status === "current"), files };
+}
+
+function registryArtifacts(bundle) {
+  return [
+    ["action-parity.json", bundle.manifest],
+    ["cli-help.json", bundle.cli_help],
+    ["mcp-tools.json", bundle.mcp_tools]
+  ];
 }
 
 async function atomicWrite(target, content) {
