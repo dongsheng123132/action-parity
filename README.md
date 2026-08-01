@@ -15,7 +15,7 @@
 > Implement each meaningful business action once in a headless Action Core. GUI, CLI, MCP, API, automation, and tests are bindings to that core, not competing implementations.
 
 > [!NOTE]
-> **Toolchain `v0.6.1` and Manifest specification `0.5.0` are separate versions.**
+> **Toolchain `v0.6.2` and Manifest specification `0.5.0` are separate versions.**
 > Coding agents can read both with `action-parity --version --json`; see the
 > [versioning contract](docs/VERSIONING.md).
 
@@ -225,7 +225,7 @@ Read the evidence and detailed comparison in [docs/LANDSCAPE.md](docs/LANDSCAPE.
 
 ## Project status
 
-**Toolchain v0.6.1; Manifest specification 0.5.0.** The repository includes a runnable Rust Action Registry, deterministic Manifest/CLI/MCP/TypeScript generation, executable Binding evidence, and an Agent Profile/Skill for coding-tool discovery. Installable npm tarballs are available from [GitHub Releases](https://github.com/dongsheng123132/action-parity/releases); publication to npm and crates.io is still pending, so those registry coordinates must not yet be claimed as available. Follow the [release gate](docs/RELEASING.md) for exact channel status. The SDK and conformance language remain open to revision before v1.0.
+**Toolchain v0.6.2; Manifest specification 0.5.0.** The repository includes a runnable Rust Action Registry, deterministic Manifest/CLI/MCP/TypeScript generation, executable Binding evidence, and an Agent Profile/Skill for coding-tool discovery. Installable npm tarballs are available from [GitHub Releases](https://github.com/dongsheng123132/action-parity/releases); publication to npm and crates.io is still pending, so those registry coordinates must not yet be claimed as available. Follow the [release gate](docs/RELEASING.md) for exact channel status. The SDK and conformance language remain open to revision before v1.0.
 
 The real-project baseline now covers Redline, Zhaozuo, and U-King. The [merged U-King pilot](https://github.com/dongsheng123132/u-king-mini/pull/315) generates a 46-Action Manifest and typed client from its existing Rust core, verifies 46 CLI and 21 honest GUI bindings, and checks drift from a clean Linux checkout. Redline tests gradual adoption around an existing Rust dispatcher; Zhaozuo tests the honest compatibility path for third-party GUIs.
 

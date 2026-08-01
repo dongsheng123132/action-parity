@@ -2,6 +2,15 @@
 
 All notable project changes will be documented here.
 
+## 0.6.2 - 2026-08-02
+
+- Make validator reports total for Schema-invalid legacy collection shapes.
+  `validate`, `doctor`, and agent `context` now return located
+  `schema_validation` issues instead of crashing when an old Manifest uses
+  object-shaped `bindings` or contains malformed collection members.
+- Add the regression cases discovered while migrating PodApp's six official
+  Pods to generated Action SDKs. The Manifest specification remains `0.5.0`.
+
 ## 0.6.1 - 2026-08-02
 
 - Separate the toolchain, Manifest specification, and adopter application
