@@ -31,6 +31,8 @@ less work than hand-maintaining its Shadows and Manifest.
   It reports observed command bridges, repeated Action IDs, manifests,
   compatibility profiles, test definitions, and machine entry points without
   pretending that static structure is executable evidence.
+- Make `doctor` honor Agent Profile `generated_paths`: generated Action clients
+  remain observable but no longer trigger false hand-maintained drift warnings.
 - Publish a measured Redline, Zhaozuo, and U-King baseline. The data moves the
   next implementation priority to generated Tauri/TypeScript bindings and a
   version-owned wire contract rather than more handwritten specification text.

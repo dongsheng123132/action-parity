@@ -187,9 +187,22 @@ verify --json        真跑证据并输出哈希报告
 - 改动 Registry 登记顺序不会改变输出；手改生成 client 后，`generate_check` 会以 drift 失败；
 - 生成文件已通过严格 TypeScript 类型检查，输入字段错误可以在运行前暴露。
 
-这还没有冒充 Redline 或 U-King 已完成迁移。下一项实测应当把同一生成桥接入 Redline，比较迁移前后的 9 个前端常量、修改文件数和 CI 漂移捕获结果；随后再用 U-King 的一个垂直切片验证大仓库渐进接入。
+参考生成桥随后已经接入 Redline；U-King 仍应采用一个垂直切片渐进验证，不能把小仓库成功直接外推成大仓库已完成迁移。
 
 Redline 的接入准备又发现一个上游问题：它的 CLI 暴露 9 个 Action，但 GUI 只调用其中一部分，MCP 尚未实现。旧版 Registry 会把每个 Action 与每个 Surface 做笛卡尔积，生成并不存在的 GUI/MCP Binding。现在每个 Action 可用 `.surface("cli")` 等方式选择真实 Surface；Manifest、CLI help、MCP tools 与运行时拒绝共用同一范围。影核不能为了显示“全覆盖”而生成假入口。
+
+### Redline 首次完整试点结果
+
+公开实现与复现命令见 [Redline ActionParity 试点报告](https://github.com/dongsheng123132/redline/blob/main/docs/ACTION-PARITY-PILOT.zh-CN.md)。本轮得到的量化结果是：
+
+- 一个可执行 Rust Registry 成为 9 个 Action 到 handler 的唯一映射，原来的两份分发表收敛为一份；
+- CLI 真实暴露 9 个 Action，GUI 真实暴露 4 个 Action，MCP 暂未实现并诚实生成 0 个工具；
+- 前端手写 Action ID 字面量从 9 个降为 0；Registry bundle、Manifest、CLI help、MCP tools 与 TypeScript client 共生成 5 个文件、1,670 行，均不可手改；
+- AP-2 必需绑定 9/9 通过，另有 4/4 个 GUI 绑定观测通过；请求侧与核心侧到达同一个 `execution_id`；
+- 故意修改生成 client 后，`generate --check` 以 drift 和非零退出码失败；
+- Ubuntu CI 首次运行发现 Windows 盘符归档路径在 Linux 上会被误认成相对路径，修复并加入跨平台回归测试后通过。影核证据因此捕获了一个真实安全缺陷，而不只是证明示例能跑。
+
+试点也暴露了 Doctor 的误报：同一个 Action ID 合法地同时出现在 Registry 与生成 client 中。Doctor 现在读取 Agent Profile 的 `generated_paths`，仍报告这些出现位置并标记 `generated: true`，但只把可编辑副本计入漂移风险。没有 Profile、Profile 无效或路径越界时不予豁免，避免生成声明成为隐藏手写重复的后门。
 
 ## 必须公开的采用指标
 
@@ -226,7 +239,7 @@ Redline 的接入准备又发现一个上游问题：它的 CLI 暴露 9 个 Act
 
 - 可包装现有 `dispatch()`，不要求改写业务 handler；
 - Rust 类型自动派生输入输出 Schema；
-- 生成 TypeScript Action ID、输入输出类型与调用 client（参考实现已完成，待 Redline 实接）；
+- 生成 TypeScript Action ID、输入输出类型与调用 client（参考实现与 Redline 实接均已完成）；
 - 生成 Manifest、CLI help、MCP tools 与绑定测试；
 - 允许从 U-King 当前 Action 表渐进迁移，而不是一次重写 46 个 Action。
 
