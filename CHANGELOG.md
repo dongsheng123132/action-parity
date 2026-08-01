@@ -12,6 +12,9 @@ less work than hand-maintaining its Shadows and Manifest.
 - Allow each Action to select its real Surface subset. Manifest Bindings, CLI
   help, MCP tools, and runtime dispatch now share that scope, preventing gradual
   adopters from generating false GUI or MCP coverage.
+- Reject scoped Actions that omit a globally required Surface. Gradual adopters
+  must mark incomplete Surfaces optional with an explicit reason instead of
+  weakening parity implicitly.
 - Add the thin `action-parity-tauri` adapter and a runnable notes registry
   example whose GUI, CLI, and MCP observations reach the same core execution
   envelope.

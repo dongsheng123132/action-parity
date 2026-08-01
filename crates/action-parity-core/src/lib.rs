@@ -447,6 +447,18 @@ impl Registry {
         if self.surfaces.contains_key(&surface.id) {
             return Err(RegistryError::DuplicateSurface(surface.id));
         }
+        if surface.required_for_parity {
+            for action in self.actions.values() {
+                if let Some(surface_ids) = &action.descriptor.surface_ids {
+                    if !surface_ids.contains(&surface.id) {
+                        return Err(RegistryError::InvalidSurface(format!(
+                            "required Surface {} is omitted by Action {}; expose the Action there or mark the Surface optional with an exclusion reason",
+                            surface.id, action.descriptor.id
+                        )));
+                    }
+                }
+            }
+        }
         self.surfaces.insert(surface.id.clone(), surface);
         Ok(())
     }
@@ -472,6 +484,14 @@ impl Registry {
                     return Err(RegistryError::InvalidAction(format!(
                         "{} names unknown Surface {}",
                         descriptor.id, surface_id
+                    )));
+                }
+            }
+            for surface in self.surfaces.values() {
+                if surface.required_for_parity && !surface_ids.contains(&surface.id) {
+                    return Err(RegistryError::InvalidAction(format!(
+                        "{} omits required Surface {}; expose the Action there or mark the Surface optional with an exclusion reason",
+                        descriptor.id, surface.id
                     )));
                 }
             }
@@ -914,6 +934,8 @@ mod tests {
             Reachability::InProcess,
             "data-action-id={action_id}",
         );
+        gui.required_for_parity = false;
+        gui.exclusion_reason = Some("Selective Surface tests exercise gradual adoption.".into());
         gui.binding_test = Some("tests/parity.test.mjs".into());
         registry.add_surface(gui).unwrap();
         let mut cli = Surface::new(
@@ -930,6 +952,8 @@ mod tests {
             Reachability::LocalIpc,
             "tool:{action_id}",
         );
+        mcp.required_for_parity = false;
+        mcp.exclusion_reason = Some("Selective Surface tests exercise gradual adoption.".into());
         mcp.binding_test = Some("tests/parity.test.mjs".into());
         registry.add_surface(mcp).unwrap();
 
@@ -1048,6 +1072,71 @@ mod tests {
             .unwrap_err();
         assert!(
             matches!(error, RegistryError::InvalidAction(message) if message.contains("unknown Surface missing"))
+        );
+    }
+
+    #[test]
+    fn an_action_cannot_silently_omit_a_required_surface() {
+        let mut registry = registry();
+        let error = registry
+            .register(
+                ActionDescriptor::new(
+                    "note.preview",
+                    "Preview note",
+                    "Preview a note only where the contract permits it.",
+                    json!({"type":"object"}),
+                    json!({"type":"object"}),
+                    Effects::read_only(),
+                )
+                .surface("gui"),
+                |_, _| Ok(json!({})),
+            )
+            .unwrap_err();
+        assert!(
+            matches!(error, RegistryError::InvalidAction(message) if message.contains("omits required Surface cli"))
+        );
+    }
+
+    #[test]
+    fn a_required_surface_cannot_be_added_after_a_scoped_action_omits_it() {
+        let mut registry = Registry::new(Application::new(
+            "com.example.late-surface",
+            "Late Surface",
+            "0.1.0",
+        ));
+        registry
+            .add_surface(Surface::new(
+                "gui",
+                SurfaceKind::Gui,
+                Reachability::InProcess,
+                "data-action-id={action_id}",
+            ))
+            .unwrap();
+        registry
+            .register(
+                ActionDescriptor::new(
+                    "note.preview",
+                    "Preview note",
+                    "Preview a note only where the contract permits it.",
+                    json!({"type":"object"}),
+                    json!({"type":"object"}),
+                    Effects::read_only(),
+                )
+                .surface("gui"),
+                |_, _| Ok(json!({})),
+            )
+            .unwrap();
+
+        let error = registry
+            .add_surface(Surface::new(
+                "cli",
+                SurfaceKind::Cli,
+                Reachability::External,
+                "action-parity run {action_id}",
+            ))
+            .unwrap_err();
+        assert!(
+            matches!(error, RegistryError::InvalidSurface(message) if message.contains("omitted by Action note.preview"))
         );
     }
 
