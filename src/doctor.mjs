@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { promisify } from "node:util";
+import { AGENT_PROFILE_FILENAME, readAgentProfile } from "./project.mjs";
 import { validateManifestObject } from "./validator.mjs";
 
 const execFileAsync = promisify(execFile);
@@ -43,12 +44,17 @@ export async function doctorProject(projectPath = process.cwd()) {
   if (!metadata.isDirectory()) throw new Error(`Doctor path is not a directory: ${root}`);
 
   const files = await walk(root);
+  const agentProfile = await inspectAgentProfile(root);
+  const generatedPaths = new Set(
+    agentProfile?.valid ? agentProfile.generated_paths : []
+  );
   const observations = {
     source: { files: 0, lines: 0, by_extension: {} },
     tauri: { command_definitions: [], invoke_calls: [] },
     action_ids: [],
     manifests: [],
     compatibility_profiles: [],
+    agent_profile: agentProfile,
     tests: { definitions: 0, by_language: { rust: 0, javascript: 0, python: 0 } },
     agent_instructions: [],
     entrypoints: { node_bins: [], python_scripts: [], mcp_files: [] }
@@ -74,7 +80,7 @@ export async function doctorProject(projectPath = process.cwd()) {
     }
 
     collectTauri(relative, text, observations);
-    collectActionIds(relative, text, observations);
+    collectActionIds(relative, text, observations, generatedPaths.has(relative));
     collectTests(extension, text, observations.tests);
 
     if (/mcp/i.test(basename) && SOURCE_EXTENSIONS.has(extension)) {
@@ -114,6 +120,36 @@ export async function doctorProject(projectPath = process.cwd()) {
   };
 }
 
+async function inspectAgentProfile(root) {
+  const absolute = path.join(root, AGENT_PROFILE_FILENAME);
+  try {
+    if (!(await stat(absolute)).isFile()) return null;
+    const profile = await readAgentProfile(absolute);
+    const generatedPaths = [];
+    for (const declared of profile.generated_paths) {
+      const resolved = path.resolve(root, declared);
+      const relation = path.relative(root, resolved);
+      if (relation === ".." || relation.startsWith(`..${path.sep}`) || path.isAbsolute(relation)) {
+        throw new Error(`generated path escapes the project: ${declared}`);
+      }
+      generatedPaths.push(relativePath(root, resolved));
+    }
+    return {
+      file: AGENT_PROFILE_FILENAME,
+      valid: true,
+      generated_paths: [...new Set(generatedPaths)].sort()
+    };
+  } catch (error) {
+    if (error && typeof error === "object" && error.code === "ENOENT") return null;
+    return {
+      file: AGENT_PROFILE_FILENAME,
+      valid: false,
+      generated_paths: [],
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+}
+
 async function walk(root) {
   const output = [];
   const queue = [root];
@@ -149,7 +185,7 @@ function collectTauri(file, text, observations) {
   }
 }
 
-function collectActionIds(file, text, observations) {
+function collectActionIds(file, text, observations, generated = false) {
   const candidates = [];
   if (path.extname(file) === ".rs" && /(?:action|core|registry)/i.test(path.basename(file))) {
     for (const match of text.matchAll(/pub const\s+[A-Z][A-Z0-9_]*\s*:\s*&str\s*=\s*"([^"]+)"/g)) {
@@ -167,7 +203,9 @@ function collectActionIds(file, text, observations) {
     }
   }
   for (const candidate of candidates) {
-    if (ACTION_ID_PATTERN.test(candidate.id)) observations.action_ids.push({ ...candidate, file });
+    if (ACTION_ID_PATTERN.test(candidate.id)) {
+      observations.action_ids.push({ ...candidate, file, generated });
+    }
   }
 }
 
@@ -279,9 +317,11 @@ function normalizeObservations(observations) {
   observations.tauri.invoke_calls.sort(compareNameFile);
   observations.action_ids = uniqueBy(
     observations.action_ids.sort((left, right) =>
-      `${left.id}:${left.file}:${left.source}`.localeCompare(`${right.id}:${right.file}:${right.source}`)
+      `${left.id}:${left.file}:${left.source}:${left.generated}`.localeCompare(
+        `${right.id}:${right.file}:${right.source}:${right.generated}`
+      )
     ),
-    (item) => `${item.id}:${item.file}:${item.source}`
+    (item) => `${item.id}:${item.file}:${item.source}:${item.generated}`
   );
   observations.manifests.sort(compareFile);
   observations.compatibility_profiles.sort(compareFile);
@@ -338,6 +378,7 @@ function buildFindings(observations) {
 
   const filesByAction = new Map();
   for (const occurrence of observations.action_ids) {
+    if (occurrence.generated) continue;
     if (!filesByAction.has(occurrence.id)) filesByAction.set(occurrence.id, new Set());
     filesByAction.get(occurrence.id).add(occurrence.file);
   }
