@@ -1,0 +1,4 @@
+interface:
+  display_name: "ActionParity Development"
+  short_description: "Keep GUI, CLI, and MCP Actions on one core"
+  default_prompt: "Use $action-parity to add this business Action once and verify every required interface."

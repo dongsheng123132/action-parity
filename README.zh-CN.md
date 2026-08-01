@@ -64,6 +64,26 @@ GUI 不是软件本身，CLI 也不是软件本身。它们是同一套动作和
 
 界面动作由 UI 自动化测试；业务动作必须进入 Action Core。
 
+## AI 从 Registry 开始，不从 Manifest 开始
+
+在可运行的 Rust 参考实现中，Manifest 已是生成物。一个尚未接入的仓库先做零配置只读盘点：
+
+```text
+action-parity doctor . --json
+```
+
+接入后，AI 编程工具再执行：
+
+```text
+action-parity context . --json
+```
+
+根目录的 `action-parity.config.json` 会告诉它 Registry 真相源、禁止手改的生成文件、准确的生成命令和最终验证命令。统一的 [ActionParity 开发 Skill](skills/action-parity/SKILL.md) 把这张项目地图变成 Codex、Claude Code、Hermes 共用的开发流程，不要求 AI 先读完整规范。
+
+Tauri/TypeScript 项目加上 `action-parity generate ... --typescript`，还会从同一 Registry 生成 Action 常量、输入输出类型、类型安全调用 client 和单命令 Tauri 桥。前端业务代码不再复制 Rust 中的 Action ID 字符串。
+
+实现入口：[Rust Registry 样例](examples/rust-registry)、[Agent Profile Schema](schema/action-parity.agent-profile.schema.json)、[Agent 原生开发路线](docs/AGENT-NATIVE-DEVELOPMENT.zh-CN.md)。
+
 ## 一句话架构
 
 过去容易写成：
@@ -147,16 +167,15 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 
 完整对比见 [docs/LANDSCAPE.md](docs/LANDSCAPE.md)。
 
-## U-King 试点
+## 三个真实项目试点
 
-U-King 将作为第一个参考应用，分两条路线推进：
+当前基准不再假设 U-King 是 Electron 样例，而是直接测量三个真实仓库：
 
-1. 给现有 Electron GUI 补齐语义控件、ARIA、稳定标识和 Windows UI Automation 测试；
-2. 逐步把检测、配置、网关控制、修复、升级、日志导出等功能抽成 Action Core，并生成 CLI、MCP 与一致性报告。
+1. Redline：9 个稳定 Action 已共享 Rust 核心；上游 TypeScript/Tauri 生成桥已经可用，下一步是在 Redline 渐进接入并实测删掉 9 份前端字符串副本；
+2. 照做：5 个外部 GUI 兼容 Action，用于测量无法改造的旧软件；
+3. U-King：46 个宿主 Action 已打通 Tauri GUI、通用 CLI 与 MCP，用它量化大项目的真实收益和胶水成本。
 
-这样不需要推倒重写，就能逐步从“只能看屏幕测试”升级为“业务动作无界面测试 + 真实 GUI 验证”。
-
-详细计划见 [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md)。
+详细数据与开发优先级见 [三个真实项目基准](docs/REAL-PROJECT-BASELINE.zh-CN.md)，历史计划见 [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md)。
 
 ## 试点回馈
 
@@ -183,20 +202,21 @@ U-King 将作为第一个参考应用，分两条路线推进：
 
 ## 当前状态
 
-**v0.5.0 工作草案。**
+**v0.6.0 开发分支。** 当前已经具备可运行的 Rust Action Registry、Manifest/CLI/MCP/TypeScript 确定性生成、可执行 Binding 证据，以及供 AI 编程工具发现项目的 Agent Profile 与统一 Skill。npm 与 Rust 包已通过本地发布闸门，但尚未发布到公共 registry；下游项目正式依赖前必须完成[发布检查与两阶段首发](docs/RELEASING.md)。
 
 目前阶段的目标不是宣称标准已经完成，而是：
 
-1. 发布清晰、可讨论的规范；
-2. 用 U-King 做真实改造；
-3. 发布验证器和测试证据；
-4. 吸引更多桌面应用提交实现报告；
+1. 把新增 Action 的协议胶水压到业务实现之外不超过 20 行；
+2. 用 Redline、照做与 U-King/Tauri 做真实改造；
+3. 让 Codex、Claude Code、Hermes 在不阅读完整 SPEC 的情况下完成同一任务；
+4. 发布可复现的生成、验证和采用实验；
 5. 在真实实现基础上推进 v1.0。
 
 规范正文：[SPEC.md](SPEC.md)  
 推广路线：[docs/ADOPTION.md](docs/ADOPTION.md)  
 项目宣言：[MANIFESTO.md](MANIFESTO.md)  
 首发手册：[docs/LAUNCH.md](docs/LAUNCH.md)  
+发布闸门：[docs/RELEASING.md](docs/RELEASING.md)<br>
 参与方式：[CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## 许可证

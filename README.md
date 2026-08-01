@@ -50,6 +50,26 @@ Neither question has a percentage in it.
 
 ActionParity does **not** require one CLI command for every visual control. Tabs, layout toggles, drag handles, hover states, and other presentation-only interactions remain UI concerns. It requires parity for meaningful domain actions such as creating, changing, exporting, starting, stopping, diagnosing, repairing, purchasing, or deleting.
 
+## Start with the Action Registry, not the Manifest
+
+The Manifest is generated output in the runnable Rust reference implementation. Before adoption, a coding agent can inventory an unfamiliar repository without configuration:
+
+```bash
+action-parity doctor . --json
+```
+
+After adoption, it asks the repository for a compact project map:
+
+```bash
+action-parity context . --json
+```
+
+`action-parity.config.json` identifies the Registry source, generated files that must not be edited, exact generation commands, and the executable verification command. The canonical [ActionParity development Skill](skills/action-parity/SKILL.md) turns that map into the same workflow for Codex, Claude Code, and Hermes without requiring the agent to read the complete specification.
+
+For Tauri/TypeScript projects, `action-parity generate ... --typescript` also derives Action constants, input/output types, a typed client, and a one-command Tauri transport helper. Frontend feature code imports those generated symbols instead of copying raw Action IDs from Rust.
+
+See the [Rust Registry example](examples/rust-registry), the [Agent Profile Schema](schema/action-parity.agent-profile.schema.json), and the [agent-native development roadmap](docs/AGENT-NATIVE-DEVELOPMENT.zh-CN.md).
+
 ## A minimal manifest
 
 ```json
@@ -161,6 +181,9 @@ npm install
 npm test
 node bin/action-parity.mjs validate examples/minimal/action-parity.json
 node bin/action-parity.mjs report examples/u-king/action-parity.json --json
+node bin/action-parity.mjs doctor . --json
+node bin/action-parity.mjs context examples/rust-registry --json
+node bin/action-parity.mjs verify examples/rust-registry/generated/action-parity.json --json
 ```
 
 The CLI follows agent-friendly conventions:
@@ -188,9 +211,9 @@ Read the evidence and detailed comparison in [docs/LANDSCAPE.md](docs/LANDSCAPE.
 
 ## Project status
 
-**v0.5.0 working draft.** The ideas are implementable; the exact schema and conformance language are intentionally open to revision before v1.0.
+**v0.6.0 development branch.** The repository now includes a runnable Rust Action Registry, deterministic Manifest/CLI/MCP/TypeScript generation, executable Binding evidence, and an Agent Profile/Skill for coding-tool discovery. The packages are locally release-checked but are not yet published to npm or crates.io; follow the [release gate](docs/RELEASING.md) before giving downstream projects a registry dependency. The exact SDK and conformance language remain open to revision before v1.0.
 
-The first reference application is U-King, a Windows desktop application. The pilot is designed to prove that an existing Electron application can gain:
+The real-project baseline now covers Redline, Zhaozuo, and U-King. U-King is an existing Tauri application whose Action Core already feeds its GUI, generic CLI, and MCP server; Redline tests gradual adoption around an existing Rust dispatcher; Zhaozuo tests the honest compatibility path for third-party GUIs.
 
 - a headless Action Core;
 - CLI and MCP adapters;
@@ -198,7 +221,7 @@ The first reference application is U-King, a Windows desktop application. The pi
 - binding and parity reports;
 - safe, sandboxed AI-driven tests.
 
-See [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md).
+See the [measured real-project baseline (Chinese)](docs/REAL-PROJECT-BASELINE.zh-CN.md) and [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md).
 
 ## Participate
 

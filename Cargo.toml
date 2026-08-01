@@ -1,0 +1,18 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/action-parity-core",
+  "adapters/tauri",
+  "examples/rust-registry",
+]
+
+[workspace.package]
+version = "0.6.0"
+edition = "2021"
+license = "Apache-2.0"
+repository = "https://github.com/dongsheng123132/action-parity"
+
+[workspace.dependencies]
+schemars = "1.2.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

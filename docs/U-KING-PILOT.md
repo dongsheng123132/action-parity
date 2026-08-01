@@ -1,12 +1,14 @@
 # U-King ActionParity Pilot
 
+> Status update, 2026-08-01: this document began as a pre-implementation plan. U-King is a Tauri application, not Electron, and it now has 46 host Actions shared by GUI, generic CLI, and MCP. The measured current baseline and revised priorities are in [REAL-PROJECT-BASELINE.zh-CN.md](REAL-PROJECT-BASELINE.zh-CN.md). The phases below remain as the historical safety and evidence checklist.
+
 U-King is the first reference implementation for ActionParity.
 
 The pilot must improve real release confidence; it is not only a documentation example.
 
 ## Objectives
 
-1. Make the existing Electron GUI inspectable and operable through Windows UI Automation.
+1. Make the existing Tauri GUI inspectable and operable through Windows UI Automation.
 2. Extract a small set of business actions from GUI event handlers.
 3. Expose those actions through GUI, CLI, MCP, and tests.
 4. Prove cross-surface state synchronization.
