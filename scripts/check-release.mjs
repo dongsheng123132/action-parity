@@ -19,6 +19,9 @@ try {
   const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
   const cargoToml = await readFile(path.join(root, "Cargo.toml"), "utf8");
   const cli = await readFile(path.join(root, "bin", "action-parity.mjs"), "utf8");
+  const schema = JSON.parse(
+    await readFile(path.join(root, "schema", "action-parity.schema.json"), "utf8")
+  );
   const tauriCargo = await readFile(path.join(root, "adapters", "tauri", "Cargo.toml"), "utf8");
   const version = packageJson.version;
 
@@ -27,6 +30,11 @@ try {
     "npm and Cargo workspace versions must match");
   assert(match(cli, /const VERSION\s*=\s*"([^"]+)"/)[1] === version,
     "npm and CLI versions must match");
+  assert(
+    match(cli, /const MANIFEST_SPEC_VERSION\s*=\s*"([^"]+)"/)[1] ===
+      schema.properties.spec_version.const,
+    "CLI and Manifest Schema versions must match"
+  );
   assert(
     tauriCargo.includes(`action-parity-core = { version = "${version}", path = "../../crates/action-parity-core" }`),
     "the Tauri crate must declare both the published core version and local workspace path"
@@ -42,6 +50,7 @@ try {
     "src/typescript.mjs",
     "schema/action-parity.schema.json",
     "skills/action-parity/SKILL.md",
+    "docs/VERSIONING.md",
     "README.md",
     "README.zh-CN.md",
     "LICENSE"
@@ -71,6 +80,18 @@ try {
   );
   const installedVersion = (await run(process.execPath, [installedCli, "--version"], consumer)).trim();
   assert(installedVersion === version, `installed CLI reported ${installedVersion}, expected ${version}`);
+  const installedVersionEnvelope = JSON.parse(
+    await run(process.execPath, [installedCli, "--version", "--json"], consumer)
+  );
+  assert(installedVersionEnvelope.ok === true, "installed CLI version envelope failed");
+  assert(
+    installedVersionEnvelope.data.toolchain_version === version,
+    "installed CLI JSON toolchain version does not match the package"
+  );
+  assert(
+    installedVersionEnvelope.data.manifest_spec_version === schema.properties.spec_version.const,
+    "installed CLI JSON Manifest specification version does not match the Schema"
+  );
 
   const bundle = path.join(consumer, "registry-bundle.json");
   await copyFile(

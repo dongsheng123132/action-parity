@@ -12,7 +12,9 @@ import { verifyManifest } from "../src/verifier.mjs";
 import { buildAgentContext } from "../src/project.mjs";
 import { doctorProject } from "../src/doctor.mjs";
 
-const VERSION = "0.6.0";
+const VERSION = "0.6.1";
+const MANIFEST_SPEC_VERSION = "0.5.0";
+const SUPPORTED_MANIFEST_SPEC_VERSIONS = [MANIFEST_SPEC_VERSION];
 
 function usage() {
   return `ActionParity ${VERSION}
@@ -24,7 +26,7 @@ Usage:
   action-parity verify <manifest> [--plan <plan>] [--out <report>] [--json] [--quiet]
   action-parity context [project-directory|action-parity.config.json] [--json] [--quiet]
   action-parity doctor [project-directory] [--json] [--quiet]
-  action-parity --version
+  action-parity --version [--json]
 
 Evidence model:
   validate/report  statically checks declarations; named tests are not executed
@@ -257,7 +259,21 @@ async function main() {
   const positional = positionalArgs(args);
 
   if (positional.length === 1 && positional[0] === "--version") {
-    process.stdout.write(`${VERSION}\n`);
+    if (jsonMode) {
+      process.stdout.write(
+        `${JSON.stringify({
+          ok: true,
+          data: {
+            toolchain_version: VERSION,
+            manifest_spec_version: MANIFEST_SPEC_VERSION,
+            supported_manifest_spec_versions: SUPPORTED_MANIFEST_SPEC_VERSIONS
+          },
+          error: null
+        })}\n`
+      );
+    } else {
+      process.stdout.write(`${VERSION}\n`);
+    }
     return;
   }
   const [mode, input] = positional;

@@ -2,6 +2,10 @@
 
 > **一个动作，所有界面。**
 
+> **版本边界：工具链 `v0.6.1`，Manifest 规范 `0.5.0`。** 两者独立演进，
+> AI 可用 `action-parity --version --json` 同时读取，详见
+> [版本规则](docs/VERSIONING.md)。
+
 影核是一套面向 AI 时代的软件开放标准，英文名 **ActionParity**，亦称 **ShadowCore 协议**：让同一个应用同时成为“人类原生”和“Agent 原生”的应用。
 
 一个产品只有一个权威的动作核心，所有平台界面都是它的原生影子——这就是“影核”两个字的意思。命名规则见 [docs/NAMING.md](docs/NAMING.md)。
@@ -211,7 +215,7 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 
 ## 当前状态
 
-**v0.6.0 开发分支。** 当前已经具备可运行的 Rust Action Registry、Manifest/CLI/MCP/TypeScript 确定性生成、可执行 Binding 证据，以及供 AI 编程工具发现项目的 Agent Profile 与统一 Skill。npm 与 Rust 包已通过本地发布闸门，但尚未发布到公共 registry；下游项目正式依赖前必须完成[发布检查与两阶段首发](docs/RELEASING.md)。
+**工具链 v0.6.1；Manifest 规范 0.5.0。** 当前已经具备可运行的 Rust Action Registry、Manifest/CLI/MCP/TypeScript 确定性生成、可执行 Binding 证据，以及供 AI 编程工具发现项目的 Agent Profile 与统一 Skill。可安装的 npm tarball 已通过 [GitHub Releases](https://github.com/dongsheng123132/action-parity/releases) 提供；npm 与 crates.io 公共 registry 仍未发布，因此暂时不能把这些 registry 坐标写成“已可用”。准确渠道状态见[发布闸门](docs/RELEASING.md)。
 
 目前阶段的目标不是宣称标准已经完成，而是：
 

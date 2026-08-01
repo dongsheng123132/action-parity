@@ -1,8 +1,30 @@
 # Releasing the installable toolchain
 
-The specification version and toolchain version are separate. The current
-toolchain is `0.6.0`; it emits the current `0.5.0` wire Manifest until a newer
-wire schema is deliberately selected.
+The toolchain and Manifest specification are independent release lines. Read
+their current values with:
+
+```text
+action-parity --version --json
+```
+
+At toolchain `0.6.1`, the current wire Manifest remains specification `0.5.0`.
+See [VERSIONING.md](VERSIONING.md) for the compatibility rules and the reason
+the historical public tags jumped from `v0.1.0` to `v0.6.0`.
+
+## Release channels are separate facts
+
+A GitHub Release, npm publication, and crates.io publication are three distinct
+external states. Release notes MUST say which channels were actually verified.
+
+- A GitHub Release may attach the `npm pack` tarball. That tarball is directly
+  installable even when the npm registry is still pending.
+- `action-parity@<version>` is available only after `npm publish` succeeds and
+  a clean external `npx` check passes.
+- `action-parity-core` and `action-parity-tauri` are available only after each
+  crate is served by crates.io and `cargo info` succeeds.
+
+Never describe a local release check or an attached GitHub asset as a registry
+publication.
 
 ## Release gate
 
@@ -16,51 +38,71 @@ npm run check:release
 
 `check:release` is deliberately stronger than `npm pack --dry-run`. It:
 
-1. checks npm, CLI, Cargo workspace, and adapter dependency versions;
+1. checks npm, CLI, Cargo workspace, adapter dependency, and Manifest Schema
+   versions;
 2. packs the npm package and checks required files;
 3. installs that tarball in a new temporary consumer project;
-4. executes the installed CLI and generates Manifest, CLI, MCP, and TypeScript artifacts;
+4. executes the installed CLI, including its machine-readable version output,
+   and generates Manifest, CLI, MCP, and TypeScript artifacts;
 5. packages `action-parity-core` and checks the complete
    `action-parity-tauri` publish file set.
 
 This catches the common failure where the monorepo passes but a published file,
-runtime dependency, executable bit, or crate version is missing. On the first
-release, Cargo cannot fully package the Tauri crate until crates.io can resolve
-the newly published core crate; this is why the gate checks its exact publish
-set and the next section publishes in two phases.
+runtime dependency, executable bit, version identity, or crate file is missing.
 
-## Publication order
+## GitHub Release
 
-Publishing changes external state. After reviewing the package owners and
-credentials, publish in this order:
+After the gate passes, create the version tag from the clean release commit and
+attach the tarball produced by `npm pack`. The release title and first paragraph
+MUST state both identities, for example:
+
+```text
+Toolchain v0.6.1 / Manifest specification 0.5.0
+```
+
+The notes MUST also state whether npm and crates.io are published or pending.
+Do not move an existing public tag or create backdated 0.2–0.5 toolchain tags.
+
+## Registry publication order
+
+Confirm credentials before changing registry state:
+
+```text
+npm whoami
+cargo login
+```
+
+The Rust crates require a two-phase first publication because the Tauri adapter
+depends on the published core crate:
 
 ```text
 cargo publish -p action-parity-core
-# wait until crates.io serves action-parity-core 0.6.0
+# wait until crates.io serves action-parity-core <toolchain-version>
 cargo package -p action-parity-tauri
 cargo publish -p action-parity-tauri
 npm publish --access public
 ```
 
-The Tauri crate declares both `version = "0.6.0"` and a workspace `path`. Cargo
-uses the path inside this monorepo and the version from crates.io for consumers.
-
-Then verify from directories outside the repository:
+Then verify from clean directories outside the repository:
 
 ```text
-cargo info action-parity-core@0.6.0
-cargo info action-parity-tauri@0.6.0
-npx --yes action-parity@0.6.0 --version
+cargo info action-parity-core@<toolchain-version>
+cargo info action-parity-tauri@<toolchain-version>
+npx --yes action-parity@<toolchain-version> --version --json
 ```
 
-Only after those pass should the maintainer create and push tag `v0.6.0` and
-publish the GitHub Release notes. Do not tag first and discover that downstream
-projects cannot install the artifacts.
+If authentication is unavailable, stop at the GitHub tarball channel and mark
+the registries pending. Never ask a user to paste a token into a command or log.
 
-## Redline adoption gate
+## Downstream adoption gate
 
-Redline must not commit a dependency on a developer's absolute filesystem path.
-Its first reproducible integration begins after the commands above succeed. It
-can then depend on `action-parity-core = "0.6.0"` and
-`action-parity = "^0.6.0"`, preserve its existing `dispatch()`, and migrate one
-vertical slice before expanding all nine Actions.
+Downstream Rust projects must not commit a dependency on a developer's absolute
+filesystem path. They may depend on `action-parity-core` only after the exact
+crate version is externally resolvable. JavaScript projects may temporarily pin
+the immutable GitHub Release asset URL, then move to
+`action-parity = "^<toolchain-version>"` after npm verification.
+
+Existing applications should preserve their dispatcher and migrate one
+vertical Action slice before expanding the Registry. A package release is not
+evidence that an application binding is correct; `action-parity verify` remains
+the completion gate.
