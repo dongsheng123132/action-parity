@@ -72,6 +72,32 @@ test("an existing Manifest generates only a TypeScript client and detects drift"
   assert.ok(!files.some((file) => file.endsWith("mcp-tools.json")));
 });
 
+test("generated checks accept CRLF files from a Windows checkout", async () => {
+  const bundleOutput = await mkdtemp(path.join(os.tmpdir(), "action-parity-crlf-bundle-"));
+  const bundle = registryBundleFixture();
+  await materializeRegistryBundle(bundle, bundleOutput, { typescript: true });
+
+  for (const filename of ["action-parity.json", "cli-help.json", "mcp-tools.json", "action-client.ts"]) {
+    const target = path.join(bundleOutput, filename);
+    const generated = await readFile(target, "utf8");
+    await writeFile(target, generated.replace(/\n/g, "\r\n"), "utf8");
+  }
+
+  const bundleCheck = await checkRegistryBundle(bundle, bundleOutput, { typescript: true });
+  assert.equal(bundleCheck.ok, true);
+  assert.ok(bundleCheck.files.every((file) => file.status === "current"));
+
+  const manifestOutput = await mkdtemp(path.join(os.tmpdir(), "action-parity-crlf-manifest-"));
+  await materializeGenerationSource(bundle.manifest, manifestOutput, { typescript: true });
+  const clientPath = path.join(manifestOutput, "action-client.ts");
+  const client = await readFile(clientPath, "utf8");
+  await writeFile(clientPath, client.replace(/\n/g, "\r\n"), "utf8");
+
+  const manifestCheck = await checkGenerationSource(bundle.manifest, manifestOutput, { typescript: true });
+  assert.equal(manifestCheck.ok, true);
+  assert.equal(manifestCheck.files[0].status, "current");
+});
+
 test("a Manifest source refuses to invent CLI or MCP artifacts", async () => {
   const output = await mkdtemp(path.join(os.tmpdir(), "action-parity-manifest-honesty-"));
   await assert.rejects(

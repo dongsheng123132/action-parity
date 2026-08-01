@@ -89,7 +89,10 @@ export async function checkRegistryBundle(bundle, outputDirectory, options = {})
     } catch (error) {
       if (error?.code !== "ENOENT") throw error;
     }
-    files.push({ path: target, status: actual === expected ? "current" : actual === null ? "missing" : "drifted" });
+    files.push({
+      path: target,
+      status: generatedTextMatches(actual, expected) ? "current" : actual === null ? "missing" : "drifted"
+    });
   }
   return { ok: files.every((file) => file.status === "current"), files };
 }
@@ -117,7 +120,7 @@ export async function checkGenerationSource(source, outputDirectory, options = {
     }
     files.push({
       path: target,
-      status: actual === expected ? "current" : actual === null ? "missing" : "drifted"
+      status: generatedTextMatches(actual, expected) ? "current" : actual === null ? "missing" : "drifted"
     });
   }
   return { ok: files.every((file) => file.status === "current"), files };
@@ -138,6 +141,15 @@ function registryArtifacts(bundle, options) {
     artifacts.push(["action-client.ts", generateTypeScriptClient(bundle.manifest)]);
   }
   return artifacts;
+}
+
+function generatedTextMatches(actual, expected) {
+  if (actual === null) return false;
+  return normalizeLineEndings(actual) === normalizeLineEndings(expected);
+}
+
+function normalizeLineEndings(value) {
+  return value.replace(/\r\n/g, "\n");
 }
 
 async function atomicWrite(target, content) {
