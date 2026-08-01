@@ -99,6 +99,28 @@ Feature code calls `actionClient(ACTION.NOTE_CREATE, { title })`. Raw Action IDs
 and their input/output types are generated from Rust and are covered by the same
 read-only drift check as the Manifest.
 
+## Per-Action Surface scope
+
+Real applications do not always expose every Action everywhere. Redline, for
+example, has nine CLI Actions while its GUI currently calls only a subset. An
+unfiltered Cartesian product would create plausible but false GUI/MCP
+Bindings.
+
+The Registry therefore defaults to all registered Surfaces but supports an
+explicit subset:
+
+```rust
+ActionDefinition::new(/* ... */)
+    .surface("cli")
+    .surface("mcp")
+```
+
+The same scope controls generated Manifest Bindings, CLI help, MCP tools, and
+runtime dispatch. Unknown Surface IDs fail registration; invoking an Action
+through a registered but unselected Surface fails with
+`action_not_exposed_on_surface`. This keeps gradual adoption honest without
+forcing a GUI to expose internal or automation-only operations.
+
 ## Current boundary
 
 This preview supplies the Rust Registry, Tauri forwarding boundary, generic

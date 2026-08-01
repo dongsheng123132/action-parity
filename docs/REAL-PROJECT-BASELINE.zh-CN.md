@@ -189,6 +189,8 @@ verify --json        真跑证据并输出哈希报告
 
 这还没有冒充 Redline 或 U-King 已完成迁移。下一项实测应当把同一生成桥接入 Redline，比较迁移前后的 9 个前端常量、修改文件数和 CI 漂移捕获结果；随后再用 U-King 的一个垂直切片验证大仓库渐进接入。
 
+Redline 的接入准备又发现一个上游问题：它的 CLI 暴露 9 个 Action，但 GUI 只调用其中一部分，MCP 尚未实现。旧版 Registry 会把每个 Action 与每个 Surface 做笛卡尔积，生成并不存在的 GUI/MCP Binding。现在每个 Action 可用 `.surface("cli")` 等方式选择真实 Surface；Manifest、CLI help、MCP tools 与运行时拒绝共用同一范围。影核不能为了显示“全覆盖”而生成假入口。
+
 ## 必须公开的采用指标
 
 影核以后不应以“Manifest 写得多完整”作为主要成功指标。每次真实试点都记录：

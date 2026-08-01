@@ -60,6 +60,7 @@ Commands in the profile are argument arrays. Execute the program and arguments w
 4. Reuse the existing stable Action ID when behavior is unchanged. For a new business capability, add one namespaced Action ID to the Registry.
 5. Implement authorization, confirmation, state mutation, and side effects in the headless Action Core. A GUI dialog alone is never a security boundary.
 6. Bind GUI, CLI, MCP, and other required surfaces to that Action. Keep interface code limited to input collection, invocation, and presentation.
+   If the Action is not really exposed on every registered Surface, declare its explicit Surface subset in the Registry. Never generate a Binding for a UI or MCP tool that does not exist.
 7. Give GUI controls a stable semantic identifier such as `data-action-id` or an automation/accessibility ID.
 8. Run the profile's `generate` command. Use generated Action constants and input/output types in TypeScript; never repeat raw Action ID strings when the generated client exists. Do not hand-edit any path listed in `generated_paths`.
 9. Run `generate_check`. A drifted or missing generated artifact is a failure.

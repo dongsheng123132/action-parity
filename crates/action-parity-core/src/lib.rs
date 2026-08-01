@@ -209,6 +209,11 @@ pub struct ActionDescriptor {
     pub effects: Effects,
     #[serde(default)]
     pub execution: Execution,
+    /// `None` exposes the Action on every registered Surface. A non-empty list
+    /// opts into only those Surface IDs. This authoring field is represented by
+    /// generated Bindings and is not emitted as a second wire-format property.
+    #[serde(skip)]
+    pub surface_ids: Option<Vec<String>>,
 }
 
 impl ActionDescriptor {
@@ -229,7 +234,16 @@ impl ActionDescriptor {
             output_schema,
             effects,
             execution: Execution::default(),
+            surface_ids: None,
         }
+    }
+
+    pub fn surface(mut self, surface_id: impl Into<String>) -> Self {
+        push_unique(
+            self.surface_ids.get_or_insert_with(Vec::new),
+            surface_id.into(),
+        );
+        self
     }
 }
 
@@ -244,6 +258,7 @@ pub struct ActionDefinition {
     pub tags: Vec<String>,
     pub effects: Effects,
     pub execution: Execution,
+    pub surface_ids: Option<Vec<String>>,
 }
 
 impl ActionDefinition {
@@ -260,6 +275,7 @@ impl ActionDefinition {
             tags: Vec::new(),
             effects,
             execution: Execution::default(),
+            surface_ids: None,
         }
     }
 
@@ -283,6 +299,14 @@ impl ActionDefinition {
         self
     }
 
+    pub fn surface(mut self, surface_id: impl Into<String>) -> Self {
+        push_unique(
+            self.surface_ids.get_or_insert_with(Vec::new),
+            surface_id.into(),
+        );
+        self
+    }
+
     fn into_descriptor<I: JsonSchema, O: JsonSchema>(self) -> ActionDescriptor {
         ActionDescriptor {
             id: self.id,
@@ -293,6 +317,7 @@ impl ActionDefinition {
             output_schema: json_schema_for::<O>(),
             effects: self.effects,
             execution: self.execution,
+            surface_ids: self.surface_ids,
         }
     }
 }
@@ -435,6 +460,22 @@ impl Registry {
         F: Fn(&ExecutionContext, Value) -> Result<Value, ActionError> + Send + Sync + 'static,
     {
         validate_action(&descriptor)?;
+        if let Some(surface_ids) = &descriptor.surface_ids {
+            if surface_ids.is_empty() {
+                return Err(RegistryError::InvalidAction(format!(
+                    "{} must be exposed on at least one Surface",
+                    descriptor.id
+                )));
+            }
+            for surface_id in surface_ids {
+                if !self.surfaces.contains_key(surface_id) {
+                    return Err(RegistryError::InvalidAction(format!(
+                        "{} names unknown Surface {}",
+                        descriptor.id, surface_id
+                    )));
+                }
+            }
+        }
         if self.actions.contains_key(&descriptor.id) {
             return Err(RegistryError::DuplicateAction(descriptor.id));
         }
@@ -504,6 +545,16 @@ impl Registry {
                     request.action_id,
                     execution_id,
                     ActionError::input("unknown_surface", "The Surface ID is not registered."),
+                );
+            }
+            if !exposed_on(&action.descriptor, surface) {
+                return failure(
+                    request.action_id,
+                    execution_id,
+                    ActionError::input(
+                        "action_not_exposed_on_surface",
+                        "The Action is not exposed on the requested Surface.",
+                    ),
                 );
             }
         }
@@ -591,7 +642,9 @@ impl Registry {
             "format": "action-parity.cli-help/v1",
             "application": self.application,
             "invocation": "call <action-id> --input-json <json> --json",
-            "actions": self.actions.values().map(|registered| {
+            "actions": self.actions.values().filter(|registered| {
+                self.exposed_on_kind(&registered.descriptor, SurfaceKind::Cli)
+            }).map(|registered| {
                 let action = &registered.descriptor;
                 json!({
                     "id": action.id,
@@ -609,7 +662,9 @@ impl Registry {
     /// [`Registry::dispatch`]; it does not reimplement the Action.
     pub fn mcp_tools(&self) -> Value {
         json!({
-            "tools": self.actions.values().map(|registered| {
+            "tools": self.actions.values().filter(|registered| {
+                self.exposed_on_kind(&registered.descriptor, SurfaceKind::Mcp)
+            }).map(|registered| {
                 let action = &registered.descriptor;
                 json!({
                     "name": action.id,
@@ -635,6 +690,7 @@ impl Registry {
         let bindings = self
             .surfaces
             .values()
+            .filter(|surface| exposed_on(action, &surface.id))
             .map(|surface| {
                 let mut binding = json!({
                     "surface": surface.id,
@@ -650,6 +706,12 @@ impl Registry {
         let mut value = serde_json::to_value(action).expect("Action descriptors are serializable");
         value["bindings"] = Value::Array(bindings);
         value
+    }
+
+    fn exposed_on_kind(&self, action: &ActionDescriptor, kind: SurfaceKind) -> bool {
+        self.surfaces
+            .values()
+            .any(|surface| surface.kind == kind && exposed_on(action, &surface.id))
     }
 }
 
@@ -780,6 +842,19 @@ fn expand_template(template: &str, action: &ActionDescriptor) -> String {
         .replace("{action_title}", &action.title)
 }
 
+fn exposed_on(action: &ActionDescriptor, surface_id: &str) -> bool {
+    match &action.surface_ids {
+        None => true,
+        Some(surface_ids) => surface_ids.iter().any(|id| id == surface_id),
+    }
+}
+
+fn push_unique(values: &mut Vec<String>, value: String) {
+    if !values.contains(&value) {
+        values.push(value);
+    }
+}
+
 fn json_schema_for<T: JsonSchema>() -> Value {
     serde_json::to_value(schemars::schema_for!(T))
         .expect("Schemars root schemas are always serializable")
@@ -849,6 +924,14 @@ mod tests {
         );
         cli.binding_test = Some("tests/parity.test.mjs".into());
         registry.add_surface(cli).unwrap();
+        let mut mcp = Surface::new(
+            "mcp",
+            SurfaceKind::Mcp,
+            Reachability::LocalIpc,
+            "tool:{action_id}",
+        );
+        mcp.binding_test = Some("tests/parity.test.mjs".into());
+        registry.add_surface(mcp).unwrap();
 
         let descriptor = ActionDescriptor::new(
             "note.create",
@@ -892,6 +975,80 @@ mod tests {
         let registry = registry();
         assert_eq!(registry.artifact_bundle(), registry.artifact_bundle());
         assert_eq!(registry.manifest()["surfaces"][0]["id"], "cli");
+    }
+
+    #[test]
+    fn an_action_can_be_exposed_on_only_real_surfaces() {
+        let mut registry = registry();
+        registry
+            .register_typed(
+                ActionDefinition::new(
+                    "note.export",
+                    "Export notes",
+                    "Export notes through the command line only.",
+                    Effects::read_only(),
+                )
+                .surface("cli"),
+                |context, input: TypedInput| {
+                    Ok(TypedOutput {
+                        title: input.title,
+                        execution_id: context.execution_id.clone(),
+                    })
+                },
+            )
+            .unwrap();
+
+        let bundle = registry.artifact_bundle();
+        let exported = bundle["manifest"]["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|action| action["id"] == "note.export")
+            .unwrap();
+        assert_eq!(exported["bindings"].as_array().unwrap().len(), 1);
+        assert_eq!(exported["bindings"][0]["surface"], "cli");
+        assert!(bundle["cli_help"]["actions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|action| action["id"] == "note.export"));
+        assert!(!bundle["mcp_tools"]["tools"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|action| action["name"] == "note.export"));
+
+        let hidden = registry.dispatch(DispatchRequest {
+            action_id: "note.export".into(),
+            input: json!({}),
+            confirmed: false,
+            execution_id: Some("gui-hidden".into()),
+            surface: Some("gui".into()),
+        });
+        assert!(!hidden.ok);
+        assert_eq!(hidden.error.unwrap().code, "action_not_exposed_on_surface");
+    }
+
+    #[test]
+    fn an_action_cannot_name_an_unknown_surface() {
+        let mut registry = Registry::new(Application::new("example.scope", "Scope", "1"));
+        let error = registry
+            .register(
+                ActionDescriptor::new(
+                    "note.export",
+                    "Export notes",
+                    "Export notes through a real Surface.",
+                    json!({"type":"object"}),
+                    json!({"type":"object"}),
+                    Effects::read_only(),
+                )
+                .surface("missing"),
+                |_, _| Ok(json!({})),
+            )
+            .unwrap_err();
+        assert!(
+            matches!(error, RegistryError::InvalidAction(message) if message.contains("unknown Surface missing"))
+        );
     }
 
     #[test]
