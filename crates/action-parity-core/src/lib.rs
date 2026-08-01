@@ -3,7 +3,8 @@
 //! Framework adapters are callers of this crate; business behavior does not
 //! belong in an adapter.
 
-use serde::{Deserialize, Serialize};
+use schemars::JsonSchema;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::fmt;
@@ -157,6 +158,18 @@ impl Effects {
             notes: None,
         }
     }
+
+    pub fn write(reversible: bool) -> Self {
+        Self {
+            effect_class: EffectClass::Write,
+            risk: Risk::Low,
+            reversible,
+            confirmation: Confirmation::Never,
+            audit_required: true,
+            rollback_action: None,
+            notes: None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -216,6 +229,70 @@ impl ActionDescriptor {
             output_schema,
             effects,
             execution: Execution::default(),
+        }
+    }
+}
+
+/// The metadata a developer still chooses for a typed Action. Input and output
+/// JSON Schemas are deliberately absent: [`Registry::register_typed`] derives
+/// them from the Rust types used by the handler.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ActionDefinition {
+    pub id: String,
+    pub title: String,
+    pub description: String,
+    pub tags: Vec<String>,
+    pub effects: Effects,
+    pub execution: Execution,
+}
+
+impl ActionDefinition {
+    pub fn new(
+        id: impl Into<String>,
+        title: impl Into<String>,
+        description: impl Into<String>,
+        effects: Effects,
+    ) -> Self {
+        Self {
+            id: id.into(),
+            title: title.into(),
+            description: description.into(),
+            tags: Vec::new(),
+            effects,
+            execution: Execution::default(),
+        }
+    }
+
+    pub fn evidence(mut self, command: impl Into<String>) -> Self {
+        self.execution.headless_evidence = Some(command.into());
+        self
+    }
+
+    pub fn idempotent(mut self) -> Self {
+        self.execution.idempotent = true;
+        self
+    }
+
+    pub fn timeout_ms(mut self, timeout_ms: u64) -> Self {
+        self.execution.timeout_ms = timeout_ms;
+        self
+    }
+
+    pub fn tag(mut self, tag: impl Into<String>) -> Self {
+        self.tags.push(tag.into());
+        self
+    }
+
+    fn into_descriptor<I: JsonSchema, O: JsonSchema>(self) -> ActionDescriptor {
+        ActionDescriptor {
+            id: self.id,
+            title: self.title,
+            description: self.description,
+            tags: self.tags,
+            input_schema: json_schema_for::<I>(),
+            output_schema: json_schema_for::<O>(),
+            effects: self.effects,
+            execution: self.execution,
         }
     }
 }
@@ -281,6 +358,11 @@ impl ActionError {
 
     pub fn refused(code: impl Into<String>, message: impl Into<String>) -> Self {
         Self::new("refused", code, message)
+    }
+
+    pub fn with_details(mut self, details: Value) -> Self {
+        self.details = Some(details);
+        self
     }
 }
 
@@ -364,6 +446,42 @@ impl Registry {
             },
         );
         Ok(())
+    }
+
+    /// Register a typed handler and derive both JSON Schemas from its Rust
+    /// input/output types. Deserialization remains inside the Action Core, so
+    /// every Surface receives the same stable input error envelope.
+    pub fn register_typed<I, O, F>(
+        &mut self,
+        definition: ActionDefinition,
+        handler: F,
+    ) -> Result<(), RegistryError>
+    where
+        I: DeserializeOwned + JsonSchema + 'static,
+        O: Serialize + JsonSchema + 'static,
+        F: Fn(&ExecutionContext, I) -> Result<O, ActionError> + Send + Sync + 'static,
+    {
+        self.register(
+            definition.into_descriptor::<I, O>(),
+            move |context, input| {
+                let typed_input = serde_json::from_value(input).map_err(|error| {
+                    ActionError::input(
+                        "input_deserialization_failed",
+                        "Input does not match the registered Action type.",
+                    )
+                    .with_details(json!({ "reason": error.to_string() }))
+                })?;
+                let output = handler(context, typed_input)?;
+                serde_json::to_value(output).map_err(|error| {
+                    ActionError::new(
+                        "internal",
+                        "output_serialization_failed",
+                        "The Action result could not be serialized.",
+                    )
+                    .with_details(json!({ "reason": error.to_string() }))
+                })
+            },
+        )
     }
 
     pub fn action(&self, id: &str) -> Option<&ActionDescriptor> {
@@ -662,6 +780,11 @@ fn expand_template(template: &str, action: &ActionDescriptor) -> String {
         .replace("{action_title}", &action.title)
 }
 
+fn json_schema_for<T: JsonSchema>() -> Value {
+    serde_json::to_value(schemars::schema_for!(T))
+        .expect("Schemars root schemas are always serializable")
+}
+
 fn manifest_surface(surface: &Surface) -> Value {
     let mut value = json!({
         "id": surface.id,
@@ -694,6 +817,18 @@ fn next_execution_id() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[derive(Deserialize, JsonSchema)]
+    #[serde(deny_unknown_fields)]
+    struct TypedInput {
+        title: String,
+    }
+
+    #[derive(Serialize, JsonSchema)]
+    struct TypedOutput {
+        title: String,
+        execution_id: String,
+    }
 
     fn registry() -> Registry {
         let mut registry = Registry::new(Application::new("example.notes", "Notes", "1.0.0"))
@@ -858,5 +993,57 @@ mod tests {
         });
         assert!(!output.ok);
         assert_eq!(output.error.unwrap().code, "action_panicked");
+    }
+
+    #[test]
+    fn typed_registration_derives_schemas_and_owns_deserialization() {
+        let mut registry = Registry::new(Application::new("example.typed", "Typed", "1"));
+        registry
+            .register_typed(
+                ActionDefinition::new(
+                    "note.rename",
+                    "Rename note",
+                    "Rename one note.",
+                    Effects::write(true),
+                ),
+                |context, input: TypedInput| {
+                    Ok(TypedOutput {
+                        title: input.title,
+                        execution_id: context.execution_id.clone(),
+                    })
+                },
+            )
+            .unwrap();
+
+        let descriptor = registry.action("note.rename").unwrap();
+        assert_eq!(descriptor.input_schema["type"], "object");
+        assert_eq!(
+            descriptor.input_schema["properties"]["title"]["type"],
+            "string"
+        );
+        assert_eq!(
+            descriptor.output_schema["properties"]["execution_id"]["type"],
+            "string"
+        );
+
+        let valid = registry.dispatch(DispatchRequest {
+            action_id: "note.rename".into(),
+            input: json!({"title":"Typed"}),
+            confirmed: false,
+            execution_id: Some("typed-1".into()),
+            surface: None,
+        });
+        assert!(valid.ok);
+        assert_eq!(valid.result.unwrap()["execution_id"], "typed-1");
+
+        let invalid = registry.dispatch(DispatchRequest {
+            action_id: "note.rename".into(),
+            input: json!({"wrong":"field"}),
+            confirmed: false,
+            execution_id: Some("typed-2".into()),
+            surface: None,
+        });
+        assert!(!invalid.ok);
+        assert_eq!(invalid.error.unwrap().code, "input_deserialization_failed");
     }
 }

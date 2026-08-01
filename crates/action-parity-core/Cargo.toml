@@ -8,5 +8,6 @@ repository.workspace = true
 readme = "README.md"
 
 [dependencies]
+schemars.workspace = true
 serde.workspace = true
 serde_json.workspace = true

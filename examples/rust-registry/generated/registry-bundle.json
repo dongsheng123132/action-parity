@@ -12,6 +12,7 @@
         },
         "id": "note.create",
         "input_schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "additionalProperties": false,
           "properties": {
             "title": {
@@ -22,10 +23,15 @@
           "required": [
             "title"
           ],
+          "title": "CreateNoteInput",
           "type": "object"
         },
         "output_schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "properties": {
+            "core_execution_id": {
+              "type": "string"
+            },
             "id": {
               "type": "string"
             },
@@ -35,8 +41,10 @@
           },
           "required": [
             "id",
-            "title"
+            "title",
+            "core_execution_id"
           ],
+          "title": "CreatedNote",
           "type": "object"
         },
         "title": "Create note"
@@ -52,18 +60,50 @@
         },
         "id": "note.list",
         "input_schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "additionalProperties": false,
+          "title": "ListNotesInput",
           "type": "object"
         },
         "output_schema": {
+          "$defs": {
+            "CreatedNote": {
+              "properties": {
+                "core_execution_id": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "core_execution_id"
+              ],
+              "type": "object"
+            }
+          },
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "properties": {
+            "core_execution_id": {
+              "type": "string"
+            },
             "notes": {
+              "items": {
+                "$ref": "#/$defs/CreatedNote"
+              },
               "type": "array"
             }
           },
           "required": [
-            "notes"
+            "notes",
+            "core_execution_id"
           ],
+          "title": "ListNotesOutput",
           "type": "object"
         },
         "title": "List notes"
@@ -118,6 +158,7 @@
         },
         "id": "note.create",
         "input_schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "additionalProperties": false,
           "properties": {
             "title": {
@@ -128,10 +169,15 @@
           "required": [
             "title"
           ],
+          "title": "CreateNoteInput",
           "type": "object"
         },
         "output_schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "properties": {
+            "core_execution_id": {
+              "type": "string"
+            },
             "id": {
               "type": "string"
             },
@@ -141,8 +187,10 @@
           },
           "required": [
             "id",
-            "title"
+            "title",
+            "core_execution_id"
           ],
+          "title": "CreatedNote",
           "type": "object"
         },
         "title": "Create note"
@@ -182,18 +230,50 @@
         },
         "id": "note.list",
         "input_schema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "additionalProperties": false,
+          "title": "ListNotesInput",
           "type": "object"
         },
         "output_schema": {
+          "$defs": {
+            "CreatedNote": {
+              "properties": {
+                "core_execution_id": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "core_execution_id"
+              ],
+              "type": "object"
+            }
+          },
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "properties": {
+            "core_execution_id": {
+              "type": "string"
+            },
             "notes": {
+              "items": {
+                "$ref": "#/$defs/CreatedNote"
+              },
               "type": "array"
             }
           },
           "required": [
-            "notes"
+            "notes",
+            "core_execution_id"
           ],
+          "title": "ListNotesOutput",
           "type": "object"
         },
         "title": "List notes"
@@ -240,6 +320,7 @@
       {
         "description": "Create one note in the in-memory example store.",
         "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "additionalProperties": false,
           "properties": {
             "title": {
@@ -250,11 +331,16 @@
           "required": [
             "title"
           ],
+          "title": "CreateNoteInput",
           "type": "object"
         },
         "name": "note.create",
         "outputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "properties": {
+            "core_execution_id": {
+              "type": "string"
+            },
             "id": {
               "type": "string"
             },
@@ -264,8 +350,10 @@
           },
           "required": [
             "id",
-            "title"
+            "title",
+            "core_execution_id"
           ],
+          "title": "CreatedNote",
           "type": "object"
         },
         "title": "Create note"
@@ -273,19 +361,51 @@
       {
         "description": "List notes from the in-memory example store.",
         "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "additionalProperties": false,
+          "title": "ListNotesInput",
           "type": "object"
         },
         "name": "note.list",
         "outputSchema": {
+          "$defs": {
+            "CreatedNote": {
+              "properties": {
+                "core_execution_id": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "core_execution_id"
+              ],
+              "type": "object"
+            }
+          },
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "properties": {
+            "core_execution_id": {
+              "type": "string"
+            },
             "notes": {
+              "items": {
+                "$ref": "#/$defs/CreatedNote"
+              },
               "type": "array"
             }
           },
           "required": [
-            "notes"
+            "notes",
+            "core_execution_id"
           ],
+          "title": "ListNotesOutput",
           "type": "object"
         },
         "title": "List notes"

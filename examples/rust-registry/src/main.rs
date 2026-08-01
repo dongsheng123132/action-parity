@@ -1,10 +1,36 @@
 use action_parity_core::{
-    ActionDescriptor, ActionError, Application, Confirmation, DispatchRequest, EffectClass,
-    Effects, Execution, Reachability, Registry, Risk, Surface, SurfaceKind,
+    ActionDefinition, ActionError, Application, DispatchRequest, Effects, Reachability, Registry,
+    Surface, SurfaceKind,
 };
-use serde_json::{json, Value};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::env;
 use std::sync::{Arc, Mutex};
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct CreateNoteInput {
+    #[schemars(length(min = 1))]
+    title: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct ListNotesInput {}
+
+#[derive(Debug, Clone, Serialize, JsonSchema)]
+struct CreatedNote {
+    id: String,
+    title: String,
+    core_execution_id: String,
+}
+
+#[derive(Debug, Serialize, JsonSchema)]
+struct ListNotesOutput {
+    notes: Vec<CreatedNote>,
+    core_execution_id: String,
+}
 
 fn main() {
     let args = env::args().skip(1).collect::<Vec<_>>();
@@ -86,81 +112,57 @@ fn build_registry() -> Registry {
         registry.add_surface(surface).unwrap();
     }
 
-    let notes = Arc::new(Mutex::new(Vec::<Value>::new()));
+    let notes = Arc::new(Mutex::new(Vec::<CreatedNote>::new()));
     let write_notes = Arc::clone(&notes);
-    let mut create = ActionDescriptor::new(
-        "note.create",
-        "Create note",
-        "Create one note in the in-memory example store.",
-        json!({
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["title"],
-            "properties": {"title": {"type": "string", "minLength": 1}}
-        }),
-        json!({
-            "type": "object",
-            "required": ["id", "title"],
-            "properties": {"id": {"type": "string"}, "title": {"type": "string"}}
-        }),
-        Effects {
-            effect_class: EffectClass::Write,
-            risk: Risk::Low,
-            reversible: true,
-            confirmation: Confirmation::Never,
-            audit_required: true,
-            rollback_action: None,
-            notes: None,
-        },
-    );
-    create.execution = Execution {
-        headless: true,
-        idempotent: false,
-        cancellable: false,
-        timeout_ms: 1_000,
-        progress_events: None,
-        headless_evidence: Some("cargo test -p action-parity-rust-registry-example".into()),
-    };
     registry
-        .register(create, move |context, input| {
-            let title = input
-                .get("title")
-                .and_then(Value::as_str)
-                .filter(|title| !title.trim().is_empty())
-                .ok_or_else(|| {
-                    ActionError::input("title_required", "title must be a non-empty string")
-                })?;
-            let mut notes = write_notes.lock().unwrap();
-            let note = json!({
-                "id": format!("note-{}", notes.len() + 1),
-                "title": title,
-                "core_execution_id": context.execution_id,
-            });
-            notes.push(note.clone());
-            Ok(note)
-        })
+        .register_typed(
+            ActionDefinition::new(
+                "note.create",
+                "Create note",
+                "Create one note in the in-memory example store.",
+                Effects::write(true),
+            )
+            .timeout_ms(1_000)
+            .evidence("cargo test -p action-parity-rust-registry-example"),
+            move |context, input: CreateNoteInput| {
+                let title = input.title.trim();
+                if title.is_empty() {
+                    return Err(ActionError::input(
+                        "title_required",
+                        "title must be a non-empty string",
+                    ));
+                }
+                let mut notes = write_notes.lock().unwrap();
+                let note = CreatedNote {
+                    id: format!("note-{}", notes.len() + 1),
+                    title: title.to_string(),
+                    core_execution_id: context.execution_id.clone(),
+                };
+                notes.push(note.clone());
+                Ok(note)
+            },
+        )
         .unwrap();
 
     let read_notes = Arc::clone(&notes);
-    let mut list = ActionDescriptor::new(
-        "note.list",
-        "List notes",
-        "List notes from the in-memory example store.",
-        json!({"type":"object","additionalProperties":false}),
-        json!({"type":"object","required":["notes"],"properties":{"notes":{"type":"array"}}}),
-        Effects::read_only(),
-    );
-    list.execution.idempotent = true;
-    list.execution.timeout_ms = 1_000;
-    list.execution.headless_evidence =
-        Some("cargo test -p action-parity-rust-registry-example".into());
     registry
-        .register(list, move |context, _| {
-            Ok(json!({
-                "notes": read_notes.lock().unwrap().clone(),
-                "core_execution_id": context.execution_id,
-            }))
-        })
+        .register_typed(
+            ActionDefinition::new(
+                "note.list",
+                "List notes",
+                "List notes from the in-memory example store.",
+                Effects::read_only(),
+            )
+            .idempotent()
+            .timeout_ms(1_000)
+            .evidence("cargo test -p action-parity-rust-registry-example"),
+            move |context, _: ListNotesInput| {
+                Ok(ListNotesOutput {
+                    notes: read_notes.lock().unwrap().clone(),
+                    core_execution_id: context.execution_id.clone(),
+                })
+            },
+        )
         .unwrap();
 
     registry
@@ -169,6 +171,7 @@ fn build_registry() -> Registry {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn every_shadow_reaches_the_same_core_envelope() {

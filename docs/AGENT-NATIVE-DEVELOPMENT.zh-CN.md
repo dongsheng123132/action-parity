@@ -73,6 +73,10 @@ Hermes 可以从 GitHub 路径安装同一份 Skill，或把共享的 `.agents/s
 
 ### P0：把 Action 变短
 
+第一步已经落地：`Registry::register_typed` 直接从 Rust 输入输出类型派生 JSON Schema，统一在 Action Core 完成反序列化并返回稳定错误信封。参考样例已经删除手写输入输出 Schema；低层 `ActionDescriptor` 仅保留为特殊 Schema 的逃生口。
+
+下一步再把已经稳定的 `ActionDefinition + register_typed` 收敛为属性宏，目标形态：
+
 Rust 目标形态：
 
 ```rust

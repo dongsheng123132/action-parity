@@ -10,21 +10,40 @@ Action descriptor and handler once; the registry then provides:
 - MCP `tools/list` metadata;
 - Surface Binding generation from templates.
 
-```rust
-let mut registry = Registry::new(Application::new("com.example.notes", "Notes", "1.0"));
+The preferred API reuses normal Rust domain types. `JsonSchema` derives the
+input/output contract and the Registry owns deserialization, so GUI, CLI, and
+MCP receive the same typed input error:
 
-registry.register(
-    ActionDescriptor::new(
+```rust
+#[derive(Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+struct ListNotesInput {}
+
+#[derive(Serialize, JsonSchema)]
+struct ListNotesOutput {
+    notes: Vec<Note>,
+}
+
+registry.register_typed(
+    ActionDefinition::new(
         "note.list",
         "List notes",
         "List all notes.",
-        json!({"type": "object"}),
-        json!({"type": "object"}),
         Effects::read_only(),
-    ),
-    |_context, _input| Ok(json!({"notes": []})),
+    )
+    .idempotent()
+    .evidence("cargo test -p notes-core"),
+    |_context, _input: ListNotesInput| Ok(ListNotesOutput { notes: vec![] }),
 )?;
 ```
+
+`register` and `ActionDescriptor` remain available as the low-level escape
+hatch when a project must supply hand-authored JSON Schema.
+
+Schema derivation describes the wire contract; it does not turn JSON Schema
+annotations such as `minLength` into runtime business validation. Typed
+deserialization enforces shape and Rust types. The Action handler still owns
+semantic validation and returns the same `ActionError` to every Surface.
 
 See `examples/rust-registry` in the ActionParity repository for a complete
 GUI/CLI/MCP example and executable evidence plan.
