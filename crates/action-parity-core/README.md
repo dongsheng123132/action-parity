@@ -8,7 +8,8 @@ Action descriptor and handler once; the registry then provides:
 - deterministic ActionParity Manifest generation;
 - generic CLI help metadata;
 - MCP `tools/list` metadata;
-- Surface Binding generation from templates.
+- Surface Binding generation from templates, limited to the Surfaces where each
+  Action is actually exposed.
 
 The preferred API reuses normal Rust domain types. `JsonSchema` derives the
 input/output contract and the Registry owns deserialization, so GUI, CLI, and
@@ -31,11 +32,20 @@ registry.register_typed(
         "List all notes.",
         Effects::read_only(),
     )
+    .surface("cli")
+    .surface("mcp")
     .idempotent()
     .evidence("cargo test -p notes-core"),
     |_context, _input: ListNotesInput| Ok(ListNotesOutput { notes: vec![] }),
 )?;
 ```
+
+An Action is exposed on every registered Surface by default. Use repeated
+`.surface("...")` calls when a real application exposes only a subset. The
+Registry then filters Manifest Bindings, CLI help, MCP tools, and runtime
+dispatch consistently; requesting the Action through an unlisted Surface is a
+stable `action_not_exposed_on_surface` error. Add Surfaces before registering a
+scoped Action so typos fail immediately.
 
 `register` and `ActionDescriptor` remain available as the low-level escape
 hatch when a project must supply hand-authored JSON Schema.

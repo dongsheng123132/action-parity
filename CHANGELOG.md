@@ -9,6 +9,9 @@ less work than hand-maintaining its Shadows and Manifest.
 
 - Add the Rust `action-parity-core` Registry with deterministic Manifest, CLI
   help, MCP tool, and Surface Binding generation from one Action descriptor.
+- Allow each Action to select its real Surface subset. Manifest Bindings, CLI
+  help, MCP tools, and runtime dispatch now share that scope, preventing gradual
+  adopters from generating false GUI or MCP coverage.
 - Add the thin `action-parity-tauri` adapter and a runnable notes registry
   example whose GUI, CLI, and MCP observations reach the same core execution
   envelope.
