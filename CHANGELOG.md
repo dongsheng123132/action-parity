@@ -37,6 +37,13 @@ less work than hand-maintaining its Shadows and Manifest.
   for `action-client.ts`. `generate --check` now performs a read-only drift
   check for both full Registry bundles and Manifest-only TypeScript clients,
   without inventing CLI or MCP artifacts the existing application already owns.
+- Treat CRLF and LF as equivalent checkout representations during generated
+  artifact checks while preserving substantive drift detection. The first
+  full U-King Windows pilot exposed this false failure under `core.autocrlf`.
+- Publish the full U-King generated-contract pilot: 46 host Actions, 46 CLI
+  bindings, 21 verified GUI bindings, a standard Tauri envelope adapter, an
+  Agent Profile, and a Linux clean-checkout drift gate derived from its
+  existing Rust Action Core without rewriting the handlers.
 - Publish a measured Redline, Zhaozuo, and U-King baseline. The data moves the
   next implementation priority to generated Tauri/TypeScript bindings and a
   version-owned wire contract rather than more handwritten specification text.
