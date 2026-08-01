@@ -1,0 +1,80 @@
+{
+  "actions": [
+    {
+      "description": "Create one note in the in-memory example store.",
+      "effects": {
+        "audit_required": true,
+        "class": "write",
+        "confirmation": "never",
+        "reversible": true,
+        "risk": "low"
+      },
+      "id": "note.create",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "output_schema": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ],
+        "type": "object"
+      },
+      "title": "Create note"
+    },
+    {
+      "description": "List notes from the in-memory example store.",
+      "effects": {
+        "audit_required": false,
+        "class": "read",
+        "confirmation": "never",
+        "reversible": true,
+        "risk": "low"
+      },
+      "id": "note.list",
+      "input_schema": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "output_schema": {
+        "properties": {
+          "notes": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "notes"
+        ],
+        "type": "object"
+      },
+      "title": "List notes"
+    }
+  ],
+  "application": {
+    "description": "One Rust Action Registry exported to GUI, CLI, and MCP Shadows.",
+    "id": "org.actionparity.real-notes",
+    "name": "Real Notes Registry Example",
+    "source": "https://github.com/dongsheng123132/action-parity",
+    "version": "0.1.0"
+  },
+  "format": "action-parity.cli-help/v1",
+  "invocation": "call <action-id> --input-json <json> --json"
+}

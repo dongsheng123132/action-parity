@@ -245,7 +245,7 @@ Every Surface referenced by a Binding MUST be declared in `surfaces`.
 
 A Surface with `required_for_parity: true` is one this implementation commits to keeping in parity with the core. The optional audit profile counts coverage over these Surfaces.
 
-A machine Surface declared with `required_for_parity: false` MUST state `exclusion_reason`, and a conformance report MUST list every excluded machine Surface. Demoting a Surface removes it from the parity denominator, which raises evidenced parity without changing the product. The Surface hardest to prove is frequently the one whose proof carries §5 — a Surface that cannot be tested alongside the GUI is precisely the Surface that cannot show they reach the same Action Core. Exclusion remains permitted; concealing it does not.
+A machine Surface declared with `required_for_parity: false` MUST state `exclusion_reason`, and a conformance report MUST list every excluded machine Surface. Demoting a Surface removes it from the parity denominator, which raises coverage without changing the product. The Surface hardest to prove is frequently the one whose proof carries §5 — a Surface that cannot be tested alongside the GUI is precisely the Surface that cannot show they reach the same Action Core. Exclusion remains permitted; concealing it does not.
 
 A GUI Surface SHOULD declare a `test_driver`, such as `windows-uia`, `appium`, `webdriver`, `xcuitest`, or a project-specific driver.
 

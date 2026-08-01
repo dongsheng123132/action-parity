@@ -1,9 +1,15 @@
 #!/usr/bin/env node
 
+import path from "node:path";
 import process from "node:process";
+import {
+  materializeRegistryBundle,
+  readRegistryBundle
+} from "../src/generator.mjs";
 import { readManifest, validateManifestObject } from "../src/validator.mjs";
+import { verifyManifest } from "../src/verifier.mjs";
 
-const VERSION = "0.5.0";
+const VERSION = "0.6.0";
 
 function usage() {
   return `ActionParity ${VERSION}
@@ -11,19 +17,25 @@ function usage() {
 Usage:
   action-parity validate <manifest> [--json] [--quiet]
   action-parity report <manifest> [--json] [--quiet]
+  action-parity generate <registry-bundle> --out-dir <directory> [--json]
+  action-parity verify <manifest> [--plan <plan>] [--out <report>] [--json] [--quiet]
   action-parity --version
 
+Evidence model:
+  validate/report  statically checks declarations; named tests are not executed
+  verify           runs the generator and tests, hashes inputs, and emits evidence
+
 Exit codes:
-  0  valid / conformant
-  1  runtime or conformance failure
+  0  valid / generated / verified
+  1  runtime, conformance, generation, or verification failure
   2  invalid usage`;
 }
 
-function jsonEnvelope(report, runtimeError = null) {
+function jsonEnvelope(data, runtimeError = null) {
   return {
-    ok: runtimeError === null && report?.ok === true,
-    data: report,
-    error: runtimeError ?? (report?.ok ? null : "manifest_not_conformant")
+    ok: runtimeError === null && (data?.ok === true || data?.verified === true),
+    data,
+    error: runtimeError ?? (data?.ok || data?.verified ? null : "operation_failed")
   };
 }
 
@@ -36,31 +48,25 @@ function printHumanReport(report, mode) {
     `${report.application?.name ?? "Unknown application"} ${report.application?.version ?? ""}`.trim(),
     `Specification\t${report.spec_version ?? "unknown"}`,
     `Actions\t${summary.actions}`,
+    `Evidence\tdeclared only (run verify to execute it)`,
     ""
   ];
 
-  if (mode === "validate") {
-    lines.unshift(report.ok ? "VALID" : "INVALID");
-  }
+  if (mode === "validate") lines.unshift(report.ok ? "VALID DECLARATIONS" : "INVALID");
 
-  // One core, many shadows: name the shadows before anything else.
   for (const shadow of report.shadows ?? []) {
     lines.push(
       `Shadow ${shadow.id}\t${shadow.kind}/${shadow.reachability}\t${shadow.actions} action(s)\t${
-        shadow.proven_bindings
-      } proven\t${shadow.checked ? "checked" : "NOT CHECKED"}`
+        shadow.declared_test_bindings
+      } test declaration(s)\t${shadow.checked ? "checked" : "NOT CHECKED"}`
     );
   }
 
   lines.push("", `Violations\t${violations.length}`);
-  for (const item of violations) {
-    lines.push(`  ${item.code}\t${item.path}\t${item.message}`);
-  }
+  for (const item of violations) lines.push(`  ${item.code}\t${item.path}\t${item.message}`);
 
   lines.push("", `Unproven\t${unproven.length}`);
-  for (const item of unproven) {
-    lines.push(`  ${item.code}\t${item.path}\t${item.message}`);
-  }
+  for (const item of unproven) lines.push(`  ${item.code}\t${item.path}\t${item.message}`);
 
   for (const resource of summary.shared_external_resources ?? []) {
     lines.push(
@@ -88,21 +94,18 @@ function printHumanReport(report, mode) {
     }
   }
 
-  // Optional audit profile — docs/AUDIT-PROFILE.md. Annotation, not headline.
   lines.push(
     "",
     `-- audit profile (optional) --`,
     `Declared parity\t${summary.declared_parity_percent}%`,
-    `Evidenced parity\t${summary.evidenced_parity_percent}%\t${summary.evidenced_required_bindings}/${summary.total_required_bindings} with a test`,
+    `Declared test coverage\t${summary.declared_test_coverage_percent}%\t${summary.declared_test_bindings}/${summary.total_required_bindings} name a test`,
     `Exceptions\t${summary.declared_exceptions}`,
     `Targets\t${audit.targets.length > 0 ? audit.targets.join(", ") : "none declared"}`,
-    `Achieved\t${audit.achieved}`
+    `Static ceiling\t${audit.achieved}`
   );
 
-  for (const blocker of audit.blockers) {
-    lines.push(`BLOCKER\t${blocker}`);
-  }
-
+  for (const blocker of audit.blockers) lines.push(`BLOCKER\t${blocker}`);
+  for (const note of audit.notes) lines.push(`NOTE\t${note}`);
   process.stdout.write(`${lines.join("\n")}\n`);
 }
 
@@ -117,48 +120,108 @@ function failUsage(message, jsonMode) {
   process.exitCode = 2;
 }
 
+function optionValue(args, name) {
+  const index = args.indexOf(name);
+  return index === -1 ? null : args[index + 1] ?? null;
+}
+
+function positionalArgs(args) {
+  const values = new Set(["--plan", "--out", "--out-dir"]);
+  const output = [];
+  for (let index = 0; index < args.length; index += 1) {
+    if (values.has(args[index])) {
+      index += 1;
+    } else if (!["--json", "--quiet", "-q"].includes(args[index])) {
+      output.push(args[index]);
+    }
+  }
+  return output;
+}
+
+async function runStatic(mode, manifestPath, jsonMode, quiet) {
+  const manifest = await readManifest(manifestPath);
+  const report = validateManifestObject(manifest);
+  if (jsonMode) {
+    process.stdout.write(`${JSON.stringify(jsonEnvelope({ ...report, ok: report.ok }))}\n`);
+  } else if (!quiet || !report.ok) {
+    printHumanReport(report, mode);
+  }
+  process.exitCode = report.ok ? 0 : 1;
+}
+
+async function runGenerate(bundlePath, outputDirectory, jsonMode) {
+  if (!outputDirectory) {
+    failUsage("generate requires --out-dir <directory>.", jsonMode);
+    return;
+  }
+  const files = await materializeRegistryBundle(
+    await readRegistryBundle(bundlePath),
+    path.resolve(outputDirectory)
+  );
+  const result = { ok: true, files };
+  if (jsonMode) process.stdout.write(`${JSON.stringify(jsonEnvelope(result))}\n`);
+  else process.stdout.write(`Generated ${files.length} artifact(s) in ${path.resolve(outputDirectory)}\n`);
+}
+
+async function runVerify(manifestPath, args, jsonMode, quiet) {
+  const report = await verifyManifest(manifestPath, {
+    planPath: optionValue(args, "--plan") ?? undefined,
+    outputPath: optionValue(args, "--out") ?? undefined
+  });
+  if (jsonMode) {
+    process.stdout.write(`${JSON.stringify(jsonEnvelope(report))}\n`);
+  } else if (!quiet || !report.verified) {
+    process.stdout.write(`${report.verified ? "VERIFIED" : "NOT VERIFIED"}\n`);
+    process.stdout.write(
+      `Bindings\t${report.bindings.verified}/${report.bindings.required} verified\n`
+    );
+    if (report.generator) {
+      process.stdout.write(
+        `Generator\t${report.generator.passed ? "matched" : "FAILED OR DRIFTED"}\n`
+      );
+    }
+    for (const test of report.tests) {
+      process.stdout.write(
+        `Test ${test.ref}\t${test.passed ? "passed" : "FAILED"}\t${test.duration_ms} ms\n`
+      );
+    }
+    process.stdout.write(`Report SHA-256\t${report.report_sha256}\n`);
+  }
+  process.exitCode = report.verified ? 0 : 1;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const jsonMode = args.includes("--json");
   const quiet = args.includes("--quiet") || args.includes("-q");
-  const positional = args.filter((arg) => !["--json", "--quiet", "-q"].includes(arg));
+  const positional = positionalArgs(args);
 
   if (positional.length === 1 && positional[0] === "--version") {
     process.stdout.write(`${VERSION}\n`);
     return;
   }
-
-  if (positional.length !== 2 || !["validate", "report"].includes(positional[0])) {
-    failUsage("Expected validate or report and a manifest path.", jsonMode);
+  const [mode, input] = positional;
+  if (!input || !["validate", "report", "generate", "verify"].includes(mode)) {
+    failUsage("Expected validate, report, generate, or verify and an input path.", jsonMode);
     return;
   }
 
-  const [mode, manifestPath] = positional;
-
   try {
-    const manifest = await readManifest(manifestPath);
-    const report = validateManifestObject(manifest);
-
-    if (jsonMode) {
-      process.stdout.write(`${JSON.stringify(jsonEnvelope(report))}\n`);
-    } else if (!quiet || !report.ok) {
-      printHumanReport(report, mode);
+    if (mode === "validate" || mode === "report") {
+      await runStatic(mode, input, jsonMode, quiet);
+    } else if (mode === "generate") {
+      await runGenerate(input, optionValue(args, "--out-dir"), jsonMode);
+    } else {
+      await runVerify(input, args, jsonMode, quiet);
     }
-
-    process.exitCode = report.ok ? 0 : 1;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (jsonMode) {
       process.stdout.write(
-        `${JSON.stringify({
-          ok: false,
-          data: null,
-          error: "manifest_read_failed",
-          message
-        })}\n`
+        `${JSON.stringify({ ok: false, data: null, error: `${mode}_failed`, message })}\n`
       );
     } else {
-      process.stderr.write(`Failed to read or validate manifest: ${message}\n`);
+      process.stderr.write(`${mode} failed: ${message}\n`);
     }
     process.exitCode = 1;
   }

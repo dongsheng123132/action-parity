@@ -1,0 +1,12 @@
+[package]
+name = "action-parity-rust-registry-example"
+description = "Runnable notes example generated from one Action Registry"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+action-parity-core = { path = "../../crates/action-parity-core" }
+serde_json.workspace = true
+

@@ -2,6 +2,25 @@
 
 All notable project changes will be documented here.
 
+## 0.6.0 - Unreleased
+
+This release starts the executable toolchain: registering an Action should be
+less work than hand-maintaining its Shadows and Manifest.
+
+- Add the Rust `action-parity-core` Registry with deterministic Manifest, CLI
+  help, MCP tool, and Surface Binding generation from one Action descriptor.
+- Add the thin `action-parity-tauri` adapter and a runnable notes registry
+  example whose GUI, CLI, and MCP observations reach the same core execution
+  envelope.
+- Add `action-parity generate` for materializing registry bundles.
+- Add `action-parity verify`, which reruns the generator, executes no-shell test
+  commands with timeouts, requires per-Action/per-Surface execution
+  observations, hashes artifacts and inputs, and emits a self-hashed report.
+- Static validation now calls a test reference declared evidence. It no longer
+  labels a non-empty string as proven or awards AP-2 without execution.
+- Make the npm CLI packable by removing `private: true` and declaring the
+  published file set. No registry publication is performed by this change.
+
 ## 0.5.0 - 2026-07-26
 
 The standard had become a scoring system. `AP-1` through `AP-4` appeared 140

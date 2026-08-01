@@ -1,0 +1,12 @@
+[package]
+name = "action-parity-tauri"
+description = "Thin Tauri v2 command adapter for action-parity-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+action-parity-core = { path = "../../crates/action-parity-core" }
+serde.workspace = true
+serde_json.workspace = true

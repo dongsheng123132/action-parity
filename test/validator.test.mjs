@@ -128,14 +128,14 @@ test("a conforming manifest reports zero violations", async () => {
 
 // The shadow list must not assert what static analysis cannot see. Whether a
 // Surface holds its own implementation is a property of code.
-test("the shadow list reports reachability and proof, and claims nothing more", async () => {
+test("the shadow list reports reachability and declared tests, and claims nothing more", async () => {
   const manifest = await fixture("../examples/u-king/action-parity.json");
   const report = validateManifestObject(manifest);
 
   const cli = report.shadows.find((shadow) => shadow.kind === "cli");
   assert.equal(cli.reachability, "external");
   assert.equal(cli.actions, 6);
-  assert.equal(cli.proven_bindings, 6);
+  assert.equal(cli.declared_test_bindings, 6);
   assert.equal(cli.checked, true);
   assert.equal(Object.hasOwn(cli, "violations"), false);
 });
@@ -151,10 +151,9 @@ test("an unchecked shadow says so instead of disappearing", async () => {
   assert.equal(report.shadows.find((shadow) => shadow.kind === "mcp").checked, false);
 });
 
-// The cc-switch pilot passed AP-2 validation with zero re-runnable evidence.
-// Declared and evidenced parity must not be the same number, or a manifest
-// written entirely by hand reads as a passing grade.
-test("a declaration-only manifest scores full declared parity but zero evidenced parity", async () => {
+// A test filename is still only a declaration until verify runs it. Static
+// validation reports the coverage without claiming it passed.
+test("a manifest with no test references has zero declared test coverage", async () => {
   const manifest = await fixture("../examples/u-king/action-parity.json");
   for (const action of manifest.actions) {
     for (const binding of action.bindings) {
@@ -166,8 +165,9 @@ test("a declaration-only manifest scores full declared parity but zero evidenced
 
   assert.equal(report.ok, true, "declaration-only manifests still validate");
   assert.equal(report.summary.declared_parity_percent, 100);
-  assert.equal(report.summary.evidenced_parity_percent, 0);
-  assert.equal(report.summary.evidenced_required_bindings, 0);
+  assert.equal(report.summary.declared_test_coverage_percent, 0);
+  assert.equal(report.summary.declared_test_bindings, 0);
+  assert.equal(report.evidence.status, "declared");
 });
 
 test("achieved level ignores self-declared targets when evidence is absent", async () => {
@@ -183,20 +183,17 @@ test("achieved level ignores self-declared targets when evidence is absent", asy
 
   assert.deepEqual(report.audit.targets, ["AP-1", "AP-2", "AP-3"]);
   assert.equal(report.audit.achieved, "AP-1");
-  assert.ok(report.audit.blockers.some((item) => item.includes("evidenced parity")));
+  assert.ok(report.audit.blockers.some((item) => item.includes("declared test coverage")));
 });
 
-// AP-2 is the ceiling for static analysis. Awarding AP-3 from declared fields
-// would be the same category error as reporting declared parity as if it were
-// evidence.
-test("a fully evidenced manifest reaches AP-2 and never claims AP-3", async () => {
+test("full test declarations are ready for verify but static analysis stops at AP-1", async () => {
   const manifest = await fixture("../examples/u-king/action-parity.json");
   const report = validateManifestObject(manifest);
 
-  assert.equal(report.summary.evidenced_parity_percent, 100);
-  assert.equal(report.audit.achieved, "AP-2");
-  assert.deepEqual(report.audit.blockers, []);
-  assert.ok(report.audit.notes.some((item) => item.includes("AP-3 and AP-4")));
+  assert.equal(report.summary.declared_test_coverage_percent, 100);
+  assert.equal(report.audit.achieved, "AP-1");
+  assert.ok(report.audit.blockers.some((item) => item.includes("action-parity verify")));
+  assert.ok(report.audit.notes.some((item) => item.includes("All AP-2 declarations")));
 });
 
 // The regression that motivated 0.3.0: this manifest shape passed AP-2 in
@@ -304,7 +301,7 @@ test("declaring AP-3 as a target does not raise the achieved level", async () =>
 
   const report = validateManifestObject(manifest);
 
-  assert.equal(report.audit.achieved, "AP-2");
+  assert.equal(report.audit.achieved, "AP-1");
 });
 
 test("overdue parity exceptions are reported instead of hidden", async () => {

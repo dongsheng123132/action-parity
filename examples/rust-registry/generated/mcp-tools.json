@@ -1,0 +1,57 @@
+{
+  "tools": [
+    {
+      "description": "Create one note in the in-memory example store.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "name": "note.create",
+      "outputSchema": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title"
+        ],
+        "type": "object"
+      },
+      "title": "Create note"
+    },
+    {
+      "description": "List notes from the in-memory example store.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "name": "note.list",
+      "outputSchema": {
+        "properties": {
+          "notes": {
+            "type": "array"
+          }
+        },
+        "required": [
+          "notes"
+        ],
+        "type": "object"
+      },
+      "title": "List notes"
+    }
+  ]
+}

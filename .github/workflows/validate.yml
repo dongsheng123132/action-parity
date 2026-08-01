@@ -29,6 +29,20 @@ jobs:
       - name: Run validator tests
         run: npm test
 
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test Rust registry and adapters
+        run: cargo test --workspace
+
+      - name: Generate and verify the Rust registry example
+        run: |
+          npm run generate:rust-example
+          node bin/action-parity.mjs verify examples/rust-registry/generated/action-parity.json --out artifacts/rust-registry-evidence.json
+
+      - name: Check npm package contents
+        run: npm pack --dry-run
+
       - name: Validate examples
         run: npm run validate
 
