@@ -2,7 +2,7 @@
 
 > **一个动作，所有界面。**
 
-> **版本边界：工具链 `v0.6.1`，Manifest 规范 `0.5.0`。** 两者独立演进，
+> **版本边界：工具链 `v0.6.2`，Manifest 规范 `0.5.0`。** 两者独立演进，
 > AI 可用 `action-parity --version --json` 同时读取，详见
 > [版本规则](docs/VERSIONING.md)。
 
@@ -215,7 +215,7 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 
 ## 当前状态
 
-**工具链 v0.6.1；Manifest 规范 0.5.0。** 当前已经具备可运行的 Rust Action Registry、Manifest/CLI/MCP/TypeScript 确定性生成、可执行 Binding 证据，以及供 AI 编程工具发现项目的 Agent Profile 与统一 Skill。可安装的 npm tarball 已通过 [GitHub Releases](https://github.com/dongsheng123132/action-parity/releases) 提供；npm 与 crates.io 公共 registry 仍未发布，因此暂时不能把这些 registry 坐标写成“已可用”。准确渠道状态见[发布闸门](docs/RELEASING.md)。
+**工具链 v0.6.2；Manifest 规范 0.5.0。** 当前已经具备可运行的 Rust Action Registry、Manifest/CLI/MCP/TypeScript 确定性生成、可执行 Binding 证据，以及供 AI 编程工具发现项目的 Agent Profile 与统一 Skill。可安装的 npm tarball 已通过 [GitHub Releases](https://github.com/dongsheng123132/action-parity/releases) 提供；npm 与 crates.io 公共 registry 仍未发布，因此暂时不能把这些 registry 坐标写成“已可用”。准确渠道状态见[发布闸门](docs/RELEASING.md)。
 
 目前阶段的目标不是宣称标准已经完成，而是：
 

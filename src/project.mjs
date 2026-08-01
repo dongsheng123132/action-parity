@@ -62,7 +62,9 @@ export async function buildAgentContext(startPath = process.cwd()) {
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   const validation = validateManifestObject(manifest);
   const surfaceById = new Map(
-    (manifest.surfaces ?? []).map((surface) => [surface.id, surface])
+    arrayOrEmpty(manifest?.surfaces)
+      .filter((surface) => surface?.id)
+      .map((surface) => [surface.id, surface])
   );
 
   return {
@@ -70,8 +72,8 @@ export async function buildAgentContext(startPath = process.cwd()) {
     format: AGENT_CONTEXT_FORMAT,
     project_root: projectRoot,
     profile_path: profilePath,
-    application: manifest.application ?? null,
-    spec_version: manifest.spec_version ?? null,
+    application: manifest?.application ?? null,
+    spec_version: manifest?.spec_version ?? null,
     registry: {
       export: profile.registry.export,
       source_paths: (profile.registry.source_paths ?? []).map((item) => ({
@@ -91,21 +93,21 @@ export async function buildAgentContext(startPath = process.cwd()) {
       editable: false
     })),
     commands: profile.commands,
-    surfaces: (manifest.surfaces ?? []).map((surface) => ({
-      id: surface.id,
-      kind: surface.kind,
-      reachability: surface.reachability ?? null,
-      required_for_parity: surface.required_for_parity
+    surfaces: arrayOrEmpty(manifest?.surfaces).map((surface) => ({
+      id: surface?.id ?? null,
+      kind: surface?.kind ?? null,
+      reachability: surface?.reachability ?? null,
+      required_for_parity: surface?.required_for_parity ?? null
     })),
-    actions: (manifest.actions ?? []).map((action) => ({
-      id: action.id,
-      title: action.title,
-      effect_class: action.effects?.class ?? null,
-      risk: action.effects?.risk ?? null,
-      surfaces: (action.bindings ?? []).map((binding) => ({
-        id: binding.surface,
-        kind: surfaceById.get(binding.surface)?.kind ?? null,
-        target: binding.target
+    actions: arrayOrEmpty(manifest?.actions).map((action) => ({
+      id: action?.id ?? null,
+      title: action?.title ?? null,
+      effect_class: action?.effects?.class ?? null,
+      risk: action?.effects?.risk ?? null,
+      surfaces: arrayOrEmpty(action?.bindings).map((binding) => ({
+        id: binding?.surface ?? null,
+        kind: surfaceById.get(binding?.surface)?.kind ?? null,
+        target: binding?.target ?? null
       }))
     })),
     agent_policy: {
@@ -114,6 +116,10 @@ export async function buildAgentContext(startPath = process.cwd()) {
       completion_command: profile.commands.verify_changed ?? profile.commands.verify
     }
   };
+}
+
+function arrayOrEmpty(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function resolveInsideProject(projectRoot, relativePath, label) {

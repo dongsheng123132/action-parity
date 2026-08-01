@@ -18,6 +18,38 @@ test("minimal manifest is valid and has full parity", async () => {
   assert.equal(report.summary.errors, 0);
 });
 
+test("an old object-shaped bindings field reports schema errors instead of crashing", async () => {
+  const manifest = await fixture("../examples/minimal/action-parity.json");
+  manifest.actions[0].bindings = {
+    cli: "notes create --json",
+    gui: "button#create"
+  };
+
+  const report = validateManifestObject(manifest);
+
+  assert.equal(report.ok, false);
+  assert.equal(report.summary.actions, 1);
+  assert.equal(report.summary.present_required_bindings, 0);
+  assert.ok(report.issues.some((item) => item.code === "schema_validation"));
+});
+
+test("schema reporting is total for malformed collection members", () => {
+  const manifest = {
+    spec_version: "0.5.0",
+    application: null,
+    surfaces: [null],
+    actions: [null],
+    state: { external_resources: {} }
+  };
+
+  const report = validateManifestObject(manifest);
+
+  assert.equal(report.ok, false);
+  assert.equal(report.summary.actions, 1);
+  assert.equal(report.shadows.length, 1);
+  assert.ok(report.issues.some((item) => item.code === "schema_validation"));
+});
+
 test("U-King pilot manifest is valid and has full declared parity", async () => {
   const manifest = await fixture("../examples/u-king/action-parity.json");
   const report = validateManifestObject(manifest);

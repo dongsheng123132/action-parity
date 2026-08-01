@@ -37,6 +37,23 @@ test("context gives an agent edit targets, commands, actions, and surfaces", asy
   assert.equal(context.generated_paths[0].editable, false);
 });
 
+test("context reports an invalid legacy Manifest without crashing the agent", async () => {
+  const root = await projectFixture();
+  const manifest = manifestFixture();
+  manifest.actions[0].bindings = { cli: "notes create --json" };
+  await writeFile(
+    path.join(root, "generated", "action-parity.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+    "utf8"
+  );
+
+  const context = await buildAgentContext(root);
+
+  assert.equal(context.ok, false);
+  assert.deepEqual(context.actions[0].surfaces, []);
+  assert.ok(context.manifest.errors.some((issue) => issue.code === "schema_validation"));
+});
+
 test("commands must be argv arrays rather than shell strings", async () => {
   const root = await projectFixture();
   const profilePath = path.join(root, "action-parity.config.json");

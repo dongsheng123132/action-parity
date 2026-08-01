@@ -95,6 +95,18 @@ function duplicateValues(values) {
   return duplicates;
 }
 
+function arrayOrEmpty(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function bindingsOf(action) {
+  return arrayOrEmpty(action?.bindings);
+}
+
+function exceptionsOf(action) {
+  return arrayOrEmpty(action?.parity_exceptions);
+}
+
 export async function readManifest(path) {
   const text = await readFile(path, "utf8");
   return JSON.parse(text);
@@ -403,10 +415,15 @@ export function validateManifestObject(manifest) {
 }
 
 function buildReport(manifest, issues) {
-  const surfaces = Array.isArray(manifest?.surfaces) ? manifest.surfaces : [];
-  const actions = Array.isArray(manifest?.actions) ? manifest.actions : [];
+  // Schema-invalid manifests still need a useful report. Doctor and validate
+  // inspect legacy projects precisely to find malformed collection shapes, so
+  // the reporting path must be total instead of assuming AJV already passed.
+  const surfaces = arrayOrEmpty(manifest?.surfaces);
+  const actions = arrayOrEmpty(manifest?.actions);
   const requiredSurfaces = surfaces.filter((surface) => surface?.required_for_parity);
-  const requiredSurfaceIds = new Set(requiredSurfaces.map((surface) => surface.id));
+  const requiredSurfaceIds = new Set(
+    requiredSurfaces.map((surface) => surface?.id).filter(Boolean)
+  );
 
   let presentRequiredBindings = 0;
   let declaredTestBindings = 0;
@@ -415,7 +432,7 @@ function buildReport(manifest, issues) {
     let mappedActions = 0;
     let actionsWithDeclaredTests = 0;
     for (const action of actions) {
-      const binding = (action.bindings ?? []).find((item) => item.surface === surface.id);
+      const binding = bindingsOf(action).find((item) => item?.surface === surface?.id);
       if (binding) {
         mappedActions += 1;
         if (hasDeclaredTest(binding)) {
@@ -426,8 +443,8 @@ function buildReport(manifest, issues) {
     presentRequiredBindings += mappedActions;
     declaredTestBindings += actionsWithDeclaredTests;
     return {
-      id: surface.id,
-      kind: surface.kind,
+      id: surface?.id ?? null,
+      kind: surface?.kind ?? null,
       reachability: reachabilityOf(surface),
       mapped_actions: mappedActions,
       declared_test_actions: actionsWithDeclaredTests,
@@ -439,8 +456,8 @@ function buildReport(manifest, issues) {
   });
 
   for (const action of actions) {
-    exceptionCount += (action.parity_exceptions ?? []).filter((exception) =>
-      requiredSurfaceIds.has(exception.surface)
+    exceptionCount += exceptionsOf(action).filter((exception) =>
+      requiredSurfaceIds.has(exception?.surface)
     ).length;
   }
 
@@ -450,23 +467,25 @@ function buildReport(manifest, issues) {
 
   const surfaceById = new Map(surfaces.filter((item) => item?.id).map((item) => [item.id, item]));
   const externallyReachableActions = actions.filter((action) =>
-    (action?.bindings ?? []).some((binding) => isExternallyReachable(surfaceById.get(binding.surface)))
+    bindingsOf(action).some((binding) =>
+      isExternallyReachable(surfaceById.get(binding?.surface))
+    )
   ).length;
 
   const summary = {
     actions: actions.length,
     surfaces: surfaces.length,
     required_surfaces: requiredSurfaces.length,
-    headless_actions: actions.filter((action) => action.execution?.headless).length,
-    headless_evidence_declarations: actions.filter((action) => action.execution?.headless_evidence)
+    headless_actions: actions.filter((action) => action?.execution?.headless).length,
+    headless_evidence_declarations: actions.filter((action) => action?.execution?.headless_evidence)
       .length,
     externally_reachable_actions: externallyReachableActions,
-    shared_external_resources: (manifest?.state?.external_resources ?? [])
+    shared_external_resources: arrayOrEmpty(manifest?.state?.external_resources)
       .filter((resource) => !resource?.exclusive)
       .map((resource) => ({
-        path: resource.path,
-        access: resource.access,
-        concurrency: resource.concurrency ?? null
+        path: resource?.path ?? null,
+        access: resource?.access ?? null,
+        concurrency: resource?.concurrency ?? null
       })),
     excluded_machine_surfaces: surfaces
       .filter((surface) => MACHINE_SURFACE_KINDS.has(surface?.kind) && !surface?.required_for_parity)
@@ -515,16 +534,16 @@ function buildReport(manifest, issues) {
 // implementation is a property of code, not of a manifest. Saying "no behavior
 // of its own" here would be the same overclaim this validator exists to catch.
 function describeShadows(manifest) {
-  const actions = Array.isArray(manifest?.actions) ? manifest.actions : [];
-  return (Array.isArray(manifest?.surfaces) ? manifest.surfaces : []).map((surface) => {
+  const actions = arrayOrEmpty(manifest?.actions);
+  return arrayOrEmpty(manifest?.surfaces).map((surface) => {
     const bindings = actions
-      .flatMap((action) => action?.bindings ?? [])
-      .filter((binding) => binding.surface === surface.id);
+      .flatMap(bindingsOf)
+      .filter((binding) => binding?.surface === surface?.id);
     return {
-      id: surface.id,
-      kind: surface.kind,
+      id: surface?.id ?? null,
+      kind: surface?.kind ?? null,
       reachability: reachabilityOf(surface),
-      checked: surface.required_for_parity === true,
+      checked: surface?.required_for_parity === true,
       actions: bindings.length,
       declared_test_bindings: bindings.filter(hasDeclaredTest).length
     };
@@ -542,8 +561,8 @@ function assessConformance(manifest, summary) {
   const blockers = [];
 
   const hasMachineBinding = (action) =>
-    (action?.bindings ?? []).some((binding) =>
-      MACHINE_SURFACE_KINDS.has(surfaceById.get(binding.surface)?.kind)
+    bindingsOf(action).some((binding) =>
+      MACHINE_SURFACE_KINDS.has(surfaceById.get(binding?.surface)?.kind)
     );
 
   if (summary.errors > 0) blockers.push(`${summary.errors} validation error(s)`);
