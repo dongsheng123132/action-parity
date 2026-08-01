@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { validateManifestObject } from "./validator.mjs";
+import { generateTypeScriptClient } from "./typescript.mjs";
 
 export const REGISTRY_BUNDLE_FORMAT = "action-parity.registry-bundle/v1";
 
@@ -41,22 +42,21 @@ export async function readRegistryBundle(bundlePath) {
   return JSON.parse(await readFile(bundlePath, "utf8"));
 }
 
-export async function materializeRegistryBundle(bundle, outputDirectory) {
+export async function materializeRegistryBundle(bundle, outputDirectory, options = {}) {
   validateRegistryBundle(bundle);
   await mkdir(outputDirectory, { recursive: true });
-  const artifacts = registryArtifacts(bundle);
-  for (const [filename, value] of artifacts) {
-    await atomicWrite(path.join(outputDirectory, filename), `${stableStringify(value, 2)}\n`);
+  const artifacts = registryArtifacts(bundle, options);
+  for (const [filename, content] of artifacts) {
+    await atomicWrite(path.join(outputDirectory, filename), content);
   }
   return artifacts.map(([filename]) => path.join(outputDirectory, filename));
 }
 
-export async function checkRegistryBundle(bundle, outputDirectory) {
+export async function checkRegistryBundle(bundle, outputDirectory, options = {}) {
   validateRegistryBundle(bundle);
   const files = [];
-  for (const [filename, value] of registryArtifacts(bundle)) {
+  for (const [filename, expected] of registryArtifacts(bundle, options)) {
     const target = path.join(outputDirectory, filename);
-    const expected = `${stableStringify(value, 2)}\n`;
     let actual = null;
     try {
       actual = await readFile(target, "utf8");
@@ -68,12 +68,16 @@ export async function checkRegistryBundle(bundle, outputDirectory) {
   return { ok: files.every((file) => file.status === "current"), files };
 }
 
-function registryArtifacts(bundle) {
-  return [
-    ["action-parity.json", bundle.manifest],
-    ["cli-help.json", bundle.cli_help],
-    ["mcp-tools.json", bundle.mcp_tools]
+function registryArtifacts(bundle, options) {
+  const artifacts = [
+    ["action-parity.json", `${stableStringify(bundle.manifest, 2)}\n`],
+    ["cli-help.json", `${stableStringify(bundle.cli_help, 2)}\n`],
+    ["mcp-tools.json", `${stableStringify(bundle.mcp_tools, 2)}\n`]
   ];
+  if (options.typescript === true) {
+    artifacts.push(["action-client.ts", generateTypeScriptClient(bundle.manifest)]);
+  }
+  return artifacts;
 }
 
 async function atomicWrite(target, content) {

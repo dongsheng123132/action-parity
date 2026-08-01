@@ -19,7 +19,7 @@ function usage() {
 Usage:
   action-parity validate <manifest> [--json] [--quiet]
   action-parity report <manifest> [--json] [--quiet]
-  action-parity generate <registry-bundle> --out-dir <directory> [--json]
+  action-parity generate <registry-bundle> --out-dir <directory> [--typescript] [--json]
   action-parity verify <manifest> [--plan <plan>] [--out <report>] [--json] [--quiet]
   action-parity context [project-directory|action-parity.config.json] [--json] [--quiet]
   action-parity doctor [project-directory] [--json] [--quiet]
@@ -135,7 +135,7 @@ function positionalArgs(args) {
   for (let index = 0; index < args.length; index += 1) {
     if (values.has(args[index])) {
       index += 1;
-    } else if (!["--json", "--quiet", "-q"].includes(args[index])) {
+    } else if (!["--json", "--quiet", "-q", "--typescript"].includes(args[index])) {
       output.push(args[index]);
     }
   }
@@ -153,14 +153,15 @@ async function runStatic(mode, manifestPath, jsonMode, quiet) {
   process.exitCode = report.ok ? 0 : 1;
 }
 
-async function runGenerate(bundlePath, outputDirectory, jsonMode) {
+async function runGenerate(bundlePath, outputDirectory, jsonMode, typescript) {
   if (!outputDirectory) {
     failUsage("generate requires --out-dir <directory>.", jsonMode);
     return;
   }
   const files = await materializeRegistryBundle(
     await readRegistryBundle(bundlePath),
-    path.resolve(outputDirectory)
+    path.resolve(outputDirectory),
+    { typescript }
   );
   const result = { ok: true, files };
   if (jsonMode) process.stdout.write(`${JSON.stringify(jsonEnvelope(result))}\n`);
@@ -268,7 +269,7 @@ async function main() {
     } else if (mode === "validate" || mode === "report") {
       await runStatic(mode, input, jsonMode, quiet);
     } else if (mode === "generate") {
-      await runGenerate(input, optionValue(args, "--out-dir"), jsonMode);
+      await runGenerate(input, optionValue(args, "--out-dir"), jsonMode, args.includes("--typescript"));
     } else {
       await runVerify(input, args, jsonMode, quiet);
     }

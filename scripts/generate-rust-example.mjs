@@ -16,7 +16,7 @@ const jsonMode = process.argv.includes("--json");
 
 const bundle = await exportBundle();
 if (checkMode) {
-  const result = await checkRegistryBundle(bundle, output);
+  const result = await checkRegistryBundle(bundle, output, { typescript: true });
   const bundleStatus = await checkFile(
     path.join(output, "registry-bundle.json"),
     `${stableStringify(bundle, 2)}\n`
@@ -30,7 +30,7 @@ if (checkMode) {
   }
   process.exitCode = result.ok ? 0 : 1;
 } else {
-  await materializeRegistryBundle(bundle, output);
+  await materializeRegistryBundle(bundle, output, { typescript: true });
   await writeFile(
     path.join(output, "registry-bundle.json"),
     `${stableStringify(bundle, 2)}\n`,

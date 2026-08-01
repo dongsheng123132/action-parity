@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -22,6 +22,28 @@ test("generated artifact check is read-only and detects drift", async () => {
   assert.equal(drifted.ok, false);
   assert.equal(
     drifted.files.find((file) => file.path.endsWith("cli-help.json")).status,
+    "drifted"
+  );
+});
+
+test("TypeScript client is opt-in and participates in drift checks", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "action-parity-typescript-"));
+  const bundle = registryBundleFixture();
+
+  await materializeRegistryBundle(bundle, output, { typescript: true });
+  const generated = await readFile(path.join(output, "action-client.ts"), "utf8");
+  assert.match(generated, /NOTE_LIST: "note\.list"/);
+  assert.match(generated, /"note\.list": Record<string, unknown>;/);
+  assert.match(generated, /createTauriActionClient/);
+
+  const current = await checkRegistryBundle(bundle, output, { typescript: true });
+  assert.equal(current.ok, true);
+
+  await writeFile(path.join(output, "action-client.ts"), "// hand edited\n", "utf8");
+  const drifted = await checkRegistryBundle(bundle, output, { typescript: true });
+  assert.equal(drifted.ok, false);
+  assert.equal(
+    drifted.files.find((file) => file.path.endsWith("action-client.ts")).status,
     "drifted"
   );
 });

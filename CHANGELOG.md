@@ -13,6 +13,10 @@ less work than hand-maintaining its Shadows and Manifest.
   example whose GUI, CLI, and MCP observations reach the same core execution
   envelope.
 - Add `action-parity generate` for materializing registry bundles.
+- Add opt-in `action-parity generate ... --typescript` output with generated
+  Action constants, JSON-Schema-derived input/output types, a typed generic
+  client, and a framework-dependency-free Tauri invoke helper. Generated client
+  drift is checked with the rest of the Registry artifacts.
 - Add `action-parity verify`, which reruns the generator, executes no-shell test
   commands with timeouts, requires per-Action/per-Surface execution
   observations, hashes artifacts and inputs, and emits a self-hashed report.

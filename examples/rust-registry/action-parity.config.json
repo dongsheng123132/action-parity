@@ -16,6 +16,7 @@
   },
   "generated_paths": [
     "generated/action-parity.json",
+    "generated/action-client.ts",
     "generated/cli-help.json",
     "generated/mcp-tools.json"
   ],

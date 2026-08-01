@@ -61,7 +61,7 @@ Commands in the profile are argument arrays. Execute the program and arguments w
 5. Implement authorization, confirmation, state mutation, and side effects in the headless Action Core. A GUI dialog alone is never a security boundary.
 6. Bind GUI, CLI, MCP, and other required surfaces to that Action. Keep interface code limited to input collection, invocation, and presentation.
 7. Give GUI controls a stable semantic identifier such as `data-action-id` or an automation/accessibility ID.
-8. Run the profile's `generate` command. Do not hand-edit any path listed in `generated_paths`.
+8. Run the profile's `generate` command. Use generated Action constants and input/output types in TypeScript; never repeat raw Action ID strings when the generated client exists. Do not hand-edit any path listed in `generated_paths`.
 9. Run `generate_check`. A drifted or missing generated artifact is a failure.
 10. Add or update executable Binding observations. Every required surface must show the request execution ID reaching the same core execution ID.
 11. Run `verify_changed` when the profile provides it; otherwise run `verify`.
@@ -80,6 +80,7 @@ Generated drift     run commands.generate_check from the project profile
 ## Pitfalls
 
 - Never create separate GUI and CLI business implementations.
+- Never copy Rust Action IDs into TypeScript when `action-client.ts` is generated; import `ACTION` and the typed client.
 - Never treat a Tauri or Electron webview bridge as an externally reachable Agent interface.
 - Never claim a named test is verified evidence until `verify` executes it.
 - Never bypass core authorization or confirmation from a machine surface.

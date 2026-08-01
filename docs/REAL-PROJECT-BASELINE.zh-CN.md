@@ -176,6 +176,19 @@ generate --check     自动同步 CLI / MCP / Manifest / 类型
 verify --json        真跑证据并输出哈希报告
 ```
 
+## 上游工具链的第一项实装结果
+
+针对 Redline 的 9 份、U-King 的 21 份 Rust/TypeScript Action ID 重复，本仓库现已完成第一段生成桥：
+
+- `action-parity generate <bundle> --out-dir <dir> --typescript` 从 Registry Manifest 生成 `action-client.ts`；
+- 自动生成稳定 Action 常量、JSON Schema 对应的输入输出类型、成功/失败信封、通用 caller 与 Tauri caller；
+- 生成文件不依赖 Tauri npm 包，Electron、测试和其他 IPC 也能复用通用 caller；
+- Rust 参考样例的 2 个 Action 生成 112 行 TypeScript 合同，但这些行全部不可手改；可编辑 GUI 桥只有 15 行，原始 Action ID 副本为 0；
+- 改动 Registry 登记顺序不会改变输出；手改生成 client 后，`generate_check` 会以 drift 失败；
+- 生成文件已通过严格 TypeScript 类型检查，输入字段错误可以在运行前暴露。
+
+这还没有冒充 Redline 或 U-King 已完成迁移。下一项实测应当把同一生成桥接入 Redline，比较迁移前后的 9 个前端常量、修改文件数和 CI 漂移捕获结果；随后再用 U-King 的一个垂直切片验证大仓库渐进接入。
+
 ## 必须公开的采用指标
 
 影核以后不应以“Manifest 写得多完整”作为主要成功指标。每次真实试点都记录：
@@ -211,7 +224,7 @@ verify --json        真跑证据并输出哈希报告
 
 - 可包装现有 `dispatch()`，不要求改写业务 handler；
 - Rust 类型自动派生输入输出 Schema；
-- 生成 TypeScript Action ID、输入输出类型与调用 client；
+- 生成 TypeScript Action ID、输入输出类型与调用 client（参考实现已完成，待 Redline 实接）；
 - 生成 Manifest、CLI help、MCP tools 与绑定测试；
 - 允许从 U-King 当前 Action 表渐进迁移，而不是一次重写 46 个 Action。
 

@@ -17,6 +17,7 @@ ActionDescriptor + handler
           +-- action-parity.json
           +-- cli-help.json
           +-- mcp-tools.json
+          +-- action-client.ts / typed Tauri caller
           +-- Surface Bindings from templates
 ```
 
@@ -31,12 +32,15 @@ the handler, below every Surface.
 `action-parity.registry-bundle/v1`. The npm CLI materializes it with:
 
 ```text
-action-parity generate registry-bundle.json --out-dir generated
+action-parity generate registry-bundle.json --out-dir generated --typescript
 ```
 
-The output contains `action-parity.json`, `cli-help.json`, and `mcp-tools.json`.
-Actions and Surfaces use ordered maps, and the materializer sorts object keys,
-so unchanged input produces byte-identical output.
+The base output contains `action-parity.json`, `cli-help.json`, and
+`mcp-tools.json`. `--typescript` additionally emits `action-client.ts`: stable
+Action constants, JSON-Schema-derived input/output maps, typed request and
+envelope types, a generic caller, and a Tauri invoke helper. It has no framework
+runtime dependency. Actions and Surfaces use ordered maps, and the materializer
+sorts object keys, so unchanged input produces byte-identical output.
 
 ## Declared evidence versus verified evidence
 
@@ -80,9 +84,25 @@ pulling Tauri into headless builds. The Tauri application expands one command
 macro and manages a `TauriAdapter`; the adapter forwards `DispatchRequest` to
 the shared Registry.
 
+The webview also keeps one editable transport bridge:
+
+```ts
+import { createTauriActionClient } from "../generated/action-client";
+
+export const actionClient = createTauriActionClient(invoke, {
+  command: "action_parity_call",
+  surface: "gui"
+});
+```
+
+Feature code calls `actionClient(ACTION.NOTE_CREATE, { title })`. Raw Action IDs
+and their input/output types are generated from Rust and are covered by the same
+read-only drift check as the Manifest.
+
 ## Current boundary
 
 This preview supplies the Rust Registry, Tauri forwarding boundary, generic
-artifact generation, and executable verification. It does not yet perform
-framework source discovery (`doctor`) or run an MCP transport server. Those are
-consumers of the registry and should not delay proving the smaller loop.
+artifact and TypeScript client generation, zero-configuration source discovery,
+and executable verification. It does not yet run an MCP transport server or
+generate framework-specific GUI presentation code. Those are consumers of the
+registry and should not delay proving the smaller loop.

@@ -66,6 +66,8 @@ action-parity context . --json
 
 `action-parity.config.json` identifies the Registry source, generated files that must not be edited, exact generation commands, and the executable verification command. The canonical [ActionParity development Skill](skills/action-parity/SKILL.md) turns that map into the same workflow for Codex, Claude Code, and Hermes without requiring the agent to read the complete specification.
 
+For Tauri/TypeScript projects, `action-parity generate ... --typescript` also derives Action constants, input/output types, a typed client, and a one-command Tauri transport helper. Frontend feature code imports those generated symbols instead of copying raw Action IDs from Rust.
+
 See the [Rust Registry example](examples/rust-registry), the [Agent Profile Schema](schema/action-parity.agent-profile.schema.json), and the [agent-native development roadmap](docs/AGENT-NATIVE-DEVELOPMENT.zh-CN.md).
 
 ## A minimal manifest

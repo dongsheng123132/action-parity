@@ -80,6 +80,8 @@ action-parity context . --json
 
 根目录的 `action-parity.config.json` 会告诉它 Registry 真相源、禁止手改的生成文件、准确的生成命令和最终验证命令。统一的 [ActionParity 开发 Skill](skills/action-parity/SKILL.md) 把这张项目地图变成 Codex、Claude Code、Hermes 共用的开发流程，不要求 AI 先读完整规范。
 
+Tauri/TypeScript 项目加上 `action-parity generate ... --typescript`，还会从同一 Registry 生成 Action 常量、输入输出类型、类型安全调用 client 和单命令 Tauri 桥。前端业务代码不再复制 Rust 中的 Action ID 字符串。
+
 实现入口：[Rust Registry 样例](examples/rust-registry)、[Agent Profile Schema](schema/action-parity.agent-profile.schema.json)、[Agent 原生开发路线](docs/AGENT-NATIVE-DEVELOPMENT.zh-CN.md)。
 
 ## 一句话架构
@@ -169,7 +171,7 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 
 当前基准不再假设 U-King 是 Electron 样例，而是直接测量三个真实仓库：
 
-1. Redline：9 个稳定 Action 已共享 Rust 核心，下一步生成 TypeScript、Manifest、CLI 与 MCP；
+1. Redline：9 个稳定 Action 已共享 Rust 核心；上游 TypeScript/Tauri 生成桥已经可用，下一步是在 Redline 渐进接入并实测删掉 9 份前端字符串副本；
 2. 照做：5 个外部 GUI 兼容 Action，用于测量无法改造的旧软件；
 3. U-King：46 个宿主 Action 已打通 Tauri GUI、通用 CLI 与 MCP，用它量化大项目的真实收益和胶水成本。
 
