@@ -16,6 +16,14 @@ less work than hand-maintaining its Shadows and Manifest.
 - Add `action-parity verify`, which reruns the generator, executes no-shell test
   commands with timeouts, requires per-Action/per-Surface execution
   observations, hashes artifacts and inputs, and emits a self-hashed report.
+- Add the read-only, zero-configuration `action-parity doctor` inventory for
+  AI tools entering an unadopted Tauri, Rust, TypeScript, or Python repository.
+  It reports observed command bridges, repeated Action IDs, manifests,
+  compatibility profiles, test definitions, and machine entry points without
+  pretending that static structure is executable evidence.
+- Publish a measured Redline, Zhaozuo, and U-King baseline. The data moves the
+  next implementation priority to generated Tauri/TypeScript bindings and a
+  version-owned wire contract rather than more handwritten specification text.
 - Static validation now calls a test reference declared evidence. It no longer
   labels a non-empty string as proven or awards AP-2 without execution.
 - Make the npm CLI packable by removing `private: true` and declaring the

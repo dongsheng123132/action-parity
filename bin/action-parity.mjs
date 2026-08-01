@@ -9,6 +9,7 @@ import {
 import { readManifest, validateManifestObject } from "../src/validator.mjs";
 import { verifyManifest } from "../src/verifier.mjs";
 import { buildAgentContext } from "../src/project.mjs";
+import { doctorProject } from "../src/doctor.mjs";
 
 const VERSION = "0.6.0";
 
@@ -21,6 +22,7 @@ Usage:
   action-parity generate <registry-bundle> --out-dir <directory> [--json]
   action-parity verify <manifest> [--plan <plan>] [--out <report>] [--json] [--quiet]
   action-parity context [project-directory|action-parity.config.json] [--json] [--quiet]
+  action-parity doctor [project-directory] [--json] [--quiet]
   action-parity --version
 
 Evidence model:
@@ -28,7 +30,7 @@ Evidence model:
   verify           runs the generator and tests, hashes inputs, and emits evidence
 
 Exit codes:
-  0  valid / generated / verified
+  0  valid / generated / verified / context or doctor completed
   1  runtime, conformance, generation, or verification failure
   2  invalid usage`;
 }
@@ -212,6 +214,32 @@ async function runContext(projectPath, jsonMode, quiet) {
   process.exitCode = context.ok ? 0 : 1;
 }
 
+async function runDoctor(projectPath, jsonMode, quiet) {
+  const report = await doctorProject(projectPath ?? process.cwd());
+  if (jsonMode) {
+    process.stdout.write(`${JSON.stringify(jsonEnvelope(report))}\n`);
+  } else if (!quiet || !report.ok) {
+    const tauri = report.observations.tauri.summary;
+    const compatibility = report.observations.compatibility_summary;
+    process.stdout.write(
+      [
+        `${report.ok ? "DOCTOR COMPLETE" : "DOCTOR FOUND BLOCKERS"}\t${report.project.name}`,
+        `Git\t${report.project.git?.commit?.slice(0, 12) ?? "not detected"}\t${report.project.git?.dirty ? "DIRTY" : "clean"}`,
+        `Tauri\t${tauri.unique_defined_commands} commands\t${tauri.invoke_call_sites} invoke sites`,
+        `Action IDs\t${new Set(report.observations.action_ids.map((item) => item.id)).size} observed`,
+        `Manifests\t${report.observations.manifests.length}`,
+        `Compatibility profiles\t${compatibility.profiles}\t${compatibility.actions} actions\t${compatibility.lines_per_action} lines/action`,
+        `Tests\t${report.observations.tests.definitions} definitions`,
+        "",
+        ...report.findings.map((finding) => `${finding.severity.toUpperCase()}\t${finding.code}\t${finding.message}`),
+        "",
+        ...report.next_steps.map((step) => `NEXT P${step.priority}\t${step.code}\t${step.action}`)
+      ].join("\n") + "\n"
+    );
+  }
+  process.exitCode = report.ok ? 0 : 1;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const jsonMode = args.includes("--json");
@@ -223,11 +251,11 @@ async function main() {
     return;
   }
   const [mode, input] = positional;
-  if (!mode || !["validate", "report", "generate", "verify", "context"].includes(mode)) {
-    failUsage("Expected validate, report, generate, verify, or context.", jsonMode);
+  if (!mode || !["validate", "report", "generate", "verify", "context", "doctor"].includes(mode)) {
+    failUsage("Expected validate, report, generate, verify, context, or doctor.", jsonMode);
     return;
   }
-  if (mode !== "context" && !input) {
+  if (!["context", "doctor"].includes(mode) && !input) {
     failUsage(`${mode} requires an input path.`, jsonMode);
     return;
   }
@@ -235,6 +263,8 @@ async function main() {
   try {
     if (mode === "context") {
       await runContext(input, jsonMode, quiet);
+    } else if (mode === "doctor") {
+      await runDoctor(input, jsonMode, quiet);
     } else if (mode === "validate" || mode === "report") {
       await runStatic(mode, input, jsonMode, quiet);
     } else if (mode === "generate") {

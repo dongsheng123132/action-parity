@@ -41,7 +41,7 @@
     "report": "node bin/action-parity.mjs report examples/u-king/action-parity.json",
     "generate:rust-example": "node scripts/generate-rust-example.mjs",
     "sync:agent-skills": "node scripts/sync-agent-skills.mjs",
-    "test": "node --test test/validator.test.mjs test/verifier.test.mjs test/project.test.mjs test/generator.test.mjs",
+    "test": "node --test test/validator.test.mjs test/verifier.test.mjs test/project.test.mjs test/generator.test.mjs test/doctor.test.mjs",
     "test:rust": "cargo test --workspace"
   },
   "dependencies": {

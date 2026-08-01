@@ -22,15 +22,21 @@ Do not use it for purely visual layout, animation, tab switching, window movemen
 ## Prerequisites
 
 - Work inside the target repository.
-- The repository should contain `action-parity.config.json`.
+- An adopted repository should contain `action-parity.config.json`; an unadopted repository can still be scanned with Doctor.
 - Use the host agent's terminal or shell tool to run the CLI.
 - Preserve unrelated changes and inspect Git status before editing.
 
-If the profile is missing, read [references/agent-profile.md](references/agent-profile.md) and create the smallest profile that points to real executable commands. Do not invent passing commands or evidence.
+If the profile is missing, run `action-parity doctor . --json` first. Use its observations to classify existing machine surfaces and select one vertical slice. Then read [references/agent-profile.md](references/agent-profile.md) and create the smallest profile that points to real executable commands. Do not mechanically turn every Tauri/Electron command into an Action, and do not invent passing commands or evidence.
 
 ## How to Run
 
-Start every Action task with:
+In an unadopted repository, start with:
+
+```text
+action-parity doctor . --json
+```
+
+Doctor is a read-only structural inventory, not conformance evidence. After an Agent Profile exists, start every Action task with:
 
 ```text
 action-parity context . --json
@@ -65,6 +71,7 @@ Commands in the profile are argument arrays. Execute the program and arguments w
 
 ```text
 Discover project     action-parity context . --json
+Inventory unadopted  action-parity doctor . --json
 Static declarations action-parity validate <manifest> --json
 Executable evidence action-parity verify <manifest> --plan <plan> --json
 Generated drift     run commands.generate_check from the project profile

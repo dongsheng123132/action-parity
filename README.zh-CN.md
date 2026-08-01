@@ -66,7 +66,13 @@ GUI 不是软件本身，CLI 也不是软件本身。它们是同一套动作和
 
 ## AI 从 Registry 开始，不从 Manifest 开始
 
-在可运行的 Rust 参考实现中，Manifest 已是生成物。AI 编程工具进入仓库后，先执行：
+在可运行的 Rust 参考实现中，Manifest 已是生成物。一个尚未接入的仓库先做零配置只读盘点：
+
+```text
+action-parity doctor . --json
+```
+
+接入后，AI 编程工具再执行：
 
 ```text
 action-parity context . --json
@@ -159,16 +165,15 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 
 完整对比见 [docs/LANDSCAPE.md](docs/LANDSCAPE.md)。
 
-## U-King 试点
+## 三个真实项目试点
 
-U-King 将作为第一个参考应用，分两条路线推进：
+当前基准不再假设 U-King 是 Electron 样例，而是直接测量三个真实仓库：
 
-1. 给现有 Electron GUI 补齐语义控件、ARIA、稳定标识和 Windows UI Automation 测试；
-2. 逐步把检测、配置、网关控制、修复、升级、日志导出等功能抽成 Action Core，并生成 CLI、MCP 与一致性报告。
+1. Redline：9 个稳定 Action 已共享 Rust 核心，下一步生成 TypeScript、Manifest、CLI 与 MCP；
+2. 照做：5 个外部 GUI 兼容 Action，用于测量无法改造的旧软件；
+3. U-King：46 个宿主 Action 已打通 Tauri GUI、通用 CLI 与 MCP，用它量化大项目的真实收益和胶水成本。
 
-这样不需要推倒重写，就能逐步从“只能看屏幕测试”升级为“业务动作无界面测试 + 真实 GUI 验证”。
-
-详细计划见 [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md)。
+详细数据与开发优先级见 [三个真实项目基准](docs/REAL-PROJECT-BASELINE.zh-CN.md)，历史计划见 [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md)。
 
 ## 试点回馈
 
@@ -200,7 +205,7 @@ U-King 将作为第一个参考应用，分两条路线推进：
 目前阶段的目标不是宣称标准已经完成，而是：
 
 1. 把新增 Action 的协议胶水压到业务实现之外不超过 20 行；
-2. 用 Redline/Tauri 和 U-King/Electron 做真实改造；
+2. 用 Redline、照做与 U-King/Tauri 做真实改造；
 3. 让 Codex、Claude Code、Hermes 在不阅读完整 SPEC 的情况下完成同一任务；
 4. 发布可复现的生成、验证和采用实验；
 5. 在真实实现基础上推进 v1.0。

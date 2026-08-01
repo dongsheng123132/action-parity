@@ -6,6 +6,8 @@
 
 > 一个没有读过影核规范的 AI 编程工具，进入项目后仍能发现动作核心、只在正确的位置实现业务、自动生成各机器入口，并用可执行证据证明 GUI、CLI、MCP 没有漂移。
 
+未接入仓库先运行 `action-parity doctor . --json` 获得只读结构盘点；存在 Agent Profile 后再运行 `action-parity context . --json` 获取唯一真相源和完成命令。Doctor 的真实项目数据见 [Redline、照做与 U-King 基准](REAL-PROJECT-BASELINE.zh-CN.md)。
+
 开发者采用影核的理由也不应是“遵守标准”，而应是新增第二个界面时明显少写代码、少维护一份实现。
 
 ## 从本轮实现得到的结论

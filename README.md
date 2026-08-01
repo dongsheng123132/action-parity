@@ -52,7 +52,13 @@ ActionParity does **not** require one CLI command for every visual control. Tabs
 
 ## Start with the Action Registry, not the Manifest
 
-The Manifest is generated output in the runnable Rust reference implementation. A coding agent first asks the repository for a compact project map:
+The Manifest is generated output in the runnable Rust reference implementation. Before adoption, a coding agent can inventory an unfamiliar repository without configuration:
+
+```bash
+action-parity doctor . --json
+```
+
+After adoption, it asks the repository for a compact project map:
 
 ```bash
 action-parity context . --json
@@ -173,6 +179,7 @@ npm install
 npm test
 node bin/action-parity.mjs validate examples/minimal/action-parity.json
 node bin/action-parity.mjs report examples/u-king/action-parity.json --json
+node bin/action-parity.mjs doctor . --json
 node bin/action-parity.mjs context examples/rust-registry --json
 node bin/action-parity.mjs verify examples/rust-registry/generated/action-parity.json --json
 ```
@@ -204,7 +211,7 @@ Read the evidence and detailed comparison in [docs/LANDSCAPE.md](docs/LANDSCAPE.
 
 **v0.6.0 development branch.** The repository now includes a runnable Rust Action Registry, deterministic Manifest/CLI/MCP generation, executable Binding evidence, and an Agent Profile/Skill for coding-tool discovery. The exact SDK and conformance language remain open to revision before v1.0.
 
-The first reference application is U-King, a Windows desktop application. The pilot is designed to prove that an existing Electron application can gain:
+The real-project baseline now covers Redline, Zhaozuo, and U-King. U-King is an existing Tauri application whose Action Core already feeds its GUI, generic CLI, and MCP server; Redline tests gradual adoption around an existing Rust dispatcher; Zhaozuo tests the honest compatibility path for third-party GUIs.
 
 - a headless Action Core;
 - CLI and MCP adapters;
@@ -212,7 +219,7 @@ The first reference application is U-King, a Windows desktop application. The pi
 - binding and parity reports;
 - safe, sandboxed AI-driven tests.
 
-See [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md).
+See the [measured real-project baseline (Chinese)](docs/REAL-PROJECT-BASELINE.zh-CN.md) and [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md).
 
 ## Participate
 
