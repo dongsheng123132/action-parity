@@ -182,7 +182,7 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 
 1. Redline：9 个稳定 Action 已共享 Rust 核心；完整实接后前端手写 Action ID 从 9 降为 0，1,670 行协议产物全部生成；
 2. 照做：5 个外部 GUI 兼容 Action，用于测量无法改造的旧软件；
-3. U-King：46 个宿主 Action + 4 个动态小程序 Action 已导出有效 0.5 Manifest；50 个 Action 可生成 304 行严格 TypeScript client，但当前仍有 21 个跨 Rust/前端手写 ID，作为下一迁移基线。
+3. U-King：完整试点已从现有 Rust 核心生成 46 个宿主 Action 的 0.5 Manifest 与 288 行严格 TypeScript client；CLI 46/46、可核对 GUI 21/46、stale 0，迁移两个真实 GUI 调用后跨 Rust/前端手写 ID 风险从 21 降到 19。Linux 干净检出 CI 会重新导出并阻止漂移，公开实现见 [U-King PR #315](https://github.com/dongsheng123132/u-king-mini/pull/315)。
 
 详细数据与开发优先级见 [三个真实项目基准](docs/REAL-PROJECT-BASELINE.zh-CN.md)，历史计划见 [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md)。
 

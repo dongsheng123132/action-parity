@@ -222,7 +222,7 @@ Read the evidence and detailed comparison in [docs/LANDSCAPE.md](docs/LANDSCAPE.
 
 **v0.6.0 development branch.** The repository now includes a runnable Rust Action Registry, deterministic Manifest/CLI/MCP/TypeScript generation, executable Binding evidence, and an Agent Profile/Skill for coding-tool discovery. The packages are locally release-checked but are not yet published to npm or crates.io; follow the [release gate](docs/RELEASING.md) before giving downstream projects a registry dependency. The exact SDK and conformance language remain open to revision before v1.0.
 
-The real-project baseline now covers Redline, Zhaozuo, and U-King. U-King is an existing Tauri application whose Action Core already feeds its GUI, generic CLI, and MCP server; Redline tests gradual adoption around an existing Rust dispatcher; Zhaozuo tests the honest compatibility path for third-party GUIs.
+The real-project baseline now covers Redline, Zhaozuo, and U-King. The [merged U-King pilot](https://github.com/dongsheng123132/u-king-mini/pull/315) generates a 46-Action Manifest and typed client from its existing Rust core, verifies 46 CLI and 21 honest GUI bindings, and checks drift from a clean Linux checkout. Redline tests gradual adoption around an existing Rust dispatcher; Zhaozuo tests the honest compatibility path for third-party GUIs.
 
 - a headless Action Core;
 - CLI and MCP adapters;

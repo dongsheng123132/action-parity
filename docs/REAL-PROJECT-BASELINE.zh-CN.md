@@ -189,7 +189,7 @@ verify --json        真跑证据并输出哈希报告
 - 改动 Registry 登记顺序不会改变输出；手改生成 client 后，`generate_check` 会以 drift 失败；
 - 生成文件已通过严格 TypeScript 类型检查，输入字段错误可以在运行前暴露。
 
-参考生成桥随后已经接入 Redline；U-King 仍应采用一个垂直切片渐进验证，不能把小仓库成功直接外推成大仓库已完成迁移。
+参考生成桥随后已经接入 Redline；U-King 也完成了一个不重写既有 handler 的生成式垂直切片。两者仍不能外推为所有框架均已验证，但“大型既有 Tauri/Rust 项目只能手写协议胶水”的假设已经被实际实现否定。
 
 Redline 的接入准备又发现一个上游问题：它的 CLI 暴露 9 个 Action，但 GUI 只调用其中一部分，MCP 尚未实现。旧版 Registry 会把每个 Action 与每个 Surface 做笛卡尔积，生成并不存在的 GUI/MCP Binding。现在每个 Action 可用 `.surface("cli")` 等方式选择真实 Surface；Manifest、CLI help、MCP tools 与运行时拒绝共用同一范围。影核不能为了显示“全覆盖”而生成假入口。
 
@@ -205,6 +205,20 @@ Redline 的接入准备又发现一个上游问题：它的 CLI 暴露 9 个 Act
 - Ubuntu CI 首次运行发现 Windows 盘符归档路径在 Linux 上会被误认成相对路径，修复并加入跨平台回归测试后通过。影核证据因此捕获了一个真实安全缺陷，而不只是证明示例能跑。
 
 试点也暴露了 Doctor 的误报：同一个 Action ID 合法地同时出现在 Registry 与生成 client 中。Doctor 现在读取 Agent Profile 的 `generated_paths`，仍报告这些出现位置并标记 `generated: true`，但只把可编辑副本计入漂移风险。没有 Profile、Profile 无效或路径越界时不予豁免，避免生成声明成为隐藏手写重复的后门。
+
+### U-King 首次完整生成式试点结果
+
+公开实现、讨论与干净机 CI 见 [U-King PR #315](https://github.com/dongsheng123132/u-king-mini/pull/315)，仓库内复现说明见 [U-King ActionParity 试点报告](https://github.com/dongsheng123132/u-king-mini/blob/feat/podapp-in-uking/docs/ACTION-PARITY-PILOT.zh-CN.md)。本轮没有另建第二个 Registry，也没有重写 46 个 handler：
+
+- 现有 Rust Action Core 动态投影 46 个稳定 `runtime.*` 宿主 Action；本机安装状态决定的 4 个小程序 Action 保留各自 Manifest，不写入宿主生成物；
+- 生成 2,173 行 Manifest 与 288 行 TypeScript client，全部标记不可手改；标准 `action_parity_call` Tauri Adapter 最终仍只进入 `actions::run`；
+- CLI 真实声明 46/46；只有具备稳定 `data-action-id` 的 21 个 Action 声明 desktop Binding，其余 25 个不制造虚假 GUI 覆盖；desktop 在渐进期明确标为 optional Surface；
+- `verify` 实际运行结果为 46 pass、0 fail、0 skip，GUI 绑定 21、stale 0；当前机器上 2 项能力 `not_ready` 被如实记录，不伪装成代码失败或可用；
+- 两个真实 GUI 读取调用迁移到生成 client 后，可编辑文件中的重复 Action ID 风险从 21 降到 19；这给出了“每迁移一个界面，重复真相是否下降”的直接指标；
+- 故意手改生成 client 后，`--check` 以退出码 1 报告 `drifted`；GitHub Actions 又在 Ubuntu 干净检出中重新编译 Registry 并通过相同检查、`cargo check` 与 clippy；
+- Windows 移植过程中发现 `core.autocrlf=true` 会把内容相同的 LF/CRLF 误报为漂移。上游 [PR #8](https://github.com/dongsheng123132/action-parity/pull/8) 增加跨换行回归测试：只忽略检出表示差异，真实内容变化仍然失败。
+
+这个结果改变了下一步优先级：不再需要证明“U-King 是否能接生成桥”，而应继续迁移剩余 19 处前端字面量，并把现有 U-King MCP 入口纳入同一份生成 Surface 投影。公共 npm/crates 首发完成前，下游仍钉住已合并 Git commit，不能把本地发布闸门通过写成 registry 已发布。
 
 ## 必须公开的采用指标
 
