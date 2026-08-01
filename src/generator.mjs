@@ -42,6 +42,32 @@ export async function readRegistryBundle(bundlePath) {
   return JSON.parse(await readFile(bundlePath, "utf8"));
 }
 
+export async function readGenerationSource(sourcePath) {
+  return JSON.parse(await readFile(sourcePath, "utf8"));
+}
+
+export function validateGenerationSource(source, options = {}) {
+  if (source?.format === REGISTRY_BUNDLE_FORMAT) {
+    validateRegistryBundle(source);
+    return "registry_bundle";
+  }
+
+  const report = validateManifestObject(source);
+  if (!report.ok) {
+    const details = report.issues
+      .filter((issue) => issue.severity === "error")
+      .map((issue) => `${issue.path}: ${issue.message}`)
+      .join("\n");
+    throw new Error(`Manifest source is invalid:\n${details}`);
+  }
+  if (options.typescript !== true) {
+    throw new Error(
+      "A Manifest source can currently generate only the TypeScript client; pass --typescript."
+    );
+  }
+  return "manifest";
+}
+
 export async function materializeRegistryBundle(bundle, outputDirectory, options = {}) {
   validateRegistryBundle(bundle);
   await mkdir(outputDirectory, { recursive: true });
@@ -66,6 +92,40 @@ export async function checkRegistryBundle(bundle, outputDirectory, options = {})
     files.push({ path: target, status: actual === expected ? "current" : actual === null ? "missing" : "drifted" });
   }
   return { ok: files.every((file) => file.status === "current"), files };
+}
+
+export async function materializeGenerationSource(source, outputDirectory, options = {}) {
+  validateGenerationSource(source, options);
+  await mkdir(outputDirectory, { recursive: true });
+  const artifacts = generationArtifacts(source, options);
+  for (const [filename, content] of artifacts) {
+    await atomicWrite(path.join(outputDirectory, filename), content);
+  }
+  return artifacts.map(([filename]) => path.join(outputDirectory, filename));
+}
+
+export async function checkGenerationSource(source, outputDirectory, options = {}) {
+  validateGenerationSource(source, options);
+  const files = [];
+  for (const [filename, expected] of generationArtifacts(source, options)) {
+    const target = path.join(outputDirectory, filename);
+    let actual = null;
+    try {
+      actual = await readFile(target, "utf8");
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+    files.push({
+      path: target,
+      status: actual === expected ? "current" : actual === null ? "missing" : "drifted"
+    });
+  }
+  return { ok: files.every((file) => file.status === "current"), files };
+}
+
+function generationArtifacts(source, options) {
+  if (source?.format === REGISTRY_BUNDLE_FORMAT) return registryArtifacts(source, options);
+  return [["action-client.ts", generateTypeScriptClient(source)]];
 }
 
 function registryArtifacts(bundle, options) {

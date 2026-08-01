@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import {
+  checkGenerationSource,
   checkRegistryBundle,
+  materializeGenerationSource,
   materializeRegistryBundle
 } from "../src/generator.mjs";
 
@@ -46,6 +50,70 @@ test("TypeScript client is opt-in and participates in drift checks", async () =>
     drifted.files.find((file) => file.path.endsWith("action-client.ts")).status,
     "drifted"
   );
+});
+
+test("an existing Manifest generates only a TypeScript client and detects drift", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "action-parity-manifest-client-"));
+  const manifest = registryBundleFixture().manifest;
+
+  const files = await materializeGenerationSource(manifest, output, { typescript: true });
+  assert.deepEqual(files.map((file) => path.basename(file)), ["action-client.ts"]);
+  const generated = await readFile(path.join(output, "action-client.ts"), "utf8");
+  assert.match(generated, /NOTE_LIST: "note\.list"/);
+
+  const current = await checkGenerationSource(manifest, output, { typescript: true });
+  assert.equal(current.ok, true);
+
+  await writeFile(path.join(output, "action-client.ts"), "// hand edited\n", "utf8");
+  const drifted = await checkGenerationSource(manifest, output, { typescript: true });
+  assert.equal(drifted.ok, false);
+  assert.equal(drifted.files[0].status, "drifted");
+  assert.ok(!files.some((file) => file.endsWith("cli-help.json")));
+  assert.ok(!files.some((file) => file.endsWith("mcp-tools.json")));
+});
+
+test("a Manifest source refuses to invent CLI or MCP artifacts", async () => {
+  const output = await mkdtemp(path.join(os.tmpdir(), "action-parity-manifest-honesty-"));
+  await assert.rejects(
+    () => materializeGenerationSource(registryBundleFixture().manifest, output),
+    /pass --typescript/
+  );
+});
+
+test("CLI --check exits nonzero after a generated Manifest client drifts", async () => {
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const temporary = await mkdtemp(path.join(os.tmpdir(), "action-parity-cli-check-"));
+  const manifestPath = path.join(temporary, "action-parity.json");
+  const output = path.join(temporary, "generated");
+  await writeFile(manifestPath, `${JSON.stringify(registryBundleFixture().manifest)}\n`, "utf8");
+
+  const args = [
+    path.join(root, "bin", "action-parity.mjs"),
+    "generate",
+    manifestPath,
+    "--out-dir",
+    output,
+    "--typescript",
+    "--json"
+  ];
+  const generated = spawnSync(process.execPath, args, { encoding: "utf8", windowsHide: true });
+  assert.equal(generated.status, 0, generated.stderr);
+  assert.equal(JSON.parse(generated.stdout).ok, true);
+
+  const current = spawnSync(process.execPath, [...args, "--check"], {
+    encoding: "utf8",
+    windowsHide: true
+  });
+  assert.equal(current.status, 0, current.stderr);
+  assert.equal(JSON.parse(current.stdout).data.files[0].status, "current");
+
+  await writeFile(path.join(output, "action-client.ts"), "// hand edited\n", "utf8");
+  const drifted = spawnSync(process.execPath, [...args, "--check"], {
+    encoding: "utf8",
+    windowsHide: true
+  });
+  assert.equal(drifted.status, 1);
+  assert.equal(JSON.parse(drifted.stdout).data.files[0].status, "drifted");
 });
 
 function registryBundleFixture() {

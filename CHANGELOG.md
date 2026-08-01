@@ -33,6 +33,10 @@ less work than hand-maintaining its Shadows and Manifest.
   pretending that static structure is executable evidence.
 - Make `doctor` honor Agent Profile `generated_paths`: generated Action clients
   remain observable but no longer trigger false hand-maintained drift warnings.
+- Let `generate` accept an existing 0.5 Manifest as a gradual-adoption source
+  for `action-client.ts`. `generate --check` now performs a read-only drift
+  check for both full Registry bundles and Manifest-only TypeScript clients,
+  without inventing CLI or MCP artifacts the existing application already owns.
 - Publish a measured Redline, Zhaozuo, and U-King baseline. The data moves the
   next implementation priority to generated Tauri/TypeScript bindings and a
   version-owned wire contract rather than more handwritten specification text.

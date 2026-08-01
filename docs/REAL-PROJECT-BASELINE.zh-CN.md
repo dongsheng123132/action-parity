@@ -141,12 +141,14 @@ U-King 的 46 个 Action 仍有至少三类手工真相：
 
 ### 上下游协议已经发生真实漂移
 
-把 U-King 本机现有 0.9.84 调试二进制的 `action manifest` 直接交给本仓库 0.5 Schema，结果不通过：
+把 U-King 本机现有 0.9.84 调试二进制的 `action manifest` 直接交给本仓库 0.5 Schema，第一次结果不通过：
 
 - 动态 Manifest 声明 `spec_version: 0.1.0`，而三个静态小程序 Manifest 已是 0.5.0；
 - 23 个写 Action 使用自然的内部策略名 `confirmation: "required"`，当前 wire schema 只接受 `never | conditional | always`。
 
-这不是要求 U-King 再手改 24 个字段，而是证明 SDK 应拥有 wire contract：版本号由 SDK 常量提供，内部的 `Required` 策略在导出时稳定映射为协议的 `always`。开发者不该记忆不同规范版本的字符串枚举。
+试点没有改 46 个 handler，也没有把内部门禁词全局替换掉；只在 Manifest 导出边界把 `required` 映射为 wire `always`，并把版本切到 0.5.0。修改后动态导出的 50 个 Action 通过上游 Schema 与语义验证：0 个 violation、声明 Surface parity 100%。50 个 Action 仍有 50 个 `headless_evidence_missing`，因此只称声明有效，不称证据已验证。
+
+同一 Manifest 随后由上游渐进生成模式产出 1 个 TypeScript client：304 行、21,741 字节、50 个 Action 常量，严格 TypeScript 检查通过，`generate --check` 为 current。这个结果证明已有 Registry 不必先迁移 SDK；先把前端手写 Action ID 变成生成物，就能开始降低第二界面成本。开发者不该记忆不同规范版本的字符串枚举，也不该为了采用标准先推倒能工作的核心。
 
 ## AI 编程工具为什么会主动采用
 

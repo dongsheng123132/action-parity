@@ -42,6 +42,22 @@ envelope types, a generic caller, and a Tauri invoke helper. It has no framework
 runtime dependency. Actions and Surfaces use ordered maps, and the materializer
 sorts object keys, so unchanged input produces byte-identical output.
 
+### Gradual adoption from an existing Manifest
+
+An application such as U-King may already own a runtime Registry, CLI, and MCP
+server. It can export a valid 0.5 Manifest and generate only the frontend
+contract without replacing that architecture:
+
+```text
+action-parity generate action-parity.json --out-dir src/generated --typescript
+action-parity generate action-parity.json --out-dir src/generated --typescript --check
+```
+
+For a Manifest source, `action-client.ts` is the only output. The tool refuses
+to invent CLI help or MCP tools it cannot prove. `--check` never writes; it
+reports `current`, `missing`, or `drifted` per file and exits nonzero unless all
+outputs are current.
+
 ## Declared evidence versus verified evidence
 
 `validate` and `report` remain static. A non-empty `binding.test` is now
