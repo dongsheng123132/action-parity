@@ -202,7 +202,7 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 
 ## 当前状态
 
-**v0.6.0 开发分支。** 当前已经具备可运行的 Rust Action Registry、Manifest/CLI/MCP 确定性生成、可执行 Binding 证据，以及供 AI 编程工具发现项目的 Agent Profile 与统一 Skill。
+**v0.6.0 开发分支。** 当前已经具备可运行的 Rust Action Registry、Manifest/CLI/MCP/TypeScript 确定性生成、可执行 Binding 证据，以及供 AI 编程工具发现项目的 Agent Profile 与统一 Skill。npm 与 Rust 包已通过本地发布闸门，但尚未发布到公共 registry；下游项目正式依赖前必须完成[发布检查与两阶段首发](docs/RELEASING.md)。
 
 目前阶段的目标不是宣称标准已经完成，而是：
 
@@ -216,6 +216,7 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 推广路线：[docs/ADOPTION.md](docs/ADOPTION.md)  
 项目宣言：[MANIFESTO.md](MANIFESTO.md)  
 首发手册：[docs/LAUNCH.md](docs/LAUNCH.md)  
+发布闸门：[docs/RELEASING.md](docs/RELEASING.md)<br>
 参与方式：[CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## 许可证

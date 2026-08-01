@@ -40,8 +40,8 @@ jobs:
           npm run generate:rust-example
           node bin/action-parity.mjs verify examples/rust-registry/generated/action-parity.json --out artifacts/rust-registry-evidence.json
 
-      - name: Check npm package contents
-        run: npm pack --dry-run
+      - name: Check clean installation and package contents
+        run: npm run check:release
 
       - name: Validate examples
         run: npm run validate

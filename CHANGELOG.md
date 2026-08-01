@@ -32,6 +32,10 @@ less work than hand-maintaining its Shadows and Manifest.
   labels a non-empty string as proven or awards AP-2 without execution.
 - Make the npm CLI packable by removing `private: true` and declaring the
   published file set. No registry publication is performed by this change.
+- Make the two Rust crates packageable for downstream consumers and add a
+  release gate that clean-installs the npm tarball, executes its CLI, generates
+  all four artifact types, packages the core crate, and validates the Tauri
+  crate's publish set before the required two-phase first release.
 
 ## 0.5.0 - 2026-07-26
 
