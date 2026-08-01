@@ -92,7 +92,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .brand-copy strong { font-size: 15px; letter-spacing: 0.06em; }
 .brand-copy small { color: var(--muted); font-size: 11px; letter-spacing: 0.12em; }
 
-nav { display: flex; align-items: center; gap: 34px; }
+nav { display: flex; align-items: center; gap: 26px; }
 nav a { color: #a5b0c0; font-size: 13px; transition: color 160ms ease; }
 nav a:hover, nav a:focus-visible { color: #fff; }
 .nav-github {
@@ -171,6 +171,28 @@ h1 span {
 }
 
 .hero-lead strong { color: #eaf1ff; font-weight: 620; }
+
+.hero-title-en {
+  margin: -11px 0 24px;
+  color: var(--copper-light);
+  font: 600 clamp(17px, 2vw, 24px)/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: -0.025em;
+}
+
+.translation {
+  color: #718096 !important;
+  font-size: 0.88em !important;
+  line-height: 1.75 !important;
+}
+
+.hero-lead.translation { margin-top: 10px; }
+
+.heading-en {
+  margin: -12px 0 22px;
+  color: #748299;
+  font: 550 clamp(16px, 1.8vw, 22px)/1.35 ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: -0.025em;
+}
 
 .hero-actions { display: flex; gap: 12px; margin-top: 34px; }
 
@@ -302,6 +324,8 @@ h1 span {
   line-height: 1.9;
 }
 
+.section-heading > div:last-child p { max-width: 420px; margin: 0 0 7px; color: var(--muted); font-size: 15px; line-height: 1.9; }
+
 .comparison { display: grid; grid-template-columns: 1fr auto 1fr; gap: 18px; align-items: center; }
 .comparison-card { min-height: 310px; padding: 25px; border: 1px solid var(--line); border-radius: 12px; background: linear-gradient(145deg, rgba(255,255,255,0.025), rgba(255,255,255,0)); }
 .comparison-card h3 { margin: 16px 0 24px; font-size: 22px; }
@@ -325,14 +349,15 @@ h1 span {
 .section-heading h2 { margin: 16px 0 0; }
 .section-heading > p { max-width: 400px; margin: 0 0 7px; }
 .rule-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); }
-.rule-card { position: relative; min-height: 330px; padding: 28px 25px 30px; border-right: 1px solid var(--line); transition: background 180ms ease, transform 180ms ease; }
+.rule-card { position: relative; min-height: 440px; padding: 28px 25px 30px; border-right: 1px solid var(--line); transition: background 180ms ease, transform 180ms ease; }
 .rule-card:last-child { border-right: 0; }
 .rule-card:hover { background: rgba(255,255,255,0.018); transform: translateY(-3px); }
 .rule-number { color: var(--copper); font: 600 10px/1 ui-monospace, monospace; }
 .rule-line { width: 32px; height: 1px; margin: 32px 0 28px; background: var(--copper); }
 .rule-card h3 { margin: 0 0 9px; font-size: 19px; line-height: 1.45; letter-spacing: -0.02em; }
-.rule-card small { color: #58657a; font: 500 8px/1.4 ui-monospace, monospace; letter-spacing: 0.05em; text-transform: uppercase; }
-.rule-card p { margin: 25px 0 0; color: #8996aa; font-size: 13px; line-height: 1.85; }
+.rule-card h4 { margin: 0; color: #637086; font: 550 10px/1.5 ui-monospace, monospace; letter-spacing: 0.03em; text-transform: uppercase; }
+.rule-card p { margin: 22px 0 0; color: #8996aa; font-size: 13px; line-height: 1.85; }
+.rule-card p.translation { margin-top: 10px; }
 
 .architecture { padding: 80px; display: grid; grid-template-columns: 0.88fr 1.12fr; gap: 90px; align-items: center; border: 1px solid var(--line); border-radius: 18px; background: radial-gradient(circle at 90% 20%, rgba(43, 73, 121, 0.13), transparent 42%), #090e16; }
 .architecture-copy h2 { margin-top: 17px; }
@@ -351,11 +376,13 @@ h1 span {
 
 .tooling { padding: 130px 0 110px; }
 .capability-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.capability-card { position: relative; min-height: 250px; padding: 25px; border: 1px solid var(--line); border-radius: 11px; background: rgba(255,255,255,.012); transition: border-color 180ms ease, transform 180ms ease, background 180ms ease; }
+.capability-card { position: relative; min-height: 350px; padding: 25px; border: 1px solid var(--line); border-radius: 11px; background: rgba(255,255,255,.012); transition: border-color 180ms ease, transform 180ms ease, background 180ms ease; }
 .capability-card:hover, .capability-card:focus-visible { transform: translateY(-4px); border-color: rgba(255,154,90,.36); background: rgba(255,154,90,.025); }
 .capability-card > span { color: var(--copper); font: 600 8px/1 ui-monospace, monospace; letter-spacing: .15em; }
 .capability-card h3 { margin: 27px 0 12px; font-size: 20px; }
+.capability-card h4 { margin: -6px 0 18px; color: #5f6d81; font: 550 10px/1.45 ui-monospace, monospace; text-transform: uppercase; }
 .capability-card p { margin: 0; color: #8290a4; font-size: 12px; line-height: 1.8; }
+.capability-card p.translation { margin-top: 10px; }
 .capability-card > strong { position: absolute; right: 22px; bottom: 20px; color: #536074; font-weight: 400; }
 .cli-block { margin-top: 20px; padding: 22px 25px; display: flex; align-items: center; justify-content: space-between; gap: 24px; border: 1px solid var(--line); border-radius: 9px; background: #080d14; font: 500 10px/1.5 ui-monospace, monospace; }
 .cli-prompt { margin-right: 13px; color: var(--copper); }
@@ -363,7 +390,49 @@ h1 span {
 .cli-output { display: flex; gap: 20px; color: #617086; }
 .cli-output span:first-child { color: var(--green); }
 
-.adopt { padding-bottom: 120px; }
+.manifesto-full {
+  padding: 120px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 15% 10%, rgba(255, 145, 78, 0.07), transparent 28%),
+    linear-gradient(180deg, rgba(255,255,255,.012), transparent 55%);
+}
+
+.manifesto-intro {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 72px;
+  padding-bottom: 60px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.manifesto-intro h2 { margin: 18px 0 18px; font-size: clamp(30px, 3.4vw, 48px); line-height: 1.15; letter-spacing: -0.045em; }
+.manifesto-intro p { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.9; }
+.manifesto-intro > div[lang="en"] h2 { color: #c5d0df; font-size: clamp(25px, 3vw, 42px); }
+.manifesto-intro > div[lang="en"] p { color: #718096; }
+
+.manifesto-belief { margin: 58px 0 28px; color: var(--copper-light); font: 600 12px/1 ui-monospace, monospace; letter-spacing: .12em; text-transform: uppercase; }
+
+.manifesto-grid { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.manifesto-card { display: grid; grid-template-columns: 52px 1fr 1.18fr; gap: 28px; padding: 34px 0; border-bottom: 1px solid var(--line); }
+.manifesto-number { color: var(--copper); font: 600 10px/1.5 ui-monospace, monospace; }
+.manifesto-copy { padding-right: 28px; }
+.manifesto-copy + .manifesto-copy { padding: 0 0 0 28px; border-left: 1px solid var(--line); }
+.manifesto-lang { display: block; margin-bottom: 13px; color: #4e5a6c; font: 600 8px/1 ui-monospace, monospace; letter-spacing: .14em; }
+.manifesto-copy h3 { margin: 0 0 10px; color: #b9c5d6; font-size: 16px; line-height: 1.5; letter-spacing: -.015em; }
+.manifesto-copy p { margin: 0; color: #8996aa; font-size: 13px; line-height: 1.9; }
+.manifesto-copy[lang="en"] p { color: #6f7c90; }
+
+.manifesto-promise { max-width: 870px; margin: 90px auto 0; text-align: center; }
+.manifesto-promise > span { color: var(--dim); font: 600 9px/1 ui-monospace, monospace; letter-spacing: .13em; text-transform: uppercase; }
+.manifesto-promise strong { display: block; margin-top: 24px; color: var(--copper-light); font-size: clamp(34px, 5vw, 64px); line-height: 1.08; letter-spacing: -.055em; }
+.manifesto-promise strong[lang="en"] { margin-top: 8px; color: #dce5f2; font-size: clamp(25px, 3.5vw, 44px); }
+.manifesto-promise p { margin: 28px auto 0; color: #8996aa; font-size: 14px; line-height: 1.85; }
+.manifesto-promise p[lang="en"] { margin-top: 8px; color: #647186; }
+.manifesto-promise a { display: inline-flex; margin-top: 30px; color: var(--copper-light); font-size: 12px; }
+
+.adopt { padding: 120px 0; }
 .adopt-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 90px; padding: 80px; border-top: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong); }
 .adopt-copy h2 { margin-top: 16px; }
 .adopt-copy .button { margin-top: 20px; }
@@ -399,6 +468,8 @@ footer > p { grid-column: 1 / -1; margin: 5px 0 0; color: #414c5c; font: 500 9px
   .rule-card:nth-child(2) { border-right: 0; }
   .rule-card:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
   .adopt-panel { gap: 55px; padding: 60px 20px; }
+  .manifesto-intro { gap: 42px; }
+  .manifesto-card { grid-template-columns: 42px 1fr 1fr; gap: 20px; }
 }
 
 @media (max-width: 720px) {
@@ -411,6 +482,7 @@ footer > p { grid-column: 1 / -1; margin: 5px 0 0; color: #414c5c; font: 500 9px
   h1 { font-size: clamp(48px, 15vw, 68px); }
   .hero-lead { font-size: 16px; line-height: 1.8; }
   .hero-actions { align-items: stretch; }
+  .hero-actions { flex-wrap: wrap; }
   .hero-actions .button { flex: 1; padding: 0 12px; gap: 8px; }
   .proof-row { gap: 13px; justify-content: space-between; }
   .proof-row div { padding-right: 13px; }
@@ -429,13 +501,19 @@ footer > p { grid-column: 1 / -1; margin: 5px 0 0; color: #414c5c; font: 500 9px
   .section-heading { display: grid; gap: 20px; }
   .section-heading > p { margin: 0; }
   .rule-grid, .capability-grid { grid-template-columns: 1fr; }
-  .rule-card { min-height: 280px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .rule-card { min-height: 0; border-right: 0; border-bottom: 1px solid var(--line); }
   .rule-card:last-child { border-bottom: 0; }
   .architecture { width: 100%; padding: 60px 24px; border-left: 0; border-right: 0; border-radius: 0; }
   .action-terminal pre { font-size: 9px; padding: 20px 15px; }
   .cli-block, .cli-output { align-items: start; flex-direction: column; }
   .cli-block { overflow: auto; }
   .adopt-panel { grid-template-columns: 1fr; padding: 60px 0; }
+  .manifesto-full { padding: 90px 0; }
+  .manifesto-intro { grid-template-columns: 1fr; gap: 45px; }
+  .manifesto-card { grid-template-columns: 32px 1fr; gap: 14px; }
+  .manifesto-copy { padding-right: 0; }
+  .manifesto-copy + .manifesto-copy { grid-column: 2; padding: 22px 0 0; border-top: 1px solid var(--line); border-left: 0; }
+  .manifesto-promise { margin-top: 70px; }
   .manifesto > div { flex-direction: column; gap: 10px; }
   footer { grid-template-columns: 1fr; }
   .footer-links { flex-wrap: wrap; }
