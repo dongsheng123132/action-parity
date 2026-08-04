@@ -143,7 +143,12 @@ function registryArtifacts(bundle, options) {
   return artifacts;
 }
 
-function generatedTextMatches(actual, expected) {
+/**
+ * Compare generated content to what is on disk. Exported so the example
+ * generators share this one definition: a checkout with core.autocrlf=true
+ * hands back CRLF for a file the generator wrote as LF, and that is not drift.
+ */
+export function generatedTextMatches(actual, expected) {
   if (actual === null) return false;
   return normalizeLineEndings(actual) === normalizeLineEndings(expected);
 }
