@@ -96,11 +96,39 @@ SDK 自动完成 Schema 派生、Action 收集、默认 Execution、统一错误
 
 ```text
 action-parity init --agent all
-action-parity verify --changed --json
 action-parity compat --base origin/main --json
 ```
 
-其中 `--changed` 必须真的选择受影响 Action；未实现前不能在 Profile 中虚假声明。
+**已落地：`verify --changed`。** 只重跑改动能触及的 Action：
+
+```text
+action-parity verify <manifest> --changed [--base <ref>] [--json]
+```
+
+难的不是「选出受影响的 Action」，而是**拒绝错误地选**——跳过太多的快速检查，就变成了对覆盖范围的虚假声明。
+
+归属信息放在 **verify plan，不在 Manifest**。Manifest 描述调用方依赖的接口；哪些文件实现了某个 Action 属于本地构建布局。所以用 `plan.sources` 把 Action ID 映射到路径 glob，**已发布的 wire format 仍停在规范 `0.5.0`**：
+
+```json
+{
+  "sources": {
+    "task.create": ["src/actions/create.mjs"],
+    "task.delete": ["src/actions/delete.mjs"]
+  },
+  "scope_ignore": ["docs/**", "*.md"]
+}
+```
+
+**每一条收窄路径都必须是 plan 明确授权的**：
+
+- `plan.sources` 把改动文件映射到它实现的 Action；
+- 改了某个已声明的测试文件，选中绑定到它的 Action；
+- 改了 Manifest，只选条目真正变化的 Action；但 surfaces、spec 版本、application 身份变化或删除 Action 会 widen 成全量，因为这些会重新丈量每一条 Binding；
+- `plan.scope_ignore` 声明那些可证明不影响行为的路径。
+
+**其余一律 widen。** 归属不明的文件、verify plan 自身被改、base 版本取不到、根本不在 git 仓库里——含义都一样：工具无法证明什么是不受影响的，于是全跑，并说明原因。
+
+**scoped 运行的报告格式是 `action-parity.scoped-check/v1`，绝不是 `action-parity.evidence/v1`。** `verified` 恒为 `false`，audit 上限永远到不了 AP-2——部分执行的结果不能被归档成整份 Manifest 的证据。
 
 ### P1：框架适配与分发
 
@@ -149,7 +177,7 @@ MCP 是可选传输层；Skill + CLI 仍是 CI、人类和三种 Agent 的共同
 | 第二个界面的新增业务代码为 0 | 达成：CLI 3 行、MCP 3 行、HTTP 8 行，加 Action 时都不改 |
 | 生成文件手改次数为 0 | 由 `npm run check:generated` 强制 |
 | 三个 Surface 到达相同 `execution_id` | 已扩展为四个（GUI/CLI/MCP/HTTP），16 条观测 |
-| 受影响 Action 的快速验证约 10 秒内完成 | 未做：`verify --changed` 仍未实现，禁止在 Profile 中虚假声明 |
+| 受影响 Action 的快速验证约 10 秒内完成 | 部分达成：`verify --changed` 已实现并有测试，但耗时取决于项目自己声明的 `plan.sources` 粒度。本仓库的 Node 样例四个 Action 共用一个 `src/core.mjs`，改它仍然全跑——**只有按 Action 拆分实现文件的项目才拿得到这个数**，不能一概声称达标 |
 | 三个 Agent 不读完整 SPEC 完成同一任务 | 未测：采用实验尚未跑 |
 
 ## 采用实验

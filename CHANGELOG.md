@@ -2,6 +2,25 @@
 
 All notable project changes will be documented here.
 
+## Unreleased
+
+- Add `action-parity verify --changed [--base <ref>]`, which re-runs only the
+  Actions a change can reach. Attribution lives in the verification plan rather
+  than the Manifest -- `plan.sources` maps an Action ID to path globs and
+  `plan.scope_ignore` names paths that cannot affect behavior -- so which files
+  implement an Action stays local build layout and the wire format remains
+  specification `0.5.0`.
+- Refuse to narrow on anything the plan did not authorise. An unattributable
+  file, a changed verification plan, a missing base revision, or no git at all
+  widens the run back to the whole Manifest and reports why. Narrowing quietly
+  would turn a quick check into a false claim of coverage.
+- Report a scoped run as `action-parity.scoped-check/v1`, never as
+  `action-parity.evidence/v1`. `verified` stays `false` and the audit ceiling
+  never reaches AP-2, so a partial run cannot be filed as evidence for a
+  Manifest it only partly executed.
+- Move `runCommand` to `src/exec.mjs` so the verifier and the change-scope
+  resolver share one subprocess definition instead of importing each other.
+
 ## 0.7.0 - 2026-08-04
 
 This release adds the second runtime SDK. The Rust Registry proved the loop;
