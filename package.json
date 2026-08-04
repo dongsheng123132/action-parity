@@ -49,7 +49,7 @@
     "generate:node-example": "node scripts/generate-node-example.mjs",
     "verify:node-example": "node bin/action-parity.mjs verify examples/node-registry/generated/action-parity.json --plan examples/node-registry/generated/action-parity.verify.json",
     "sync:agent-skills": "node scripts/sync-agent-skills.mjs",
-    "test": "node --test test/cli.test.mjs test/validator.test.mjs test/verifier.test.mjs test/project.test.mjs test/generator.test.mjs test/typescript.test.mjs test/doctor.test.mjs",
+    "test": "node --test test/cli.test.mjs test/validator.test.mjs test/verifier.test.mjs test/project.test.mjs test/generator.test.mjs test/typescript.test.mjs test/doctor.test.mjs test/sdk-core.test.mjs test/sdk-surfaces.test.mjs",
     "test:rust": "cargo test --workspace"
   },
   "dependencies": {
