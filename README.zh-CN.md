@@ -2,7 +2,7 @@
 
 > **一个动作，所有界面。**
 
-> **版本边界：工具链 `v0.6.2`，Manifest 规范 `0.5.0`。** 两者独立演进，
+> **版本边界：工具链 `v0.7.0`，Manifest 规范 `0.5.0`。** 两者独立演进，
 > AI 可用 `action-parity --version --json` 同时读取，详见
 > [版本规则](docs/VERSIONING.md)。
 
@@ -96,6 +96,26 @@ action-parity generate action-parity.json --out-dir src/generated --typescript -
 第二条命令只读；生成文件缺失或被手改时以非零退出码失败。
 
 实现入口：[Rust Registry 样例](examples/rust-registry)、[Agent Profile Schema](schema/action-parity.agent-profile.schema.json)、[Agent 原生开发路线](docs/AGENT-NATIVE-DEVELOPMENT.zh-CN.md)。
+
+## SDK
+
+两个运行时 SDK 实现同一个动作核心、同一个执行信封、同一份 `action-parity.registry-bundle/v1`，因此同一套工具链既能生成也能验证它们：
+
+| SDK | 包名 | 自带的机器入口 |
+| --- | --- | --- |
+| Rust | [`action-parity-core`](crates/action-parity-core) | Tauri 适配器、通用 dispatch |
+| Node / Electron / TypeScript | [`action-parity-sdk`](sdk/node) | 自动生成的 CLI、MCP stdio 服务、Electron IPC 桥、HTTP 入口 |
+
+```js
+import { createRegistry, defineAction, defineSurface, s } from "action-parity-sdk";
+import { createCliRunner } from "action-parity-sdk/cli";
+import { serveMcpStdio } from "action-parity-sdk/mcp";
+import { attachElectronIpc } from "action-parity-sdk/electron";
+```
+
+注册一个 Action，CLI 就多一条带参数、带帮助、带退出码的命令，AI 就多一个 MCP 工具，GUI 就多一条带稳定 `data-action-id` 的目录项，生成的 Manifest 就多出对应 Binding。传输层不含任何业务实现；确认、权限、陈旧状态拒绝、幂等重试、超时都在核心里强制，不在各界面各写一遍。
+
+详见 [Node SDK 说明](docs/NODE-SDK.md) 与 [Node Registry 样例](examples/node-registry)——它的 16 条 Binding 由 GUI、CLI、MCP、HTTP 四个真实传输的可执行证据验证通过。
 
 ## 一句话架构
 
@@ -215,7 +235,7 @@ CLI 或 MCP 测通，只能证明业务逻辑正确，不能证明：
 
 ## 当前状态
 
-**工具链 v0.6.2；Manifest 规范 0.5.0。** 当前已经具备可运行的 Rust Action Registry、Manifest/CLI/MCP/TypeScript 确定性生成、可执行 Binding 证据，以及供 AI 编程工具发现项目的 Agent Profile 与统一 Skill。可安装的 npm tarball 已通过 [GitHub Releases](https://github.com/dongsheng123132/action-parity/releases) 提供；npm 与 crates.io 公共 registry 仍未发布，因此暂时不能把这些 registry 坐标写成“已可用”。准确渠道状态见[发布闸门](docs/RELEASING.md)。
+**工具链 v0.7.0；Manifest 规范 0.5.0。** 当前已经具备两个可运行的 Action Registry（Rust 与 Node/Electron）、Manifest/CLI/MCP/TypeScript 确定性生成、可直接跑的 CLI/MCP/IPC/HTTP 传输层、可执行 Binding 证据，以及供 AI 编程工具发现项目的 Agent Profile 与统一 Skill。可安装的 npm tarball 已通过 [GitHub Releases](https://github.com/dongsheng123132/action-parity/releases) 提供；`action-parity`、`action-parity-sdk` 与两个 crate 都尚未发布到公共 registry，因此暂时不能把这些坐标写成“已可用”。准确渠道状态见[发布闸门](docs/RELEASING.md)。
 
 目前阶段的目标不是宣称标准已经完成，而是：
 

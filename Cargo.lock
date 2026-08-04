@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "action-parity-core"
-version = "0.6.2"
+version = "0.7.0"
 dependencies = [
  "schemars",
  "serde",
@@ -13,7 +13,7 @@ dependencies = [
 
 [[package]]
 name = "action-parity-rust-registry-example"
-version = "0.6.2"
+version = "0.7.0"
 dependencies = [
  "action-parity-core",
  "schemars",
@@ -23,7 +23,7 @@ dependencies = [
 
 [[package]]
 name = "action-parity-tauri"
-version = "0.6.2"
+version = "0.7.0"
 dependencies = [
  "action-parity-core",
  "serde",

@@ -2,6 +2,43 @@
 
 All notable project changes will be documented here.
 
+## 0.7.0 - 2026-08-04
+
+This release adds the second runtime SDK. The Rust Registry proved the loop;
+most applications that need parity today are Electron or Node, so the roadmap's
+next step was `defineAction` for TypeScript rather than more specification text.
+
+- Add `action-parity-sdk`, the Action Core for Node, Electron, and TypeScript:
+  `defineAction`, `defineSurface`, `createRegistry`, a dependency-free JSON
+  Schema subset with the `s` builder, and hand-written type declarations. It
+  emits the same `action-parity.registry-bundle/v1`, `ExecutionEnvelope`, error
+  classes, and execution-ID format as `action-parity-core`, so one toolchain
+  generates, checks, and verifies either language.
+- Ship four transports that forward to `dispatch` and contain no business
+  behavior: a CLI generated from the input schemas (flags, help, `list`,
+  `describe`, `export`, and a built-in `mcp` subcommand, with documented exit
+  codes), a runnable MCP stdio server, an Electron single-channel IPC bridge
+  with a GUI catalog, and an HTTP endpoint. The Rust preview generated
+  `mcp-tools.json` but ran no MCP transport; that gap is closed.
+- Enforce below every Surface, in the core rather than per transport:
+  confirmation for high-risk effects, `authorize` permission checks,
+  `expected_state_version` conflict rejection, idempotency-key replay,
+  declared timeouts with handler cancellation, output-schema validation, and
+  containment of anything a handler throws.
+- Refuse a bare Standard Schema validator. Zod, Valibot, and ArkType are
+  supported through `fromStandardSchema(validator, jsonSchema)`, which keeps the
+  published Manifest, MCP tool list, and CLI catalog explicit instead of letting
+  a validator-library upgrade rewrite a shipped interface.
+- Treat a renderer's `confirmed: true` as a claim, not consent. The Electron
+  bridge re-asks in the main process whenever a `confirm` callback is supplied.
+- Add `examples/node-registry`: four Actions, four Shadows, and 16 Bindings
+  proven by executable evidence in which the caller's execution ID is the
+  execution ID the Action Core saw. `npm run generate:node-example` and
+  `npm run verify:node-example` reproduce it.
+- Add `docs/NODE-SDK.md` and record the completed P1 SDK step, along with the
+  still-open `verify --changed` and adoption-experiment items, in the
+  agent-native roadmap. The Manifest specification remains `0.5.0`.
+
 ## 0.6.2 - 2026-08-02
 
 - Make validator reports total for Schema-invalid legacy collection shapes.
