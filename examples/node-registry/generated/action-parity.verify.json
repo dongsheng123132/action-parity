@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "generator": {
+    "command": ["node", "../src/cli.mjs", "export"],
+    "timeout_ms": 120000
+  },
+  "tests": [
+    {
+      "ref": "tests/parity.test.mjs",
+      "command": ["node", "../tests/parity.test.mjs"],
+      "observations": "parity-observations.json",
+      "timeout_ms": 180000
+    }
+  ],
+  "artifacts": ["../src/core.mjs"]
+}
