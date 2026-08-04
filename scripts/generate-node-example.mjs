@@ -5,6 +5,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import {
   checkRegistryBundle,
+  generatedTextMatches,
   materializeRegistryBundle,
   stableStringify
 } from "../src/generator.mjs";
@@ -75,7 +76,7 @@ async function checkFile(target, expected) {
   try {
     return {
       path: target,
-      status: (await readFile(target, "utf8")) === expected ? "current" : "drifted"
+      status: generatedTextMatches(await readFile(target, "utf8"), expected) ? "current" : "drifted"
     };
   } catch (error) {
     if (error?.code === "ENOENT") return { path: target, status: "missing" };
