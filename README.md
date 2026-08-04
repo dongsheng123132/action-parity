@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/readme-assets/action-core.svg" alt="ActionParity：GUI、CLI、MCP、API 和自动化调用同一个 Action Core" width="100%" /></p>
+<p align="center"><img src="docs/readme-assets/action-core-hero.webp" alt="ActionParity：GUI、CLI、MCP、API 和自动化调用同一个 Action Core" width="100%" /></p>
 
 <h1 align="center">ActionParity (影核)</h1>
 
