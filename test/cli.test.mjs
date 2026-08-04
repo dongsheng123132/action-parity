@@ -19,7 +19,7 @@ test("--version preserves the plain toolchain version", () => {
   const result = run(["--version"]);
 
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stdout.trim(), "0.6.2");
+  assert.equal(result.stdout.trim(), "0.7.0");
   assert.equal(result.stderr, "");
 });
 
@@ -29,7 +29,7 @@ test("--version --json separates toolchain and Manifest specification versions",
 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(envelope.ok, true);
-  assert.equal(envelope.data.toolchain_version, "0.6.2");
+  assert.equal(envelope.data.toolchain_version, "0.7.0");
   assert.equal(envelope.data.manifest_spec_version, "0.5.0");
   assert.deepEqual(envelope.data.supported_manifest_spec_versions, ["0.5.0"]);
   assert.equal(envelope.error, null);

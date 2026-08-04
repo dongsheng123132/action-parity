@@ -7,7 +7,7 @@ their current values with:
 action-parity --version --json
 ```
 
-At toolchain `0.6.2`, the current wire Manifest remains specification `0.5.0`.
+At toolchain `0.7.0`, the current wire Manifest remains specification `0.5.0`.
 See [VERSIONING.md](VERSIONING.md) for the compatibility rules and the reason
 the historical public tags jumped from `v0.1.0` to `v0.6.0`.
 
@@ -20,6 +20,9 @@ external states. Release notes MUST say which channels were actually verified.
   installable even when the npm registry is still pending.
 - `action-parity@<version>` is available only after `npm publish` succeeds and
   a clean external `npx` check passes.
+- `action-parity-sdk@<version>` is a second npm package with its own
+  publication state. The toolchain being published does not make the SDK
+  published.
 - `action-parity-core` and `action-parity-tauri` are available only after each
   crate is served by crates.io and `cargo info` succeeds.
 
@@ -44,7 +47,11 @@ npm run check:release
 3. installs that tarball in a new temporary consumer project;
 4. executes the installed CLI, including its machine-readable version output,
    and generates Manifest, CLI, MCP, and TypeScript artifacts;
-5. packages `action-parity-core` and checks the complete
+5. packs `action-parity-sdk`, installs that tarball in a second clean consumer,
+   and runs the adopter loop against it — register an Action, dispatch it,
+   export a bundle, list MCP tools, run the generated CLI — because a monorepo
+   import proves nothing about the published package;
+6. packages `action-parity-core` and checks the complete
    `action-parity-tauri` publish file set.
 
 This catches the common failure where the monorepo passes but a published file,
@@ -57,7 +64,7 @@ attach the tarball produced by `npm pack`. The release title and first paragraph
 MUST state both identities, for example:
 
 ```text
-Toolchain v0.6.2 / Manifest specification 0.5.0
+Toolchain v0.7.0 / Manifest specification 0.5.0
 ```
 
 The notes MUST also state whether npm and crates.io are published or pending.
@@ -81,6 +88,7 @@ cargo publish -p action-parity-core
 cargo package -p action-parity-tauri
 cargo publish -p action-parity-tauri
 npm publish --access public
+npm publish --access public --workspace action-parity-sdk
 ```
 
 Then verify from clean directories outside the repository:
@@ -89,6 +97,7 @@ Then verify from clean directories outside the repository:
 cargo info action-parity-core@<toolchain-version>
 cargo info action-parity-tauri@<toolchain-version>
 npx --yes action-parity@<toolchain-version> --version --json
+npm view action-parity-sdk@<toolchain-version> version
 ```
 
 If authentication is unavailable, stop at the GitHub tarball channel and mark

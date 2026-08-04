@@ -104,8 +104,25 @@ action-parity compat --base origin/main --json
 
 ### P1：框架适配与分发
 
+**已落地：Node / Electron / TypeScript SDK。** `action-parity-sdk`（[说明](NODE-SDK.md)、[样例](../examples/node-registry)）提供 `defineAction` + `defineSurface` + `createRegistry`，并自带四个只做转发、不含业务的机器入口：
+
+- `action-parity-sdk/cli`：从输入 Schema 生成参数、帮助、退出码的 CLI；内置 `list` / `describe` / `export` / `mcp` 子命令；
+- `action-parity-sdk/mcp`：真正可跑的 MCP stdio 服务（Rust 预览版此前只生成 `mcp-tools.json`，不带传输层）；
+- `action-parity-sdk/electron`：单通道 IPC 桥 + GUI 目录（带稳定 `data-action-id`）；
+- `action-parity-sdk/http`：远程/影子端入口，HTTP 状态码由错误 class 推导。
+
+确认、权限、`expected_state_version` 冲突、幂等键重放、超时与取消、输出 Schema 校验全部下沉到核心，四个界面共用同一份规则；Electron 桥默认不信任 renderer 声称的 `confirmed`，在主进程重新询问。Schema 用零依赖的 `s` 构造器，或 `fromStandardSchema(validator, jsonSchema)` 接 Zod/Valibot/ArkType——**JSON Schema 必须显式给出**，否则校验库升级会悄悄改写已发布的接口。
+
+样例的 16 条 Binding 由四个真实传输的可执行证据验证通过：
+
+```text
+npm run generate:node-example
+npm run verify:node-example
+```
+
+剩余项：
+
 - Redline 成为第一个真实 Tauri/Rust 实现报告；
-- Electron/TypeScript 使用 `defineAction` + Zod 派生 Schema；
 - 同一 Skill 包装为 Codex Plugin、Claude Plugin 和 Hermes 可安装 Skill；
 - Hooks 只负责阻止手改生成文件和触发快速检查，不成为核心依赖。
 
@@ -123,6 +140,17 @@ compat.check
 ```
 
 MCP 是可选传输层；Skill + CLI 仍是 CI、人类和三种 Agent 的共同基础。
+
+## 当前进度对照
+
+| 阶段性硬目标 | 状态 |
+| --- | --- |
+| 业务实现之外的 Action 注册代码不超过 20 行 | 达成：Node 样例中每个 Action 的协议胶水约 10 行 |
+| 第二个界面的新增业务代码为 0 | 达成：CLI 3 行、MCP 3 行、HTTP 8 行，加 Action 时都不改 |
+| 生成文件手改次数为 0 | 由 `npm run check:generated` 强制 |
+| 三个 Surface 到达相同 `execution_id` | 已扩展为四个（GUI/CLI/MCP/HTTP），16 条观测 |
+| 受影响 Action 的快速验证约 10 秒内完成 | 未做：`verify --changed` 仍未实现，禁止在 Profile 中虚假声明 |
+| 三个 Agent 不读完整 SPEC 完成同一任务 | 未测：采用实验尚未跑 |
 
 ## 采用实验
 
