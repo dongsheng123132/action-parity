@@ -1,0 +1,266 @@
+{
+  "actions": [
+    {
+      "description": "Mark one task as done. Completing an already done task changes nothing.",
+      "effects": {
+        "audit_required": true,
+        "class": "write",
+        "confirmation": "never",
+        "reversible": true,
+        "risk": "low"
+      },
+      "id": "task.complete",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Task ID to complete.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "state_version": {
+            "type": "string"
+          },
+          "task": {
+            "additionalProperties": false,
+            "properties": {
+              "done": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              },
+              "tags": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "tags",
+              "done"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "task",
+          "state_version",
+          "core_execution_id"
+        ],
+        "type": "object"
+      },
+      "title": "Complete task"
+    },
+    {
+      "description": "Add one task to the board.",
+      "effects": {
+        "audit_required": true,
+        "class": "write",
+        "confirmation": "never",
+        "reversible": true,
+        "risk": "low"
+      },
+      "id": "task.create",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "tags": {
+            "description": "Repeatable label.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "description": "What has to be done.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "task": {
+            "additionalProperties": false,
+            "properties": {
+              "done": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              },
+              "tags": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "tags",
+              "done"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "task",
+          "core_execution_id"
+        ],
+        "type": "object"
+      },
+      "title": "Create task"
+    },
+    {
+      "description": "List every task on the board.",
+      "effects": {
+        "audit_required": false,
+        "class": "read",
+        "confirmation": "never",
+        "reversible": true,
+        "risk": "low"
+      },
+      "id": "task.list",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "done": {
+            "description": "Filter by completion state.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "state_version": {
+            "type": "string"
+          },
+          "tasks": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "done": {
+                  "type": "boolean"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "tags": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "tags",
+                "done"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "tasks",
+          "state_version",
+          "core_execution_id"
+        ],
+        "type": "object"
+      },
+      "title": "List tasks"
+    },
+    {
+      "description": "Permanently delete every completed task.",
+      "effects": {
+        "audit_required": true,
+        "class": "destructive",
+        "confirmation": "always",
+        "reversible": false,
+        "risk": "high"
+      },
+      "id": "task.purge",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "removed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "state_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "removed",
+          "state_version",
+          "core_execution_id"
+        ],
+        "type": "object"
+      },
+      "title": "Purge completed tasks"
+    }
+  ],
+  "application": {
+    "description": "One Node Action Core exported to GUI, CLI, MCP, and HTTP Shadows.",
+    "id": "org.actionparity.node-tasks",
+    "name": "Node Task Board",
+    "source": "https://github.com/dongsheng123132/action-parity",
+    "version": "0.1.0"
+  },
+  "format": "action-parity.cli-help/v1",
+  "invocation": "tasks <action-id> [--flag value] [--input-json <json>] --json"
+}

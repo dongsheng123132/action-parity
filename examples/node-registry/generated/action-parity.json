@@ -1,0 +1,417 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dongsheng123132/action-parity/v0.5.0/schema/action-parity.schema.json",
+  "actions": [
+    {
+      "bindings": [
+        {
+          "surface": "api",
+          "target": "POST /actions/task.complete",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "cli",
+          "target": "tasks task.complete --json",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "gui",
+          "target": "data-action-id=task.complete",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "mcp",
+          "target": "tool:task.complete",
+          "test": "tests/parity.test.mjs"
+        }
+      ],
+      "description": "Mark one task as done. Completing an already done task changes nothing.",
+      "effects": {
+        "audit_required": true,
+        "class": "write",
+        "confirmation": "never",
+        "reversible": true,
+        "risk": "low"
+      },
+      "execution": {
+        "cancellable": false,
+        "headless": true,
+        "headless_evidence": "node --test examples/node-registry/tests",
+        "idempotent": true,
+        "timeout_ms": 2000
+      },
+      "id": "task.complete",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Task ID to complete.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "state_version": {
+            "type": "string"
+          },
+          "task": {
+            "additionalProperties": false,
+            "properties": {
+              "done": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              },
+              "tags": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "tags",
+              "done"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "task",
+          "state_version",
+          "core_execution_id"
+        ],
+        "type": "object"
+      },
+      "title": "Complete task"
+    },
+    {
+      "bindings": [
+        {
+          "surface": "api",
+          "target": "POST /actions/task.create",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "cli",
+          "target": "tasks task.create --json",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "gui",
+          "target": "data-action-id=task.create",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "mcp",
+          "target": "tool:task.create",
+          "test": "tests/parity.test.mjs"
+        }
+      ],
+      "description": "Add one task to the board.",
+      "effects": {
+        "audit_required": true,
+        "class": "write",
+        "confirmation": "never",
+        "reversible": true,
+        "risk": "low"
+      },
+      "execution": {
+        "cancellable": false,
+        "headless": true,
+        "headless_evidence": "node --test examples/node-registry/tests",
+        "idempotent": false,
+        "timeout_ms": 2000
+      },
+      "id": "task.create",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "tags": {
+            "description": "Repeatable label.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": {
+            "description": "What has to be done.",
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "task": {
+            "additionalProperties": false,
+            "properties": {
+              "done": {
+                "type": "boolean"
+              },
+              "id": {
+                "type": "string"
+              },
+              "tags": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "tags",
+              "done"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "task",
+          "core_execution_id"
+        ],
+        "type": "object"
+      },
+      "title": "Create task"
+    },
+    {
+      "bindings": [
+        {
+          "surface": "api",
+          "target": "POST /actions/task.list",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "cli",
+          "target": "tasks task.list --json",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "gui",
+          "target": "data-action-id=task.list",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "mcp",
+          "target": "tool:task.list",
+          "test": "tests/parity.test.mjs"
+        }
+      ],
+      "description": "List every task on the board.",
+      "effects": {
+        "audit_required": false,
+        "class": "read",
+        "confirmation": "never",
+        "reversible": true,
+        "risk": "low"
+      },
+      "execution": {
+        "cancellable": false,
+        "headless": true,
+        "headless_evidence": "node --test examples/node-registry/tests",
+        "idempotent": true,
+        "timeout_ms": 2000
+      },
+      "id": "task.list",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "done": {
+            "description": "Filter by completion state.",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "state_version": {
+            "type": "string"
+          },
+          "tasks": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "done": {
+                  "type": "boolean"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "tags": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "tags",
+                "done"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "tasks",
+          "state_version",
+          "core_execution_id"
+        ],
+        "type": "object"
+      },
+      "title": "List tasks"
+    },
+    {
+      "bindings": [
+        {
+          "surface": "api",
+          "target": "POST /actions/task.purge",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "cli",
+          "target": "tasks task.purge --json",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "gui",
+          "target": "data-action-id=task.purge",
+          "test": "tests/parity.test.mjs"
+        },
+        {
+          "surface": "mcp",
+          "target": "tool:task.purge",
+          "test": "tests/parity.test.mjs"
+        }
+      ],
+      "description": "Permanently delete every completed task.",
+      "effects": {
+        "audit_required": true,
+        "class": "destructive",
+        "confirmation": "always",
+        "reversible": false,
+        "risk": "high"
+      },
+      "execution": {
+        "cancellable": false,
+        "headless": true,
+        "headless_evidence": "node --test examples/node-registry/tests",
+        "idempotent": false,
+        "timeout_ms": 2000
+      },
+      "id": "task.purge",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "output_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "removed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "state_version": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "removed",
+          "state_version",
+          "core_execution_id"
+        ],
+        "type": "object"
+      },
+      "title": "Purge completed tasks"
+    }
+  ],
+  "application": {
+    "description": "One Node Action Core exported to GUI, CLI, MCP, and HTTP Shadows.",
+    "id": "org.actionparity.node-tasks",
+    "name": "Node Task Board",
+    "source": "https://github.com/dongsheng123132/action-parity",
+    "version": "0.1.0"
+  },
+  "generated_from": {
+    "generator": "action-parity-sdk/0.7.0",
+    "revision": "examples/node-registry/src/core.mjs"
+  },
+  "spec_version": "0.5.0",
+  "surfaces": [
+    {
+      "id": "api",
+      "kind": "api",
+      "reachability": "external",
+      "required_for_parity": true,
+      "test_driver": "node --test"
+    },
+    {
+      "id": "cli",
+      "kind": "cli",
+      "reachability": "external",
+      "required_for_parity": true,
+      "test_driver": "node --test"
+    },
+    {
+      "description": "Electron renderer controls, bound by stable automation ID.",
+      "id": "gui",
+      "kind": "gui",
+      "reachability": "in-process",
+      "required_for_parity": true,
+      "test_driver": "node --test"
+    },
+    {
+      "id": "mcp",
+      "kind": "mcp",
+      "reachability": "local-ipc",
+      "required_for_parity": true,
+      "test_driver": "node --test"
+    }
+  ]
+}

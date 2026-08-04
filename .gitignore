@@ -3,6 +3,7 @@ target/
 coverage/
 artifacts/
 examples/rust-registry/generated/*-observations.json
+examples/node-registry/generated/*-observations.json
 *.log
 .DS_Store
 Thumbs.db
