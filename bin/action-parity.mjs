@@ -9,6 +9,7 @@ import {
 } from "../src/generator.mjs";
 import { readManifest, validateManifestObject } from "../src/validator.mjs";
 import { verifyManifest } from "../src/verifier.mjs";
+import { resolveChangedScope } from "../src/changed.mjs";
 import { buildAgentContext } from "../src/project.mjs";
 import { doctorProject } from "../src/doctor.mjs";
 
@@ -24,6 +25,7 @@ Usage:
   action-parity report <manifest> [--json] [--quiet]
   action-parity generate <registry-bundle|manifest> --out-dir <directory> [--typescript] [--check] [--json]
   action-parity verify <manifest> [--plan <plan>] [--out <report>] [--json] [--quiet]
+                                  [--changed [--base <ref>]]
   action-parity context [project-directory|action-parity.config.json] [--json] [--quiet]
   action-parity doctor [project-directory] [--json] [--quiet]
   action-parity --version [--json]
@@ -31,18 +33,25 @@ Usage:
 Evidence model:
   validate/report  statically checks declarations; named tests are not executed
   verify           runs the generator and tests, hashes inputs, and emits evidence
+  verify --changed runs only the Actions a change can reach, and emits a scoped
+                   check -- never evidence. Work is skipped only where the plan
+                   proves it is safe to skip; an unattributable change runs
+                   everything. Declare plan.sources to make it narrow.
 
 Exit codes:
-  0  valid / generated / verified / context or doctor completed
+  0  valid / generated / verified / scoped check passed / context or doctor completed
   1  runtime, conformance, generation, or verification failure
   2  invalid usage`;
 }
 
 function jsonEnvelope(data, runtimeError = null) {
+  // A scoped check passes on scope.passed. For a full run scope.passed and
+  // verified agree, so this stays a single condition rather than a mode switch.
+  const succeeded = data?.ok === true || data?.verified === true || data?.scope?.passed === true;
   return {
-    ok: runtimeError === null && (data?.ok === true || data?.verified === true),
+    ok: runtimeError === null && succeeded,
     data,
-    error: runtimeError ?? (data?.ok || data?.verified ? null : "operation_failed")
+    error: runtimeError ?? (succeeded ? null : "operation_failed")
   };
 }
 
@@ -180,14 +189,30 @@ async function runGenerate(sourcePath, outputDirectory, jsonMode, typescript, ch
 }
 
 async function runVerify(manifestPath, args, jsonMode, quiet) {
+  const changed = args.includes("--changed");
   const report = await verifyManifest(manifestPath, {
     planPath: optionValue(args, "--plan") ?? undefined,
-    outputPath: optionValue(args, "--out") ?? undefined
+    outputPath: optionValue(args, "--out") ?? undefined,
+    changed,
+    base: optionValue(args, "--base") ?? undefined
   });
+  const scopedRun = report.format === "action-parity.scoped-check/v1";
+  const passed = scopedRun ? report.scope.passed : report.verified;
   if (jsonMode) {
     process.stdout.write(`${JSON.stringify(jsonEnvelope(report))}\n`);
-  } else if (!quiet || !report.verified) {
-    process.stdout.write(`${report.verified ? "VERIFIED" : "NOT VERIFIED"}\n`);
+  } else if (!quiet || !passed) {
+    if (scopedRun) {
+      process.stdout.write(`${passed ? "SCOPED PASS" : "SCOPED FAIL"}\tnot full evidence\n`);
+      process.stdout.write(
+        `Actions\t${report.scope.actions_executed}/${report.scope.actions_total} executed\t` +
+          `base ${report.scope.base}\n`
+      );
+    } else {
+      process.stdout.write(`${report.verified ? "VERIFIED" : "NOT VERIFIED"}\n`);
+      if (changed && report.scope?.full_reason) {
+        process.stdout.write(`Scope widened\t${report.scope.full_reason}\n`);
+      }
+    }
     process.stdout.write(
       `Bindings\t${report.bindings.verified}/${report.bindings.required} verified\n`
     );
@@ -203,7 +228,7 @@ async function runVerify(manifestPath, args, jsonMode, quiet) {
     }
     process.stdout.write(`Report SHA-256\t${report.report_sha256}\n`);
   }
-  process.exitCode = report.verified ? 0 : 1;
+  process.exitCode = passed ? 0 : 1;
 }
 
 async function runContext(projectPath, jsonMode, quiet) {

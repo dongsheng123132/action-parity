@@ -2,11 +2,20 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { spawn } from "node:child_process";
 import { canonicalize, stableStringify, validateRegistryBundle } from "./generator.mjs";
 import { readManifest, validateManifestObject } from "./validator.mjs";
+import { runCommand } from "./exec.mjs";
+import { resolveChangedScope } from "./changed.mjs";
+
+export { runCommand };
 
 const REPORT_FORMAT = "action-parity.evidence/v1";
+/**
+ * A scoped run gets its own format so it can never be read as evidence. It
+ * executed part of the Manifest; anything consuming AP-2 evidence must reject
+ * it on sight rather than trusting a flag buried in the body.
+ */
+const SCOPED_REPORT_FORMAT = "action-parity.scoped-check/v1";
 const DEFAULT_TIMEOUT_MS = 60_000;
 const MAX_CAPTURE_BYTES = 4 * 1024 * 1024;
 
@@ -24,17 +33,33 @@ export async function verifyManifest(manifestPath, options = {}) {
   ]);
   validatePlan(plan);
 
+  const scope = options.changed
+    ? await resolveChangedScope(manifest, plan, {
+        planDirectory,
+        manifestPath: absoluteManifest,
+        planPath,
+        base: options.base
+      })
+    : null;
+  const scoped = scope !== null && scope.full === false;
+  const selectedTests = scoped
+    ? plan.tests.filter((test) => scope.tests.includes(test.ref))
+    : plan.tests;
+
   const staticValidation = validateManifestObject(manifest);
   const generatorCheck = plan.generator
     ? await verifyGenerator(plan.generator, planDirectory, manifest)
     : null;
   const tests = [];
-  for (const test of plan.tests) {
+  for (const test of selectedTests) {
     tests.push(await runDeclaredTest(test, planDirectory));
   }
 
   const resultByRef = new Map(tests.map((test) => [test.ref, test]));
-  const bindings = manifest.actions.flatMap((action) =>
+  const scopedActions = scoped
+    ? manifest.actions.filter((action) => scope.affected_action_ids.includes(action.id))
+    : manifest.actions;
+  const bindings = scopedActions.flatMap((action) =>
     action.bindings.map((binding) => {
       const result = binding.test ? resultByRef.get(binding.test) : undefined;
       const observed = result?.observations?.some(
@@ -67,18 +92,31 @@ export async function verifyManifest(manifestPath, options = {}) {
   const artifacts = await hashArtifacts(plan.artifacts ?? [], planDirectory);
   const git = await gitIdentity(path.dirname(absoluteManifest));
 
-  const verified =
-    staticValidation.ok &&
-    (generatorCheck === null || generatorCheck.passed) &&
-    tests.length > 0 &&
-    tests.every((test) => test.passed) &&
-    artifacts.every((artifact) => !artifact.error) &&
-    requiredBindings.length > 0 &&
-    verifiedBindings === requiredBindings.length;
+  // A scoped run that reaches no Action has nothing to execute. That is a pass
+  // with zero work, not a failure -- but only when the scope was resolved
+  // deliberately, never when attribution failed and left the set empty.
+  const nothingInScope = scoped && scope.affected_action_ids.length === 0;
+
+  const passed = nothingInScope
+    ? staticValidation.ok && (generatorCheck === null || generatorCheck.passed)
+    : staticValidation.ok &&
+      (generatorCheck === null || generatorCheck.passed) &&
+      tests.length > 0 &&
+      tests.every((test) => test.passed) &&
+      artifacts.every((artifact) => !artifact.error) &&
+      requiredBindings.length > 0 &&
+      verifiedBindings === requiredBindings.length;
+
+  // A scoped run executed part of the Manifest. It can pass, but it can never
+  // be the evidence that the whole Manifest holds.
+  const verified = scoped ? false : passed;
 
   const report = {
-    format: REPORT_FORMAT,
+    format: scoped ? SCOPED_REPORT_FORMAT : REPORT_FORMAT,
     verified,
+    scope: scope
+      ? { ...scope, passed: passed, actions_executed: scopedActions.length, actions_total: manifest.actions.length }
+      : { mode: "full", full: true, passed, actions_executed: manifest.actions.length, actions_total: manifest.actions.length },
     generated_at: new Date().toISOString(),
     application: manifest.application,
     spec_version: manifest.spec_version,
@@ -201,81 +239,6 @@ function publicCommandResult(result) {
   };
 }
 
-export async function runCommand(command, options = {}) {
-  if (!Array.isArray(command) || command.length === 0 || command.some((part) => typeof part !== "string")) {
-    throw new Error("Verification commands must be non-empty string arrays.");
-  }
-  const cwd = path.resolve(options.cwd ?? process.cwd());
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const started = process.hrtime.bigint();
-  return await new Promise((resolve, reject) => {
-    const child = spawn(command[0], command.slice(1), {
-      cwd,
-      env: { ...process.env, ...(options.env ?? {}) },
-      shell: false,
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-    let stdout = Buffer.alloc(0);
-    let stderr = Buffer.alloc(0);
-    let timedOut = false;
-    let outputTruncated = false;
-    let settled = false;
-    const append = (current, chunk) => {
-      const combined = Buffer.concat([current, chunk]);
-      if (combined.length > MAX_CAPTURE_BYTES) {
-        outputTruncated = true;
-        child.kill();
-        return combined.subarray(0, MAX_CAPTURE_BYTES);
-      }
-      return combined;
-    };
-    child.stdout.on("data", (chunk) => {
-      stdout = append(stdout, chunk);
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr = append(stderr, chunk);
-    });
-    const timeout = setTimeout(() => {
-      timedOut = true;
-      child.kill();
-    }, timeoutMs);
-    child.on("error", (error) => {
-      clearTimeout(timeout);
-      if (!settled) {
-        settled = true;
-        resolve({
-          command: [...command],
-          cwd,
-          exit_code: null,
-          timed_out: false,
-          spawn_error: error.message,
-          output_truncated: false,
-          duration_ms: Number((process.hrtime.bigint() - started) / 1_000_000n),
-          stdout: stdout.toString("utf8"),
-          stderr: stderr.toString("utf8")
-        });
-      }
-    });
-    child.on("close", (code) => {
-      clearTimeout(timeout);
-      if (settled) return;
-      settled = true;
-      resolve({
-        command: [...command],
-        cwd,
-        exit_code: code,
-        timed_out: timedOut,
-        spawn_error: null,
-        output_truncated: outputTruncated,
-        duration_ms: Number((process.hrtime.bigint() - started) / 1_000_000n),
-        stdout: stdout.toString("utf8"),
-        stderr: stderr.toString("utf8")
-      });
-    });
-  });
-}
-
 function validatePlan(plan) {
   if (!plan || plan.version !== 1 || !Array.isArray(plan.tests)) {
     throw new Error("Verification plan must have version 1 and a tests array.");
@@ -292,6 +255,21 @@ function validatePlan(plan) {
   if (plan.generator) validateCommand(plan.generator.command);
   if (plan.artifacts && !Array.isArray(plan.artifacts)) {
     throw new Error("Verification plan artifacts must be an array of paths.");
+  }
+  if (plan.sources !== undefined) {
+    if (typeof plan.sources !== "object" || plan.sources === null || Array.isArray(plan.sources)) {
+      throw new Error("Verification plan sources must map an Action ID to an array of path globs.");
+    }
+    for (const [id, patterns] of Object.entries(plan.sources)) {
+      if (!Array.isArray(patterns) || patterns.some((pattern) => typeof pattern !== "string")) {
+        throw new Error(`Verification plan sources for ${id} must be an array of path globs.`);
+      }
+    }
+  }
+  if (plan.scope_ignore !== undefined) {
+    if (!Array.isArray(plan.scope_ignore) || plan.scope_ignore.some((p) => typeof p !== "string")) {
+      throw new Error("Verification plan scope_ignore must be an array of path globs.");
+    }
   }
 }
 
