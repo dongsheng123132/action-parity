@@ -1,0 +1,120 @@
+{
+  "actions": [
+    {
+      "description": "Create one note in the in-memory example store.",
+      "effects": {
+        "audit_required": true,
+        "class": "write",
+        "confirmation": "never",
+        "reversible": true,
+        "risk": "low"
+      },
+      "id": "note.create",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "CreateNoteInput",
+        "type": "object"
+      },
+      "output_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "core_execution_id"
+        ],
+        "title": "CreatedNote",
+        "type": "object"
+      },
+      "title": "Create note"
+    },
+    {
+      "description": "List notes from the in-memory example store.",
+      "effects": {
+        "audit_required": false,
+        "class": "read",
+        "confirmation": "never",
+        "reversible": true,
+        "risk": "low"
+      },
+      "id": "note.list",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "title": "ListNotesInput",
+        "type": "object"
+      },
+      "output_schema": {
+        "$defs": {
+          "CreatedNote": {
+            "properties": {
+              "core_execution_id": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "core_execution_id"
+            ],
+            "type": "object"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/$defs/CreatedNote"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "notes",
+          "core_execution_id"
+        ],
+        "title": "ListNotesOutput",
+        "type": "object"
+      },
+      "title": "List notes"
+    }
+  ],
+  "application": {
+    "description": "One Rust Action Registry exported to GUI, CLI, and MCP Shadows.",
+    "id": "org.actionparity.real-notes",
+    "name": "Real Notes Registry Example",
+    "source": "https://github.com/dongsheng123132/action-parity",
+    "version": "0.1.0"
+  },
+  "format": "action-parity.cli-help/v1",
+  "invocation": "call <action-id> --input-json <json> --json"
+}

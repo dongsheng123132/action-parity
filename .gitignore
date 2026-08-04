@@ -1,6 +1,8 @@
 node_modules/
+target/
 coverage/
 artifacts/
+examples/rust-registry/generated/*-observations.json
 *.log
 .DS_Store
 Thumbs.db

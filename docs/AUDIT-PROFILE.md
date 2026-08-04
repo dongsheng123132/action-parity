@@ -87,21 +87,32 @@ Scores are a secondary output. A validator MUST report violations first
 (SPEC §5.2); coverage percentages are an annotation on that report, never the
 headline and never a badge.
 
-When published, a report MUST publish two scores, never one:
+Static reports publish two declaration scores and label both as declarations:
 
 ```text
-declared parity  = present required bindings   / total required bindings × 100
-evidenced parity = evidenced required bindings / total required bindings × 100
+declared parity        = present required bindings         / total required bindings × 100
+declared test coverage = bindings that name a test         / total required bindings × 100
 ```
 
-where a required Binding is *evidenced* only when it names a re-runnable test, and:
+An executable verification report adds a third score:
+
+```text
+verified binding coverage = passed, observed bindings / total required bindings × 100
+```
+
+A test filename is a declaration. A Binding becomes verified only after the
+named command passes and emits an observation for that Action and Surface. In
+all three formulas:
 
 ```text
 total required bindings =
   number of non-presentation Actions × number of required Surfaces
 ```
 
-Publishing declared parity alone is non-conformant reporting. The two numbers answer different questions — "is the manifest filled in?" and "can any of it be re-run?" — and a single number lets the first masquerade as the second.
+Publishing declared parity alone is non-conformant reporting. The three numbers
+answer different questions: "is the manifest filled in?", "does each Binding
+name a test?", and "did that Binding run through the Action Core?" A static
+validator MUST NOT label the second answer verified evidence.
 
 Exceptions remain in the denominator and MUST appear in every report format, including human-readable output. An exception past its `review_by` date MUST be reported as a warning.
 
@@ -111,14 +122,19 @@ Scores measure coverage, not product quality. A high score does not replace secu
 
 `conformance_targets` states what an implementation is aiming for. It is self-declared and MUST NOT be reported as an outcome. A report MUST state the achieved level separately, derived only from what the manifest and its evidence demonstrate, and MUST list the blockers preventing the next level.
 
-AP-2 is the highest level derivable from a manifest and its declared evidence. AP-3 describes runtime behaviour — structured results, policy enforced below the interface layer, real audit records — and AP-4 requires a published conformance report. A static validator MUST NOT award either. In particular `audit_required: true` declares that an Action needs audit, not that audit exists, and MUST NOT be read as an AP-3 grade.
+AP-1 is the highest level derivable by static validation alone. AP-2 requires
+executing the generator and Binding tests. AP-3 describes broader runtime
+behaviour — structured results, policy enforced below the interface layer, and
+real audit records — while AP-4 requires a published conformance report. In
+particular `audit_required: true` declares that an Action needs audit, not that
+audit exists, and MUST NOT be read as an AP-3 grade.
 
 ## Known limits of scoring
 
 Recorded so that nobody rediscovers them as surprises:
 
 - **Anything with a denominator can be shrunk.** Excluding a machine Surface
-  from the required set raises evidenced parity without changing the product.
+  from the required set raises every coverage percentage without changing the product.
   SPEC §6.4 requires an `exclusion_reason` and makes every exclusion visible,
   which makes the move honest rather than impossible.
 - **The Surface hardest to prove is usually the one that matters.** A Surface

@@ -2,6 +2,84 @@
 
 All notable project changes will be documented here.
 
+## 0.6.2 - 2026-08-02
+
+- Make validator reports total for Schema-invalid legacy collection shapes.
+  `validate`, `doctor`, and agent `context` now return located
+  `schema_validation` issues instead of crashing when an old Manifest uses
+  object-shaped `bindings` or contains malformed collection members.
+- Add the regression cases discovered while migrating PodApp's six official
+  Pods to generated Action SDKs. The Manifest specification remains `0.5.0`.
+
+## 0.6.1 - 2026-08-02
+
+- Separate the toolchain, Manifest specification, and adopter application
+  version identities in the public documentation.
+- Add `action-parity --version --json` so Codex, Claude Code, Hermes, and other
+  agents can discover the toolchain and supported Manifest versions without
+  guessing from a Git tag.
+- Correct the repository status after the first GitHub toolchain release and
+  distinguish the installable GitHub tarball from the still-pending npm and
+  crates.io publication channels.
+- Record why public toolchain tags jumped from `v0.1.0` to `v0.6.0` and commit
+  to normal patch/minor sequencing from that point onward.
+- Upgrade the validation workflow to the current Node 24-runtime GitHub
+  Actions, removing the Node 20 action-runtime deprecation warning.
+
+## 0.6.0 - 2026-08-02
+
+This release starts the executable toolchain: registering an Action should be
+less work than hand-maintaining its Shadows and Manifest.
+
+- Add the Rust `action-parity-core` Registry with deterministic Manifest, CLI
+  help, MCP tool, and Surface Binding generation from one Action descriptor.
+- Allow each Action to select its real Surface subset. Manifest Bindings, CLI
+  help, MCP tools, and runtime dispatch now share that scope, preventing gradual
+  adopters from generating false GUI or MCP coverage.
+- Reject scoped Actions that omit a globally required Surface. Gradual adopters
+  must mark incomplete Surfaces optional with an explicit reason instead of
+  weakening parity implicitly.
+- Add the thin `action-parity-tauri` adapter and a runnable notes registry
+  example whose GUI, CLI, and MCP observations reach the same core execution
+  envelope.
+- Add `action-parity generate` for materializing registry bundles.
+- Add opt-in `action-parity generate ... --typescript` output with generated
+  Action constants, JSON-Schema-derived input/output types, a typed generic
+  client, and a framework-dependency-free Tauri invoke helper. Generated client
+  drift is checked with the rest of the Registry artifacts.
+- Add `action-parity verify`, which reruns the generator, executes no-shell test
+  commands with timeouts, requires per-Action/per-Surface execution
+  observations, hashes artifacts and inputs, and emits a self-hashed report.
+- Add the read-only, zero-configuration `action-parity doctor` inventory for
+  AI tools entering an unadopted Tauri, Rust, TypeScript, or Python repository.
+  It reports observed command bridges, repeated Action IDs, manifests,
+  compatibility profiles, test definitions, and machine entry points without
+  pretending that static structure is executable evidence.
+- Make `doctor` honor Agent Profile `generated_paths`: generated Action clients
+  remain observable but no longer trigger false hand-maintained drift warnings.
+- Let `generate` accept an existing 0.5 Manifest as a gradual-adoption source
+  for `action-client.ts`. `generate --check` now performs a read-only drift
+  check for both full Registry bundles and Manifest-only TypeScript clients,
+  without inventing CLI or MCP artifacts the existing application already owns.
+- Treat CRLF and LF as equivalent checkout representations during generated
+  artifact checks while preserving substantive drift detection. The first
+  full U-King Windows pilot exposed this false failure under `core.autocrlf`.
+- Publish the full U-King generated-contract pilot: 46 host Actions, 46 CLI
+  bindings, 21 verified GUI bindings, a standard Tauri envelope adapter, an
+  Agent Profile, and a Linux clean-checkout drift gate derived from its
+  existing Rust Action Core without rewriting the handlers.
+- Publish a measured Redline, Zhaozuo, and U-King baseline. The data moves the
+  next implementation priority to generated Tauri/TypeScript bindings and a
+  version-owned wire contract rather than more handwritten specification text.
+- Static validation now calls a test reference declared evidence. It no longer
+  labels a non-empty string as proven or awards AP-2 without execution.
+- Make the npm CLI packable by removing `private: true` and declaring the
+  published file set. No registry publication is performed by this change.
+- Make the two Rust crates packageable for downstream consumers and add a
+  release gate that clean-installs the npm tarball, executes its CLI, generates
+  all four artifact types, packages the core crate, and validates the Tauri
+  crate's publish set before the required two-phase first release.
+
 ## 0.5.0 - 2026-07-26
 
 The standard had become a scoring system. `AP-1` through `AP-4` appeared 140

@@ -32,7 +32,9 @@ Success is not measured by stars alone. It is measured by substantive issues, in
 
 ## Phase 1 — Prove it on U-King
 
-**Goal:** demonstrate a before-and-after result on a real Windows Electron application.
+**Goal:** demonstrate a before-and-after result on a real Windows Tauri application.
+
+As of 2026-08-01 U-King has moved beyond the original six-Action proposal: 46 host Actions feed its GUI, generic CLI, and MCP server. The remaining adoption problem is no longer proving that an Action Core is possible; it is eliminating handwritten Registry/binding glue and making the generated wire contract match the current schema. See [REAL-PROJECT-BASELINE.zh-CN.md](REAL-PROJECT-BASELINE.zh-CN.md).
 
 Publish:
 

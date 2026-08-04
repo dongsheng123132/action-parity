@@ -1,0 +1,97 @@
+{
+  "tools": [
+    {
+      "description": "Create one note in the in-memory example store.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "title": "CreateNoteInput",
+        "type": "object"
+      },
+      "name": "note.create",
+      "outputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "core_execution_id"
+        ],
+        "title": "CreatedNote",
+        "type": "object"
+      },
+      "title": "Create note"
+    },
+    {
+      "description": "List notes from the in-memory example store.",
+      "inputSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "title": "ListNotesInput",
+        "type": "object"
+      },
+      "name": "note.list",
+      "outputSchema": {
+        "$defs": {
+          "CreatedNote": {
+            "properties": {
+              "core_execution_id": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "title",
+              "core_execution_id"
+            ],
+            "type": "object"
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "core_execution_id": {
+            "type": "string"
+          },
+          "notes": {
+            "items": {
+              "$ref": "#/$defs/CreatedNote"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "notes",
+          "core_execution_id"
+        ],
+        "title": "ListNotesOutput",
+        "type": "object"
+      },
+      "title": "List notes"
+    }
+  ]
+}

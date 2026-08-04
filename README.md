@@ -14,6 +14,11 @@
 > [!IMPORTANT]
 > Implement each meaningful business action once in a headless Action Core. GUI, CLI, MCP, API, automation, and tests are bindings to that core, not competing implementations.
 
+> [!NOTE]
+> **Toolchain `v0.6.2` and Manifest specification `0.5.0` are separate versions.**
+> Coding agents can read both with `action-parity --version --json`; see the
+> [versioning contract](docs/VERSIONING.md).
+
 | One core owns | Every interface can do |
 | --- | --- |
 | State, policy, events, effects, and evidence | Discover, invoke, and assert the same action without depending on pixels. |
@@ -49,6 +54,35 @@ Neither question has a percentage in it.
 > A meaningful user action MUST have one stable action identity and one canonical implementation, regardless of which interface invokes it.
 
 ActionParity does **not** require one CLI command for every visual control. Tabs, layout toggles, drag handles, hover states, and other presentation-only interactions remain UI concerns. It requires parity for meaningful domain actions such as creating, changing, exporting, starting, stopping, diagnosing, repairing, purchasing, or deleting.
+
+## Start with the Action Registry, not the Manifest
+
+The Manifest is generated output in the runnable Rust reference implementation. Before adoption, a coding agent can inventory an unfamiliar repository without configuration:
+
+```bash
+action-parity doctor . --json
+```
+
+After adoption, it asks the repository for a compact project map:
+
+```bash
+action-parity context . --json
+```
+
+`action-parity.config.json` identifies the Registry source, generated files that must not be edited, exact generation commands, and the executable verification command. The canonical [ActionParity development Skill](skills/action-parity/SKILL.md) turns that map into the same workflow for Codex, Claude Code, and Hermes without requiring the agent to read the complete specification.
+
+For Tauri/TypeScript projects, `action-parity generate ... --typescript` also derives Action constants, input/output types, a typed client, and a one-command Tauri transport helper. Frontend feature code imports those generated symbols instead of copying raw Action IDs from Rust.
+
+An existing runtime Registry does not have to migrate to `action-parity-core` first. If it already exports a valid 0.5 Manifest, generate and check only the TypeScript client without replacing its CLI or MCP implementation:
+
+```bash
+action-parity generate action-parity.json --out-dir src/generated --typescript
+action-parity generate action-parity.json --out-dir src/generated --typescript --check
+```
+
+The second command is read-only and exits nonzero for a missing or hand-edited client.
+
+See the [Rust Registry example](examples/rust-registry), the [Agent Profile Schema](schema/action-parity.agent-profile.schema.json), and the [agent-native development roadmap](docs/AGENT-NATIVE-DEVELOPMENT.zh-CN.md).
 
 ## A minimal manifest
 
@@ -161,6 +195,9 @@ npm install
 npm test
 node bin/action-parity.mjs validate examples/minimal/action-parity.json
 node bin/action-parity.mjs report examples/u-king/action-parity.json --json
+node bin/action-parity.mjs doctor . --json
+node bin/action-parity.mjs context examples/rust-registry --json
+node bin/action-parity.mjs verify examples/rust-registry/generated/action-parity.json --json
 ```
 
 The CLI follows agent-friendly conventions:
@@ -188,9 +225,9 @@ Read the evidence and detailed comparison in [docs/LANDSCAPE.md](docs/LANDSCAPE.
 
 ## Project status
 
-**v0.5.0 working draft.** The ideas are implementable; the exact schema and conformance language are intentionally open to revision before v1.0.
+**Toolchain v0.6.2; Manifest specification 0.5.0.** The repository includes a runnable Rust Action Registry, deterministic Manifest/CLI/MCP/TypeScript generation, executable Binding evidence, and an Agent Profile/Skill for coding-tool discovery. Installable npm tarballs are available from [GitHub Releases](https://github.com/dongsheng123132/action-parity/releases); publication to npm and crates.io is still pending, so those registry coordinates must not yet be claimed as available. Follow the [release gate](docs/RELEASING.md) for exact channel status. The SDK and conformance language remain open to revision before v1.0.
 
-The first reference application is U-King, a Windows desktop application. The pilot is designed to prove that an existing Electron application can gain:
+The real-project baseline now covers Redline, Zhaozuo, and U-King. The [merged U-King pilot](https://github.com/dongsheng123132/u-king-mini/pull/315) generates a 46-Action Manifest and typed client from its existing Rust core, verifies 46 CLI and 21 honest GUI bindings, and checks drift from a clean Linux checkout. Redline tests gradual adoption around an existing Rust dispatcher; Zhaozuo tests the honest compatibility path for third-party GUIs.
 
 - a headless Action Core;
 - CLI and MCP adapters;
@@ -198,7 +235,7 @@ The first reference application is U-King, a Windows desktop application. The pi
 - binding and parity reports;
 - safe, sandboxed AI-driven tests.
 
-See [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md).
+See the [measured real-project baseline (Chinese)](docs/REAL-PROJECT-BASELINE.zh-CN.md) and [docs/U-KING-PILOT.md](docs/U-KING-PILOT.md).
 
 ## Participate
 

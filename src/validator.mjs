@@ -64,10 +64,9 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-// A Binding is evidence only when it names a re-runnable test. Everything else
-// in a manifest is a claim, and a claim cannot demonstrate that two Surfaces
-// reach the same Action Core.
-function isEvidenced(binding) {
+// A non-empty test reference is a declaration of evidence, not proof that the
+// test exists or passed. `action-parity verify` owns the executable boundary.
+function hasDeclaredTest(binding) {
   return typeof binding?.test === "string" && binding.test.trim().length > 0;
 }
 
@@ -96,6 +95,18 @@ function duplicateValues(values) {
   return duplicates;
 }
 
+function arrayOrEmpty(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function bindingsOf(action) {
+  return arrayOrEmpty(action?.bindings);
+}
+
+function exceptionsOf(action) {
+  return arrayOrEmpty(action?.parity_exceptions);
+}
+
 export async function readManifest(path) {
   const text = await readFile(path, "utf8");
   return JSON.parse(text);
@@ -120,7 +131,7 @@ export function validateManifestObject(manifest) {
   }
 
   // Demoting a Surface out of the required set is the cheapest way to raise
-  // evidenced parity, and the Surface hardest to prove is usually the one whose
+  // declared test coverage, and the Surface hardest to prove is usually the one whose
   // proof matters most. The denominator may shrink; it may not shrink quietly.
   for (const [surfaceIndex, surface] of manifest.surfaces.entries()) {
     if (!MACHINE_SURFACE_KINDS.has(surface.kind) || surface.required_for_parity) continue;
@@ -239,7 +250,7 @@ export function validateManifestObject(manifest) {
             "error",
             "binding_test_missing",
             bindingPath,
-            `${action.id} binding for ${binding.surface} lacks AP-4 test evidence.`
+            `${action.id} binding for ${binding.surface} lacks an AP-4 test declaration.`
           )
         );
       }
@@ -404,43 +415,49 @@ export function validateManifestObject(manifest) {
 }
 
 function buildReport(manifest, issues) {
-  const surfaces = Array.isArray(manifest?.surfaces) ? manifest.surfaces : [];
-  const actions = Array.isArray(manifest?.actions) ? manifest.actions : [];
+  // Schema-invalid manifests still need a useful report. Doctor and validate
+  // inspect legacy projects precisely to find malformed collection shapes, so
+  // the reporting path must be total instead of assuming AJV already passed.
+  const surfaces = arrayOrEmpty(manifest?.surfaces);
+  const actions = arrayOrEmpty(manifest?.actions);
   const requiredSurfaces = surfaces.filter((surface) => surface?.required_for_parity);
-  const requiredSurfaceIds = new Set(requiredSurfaces.map((surface) => surface.id));
+  const requiredSurfaceIds = new Set(
+    requiredSurfaces.map((surface) => surface?.id).filter(Boolean)
+  );
 
   let presentRequiredBindings = 0;
-  let evidencedRequiredBindings = 0;
+  let declaredTestBindings = 0;
   let exceptionCount = 0;
   const perSurface = requiredSurfaces.map((surface) => {
     let mappedActions = 0;
-    let evidencedActions = 0;
+    let actionsWithDeclaredTests = 0;
     for (const action of actions) {
-      const binding = (action.bindings ?? []).find((item) => item.surface === surface.id);
+      const binding = bindingsOf(action).find((item) => item?.surface === surface?.id);
       if (binding) {
         mappedActions += 1;
-        if (isEvidenced(binding)) {
-          evidencedActions += 1;
+        if (hasDeclaredTest(binding)) {
+          actionsWithDeclaredTests += 1;
         }
       }
     }
     presentRequiredBindings += mappedActions;
-    evidencedRequiredBindings += evidencedActions;
+    declaredTestBindings += actionsWithDeclaredTests;
     return {
-      id: surface.id,
-      kind: surface.kind,
+      id: surface?.id ?? null,
+      kind: surface?.kind ?? null,
       reachability: reachabilityOf(surface),
       mapped_actions: mappedActions,
-      evidenced_actions: evidencedActions,
+      declared_test_actions: actionsWithDeclaredTests,
       total_actions: actions.length,
       coverage_percent: actions.length === 0 ? 0 : roundPercent(mappedActions, actions.length),
-      evidenced_percent: actions.length === 0 ? 0 : roundPercent(evidencedActions, actions.length)
+      declared_test_percent:
+        actions.length === 0 ? 0 : roundPercent(actionsWithDeclaredTests, actions.length)
     };
   });
 
   for (const action of actions) {
-    exceptionCount += (action.parity_exceptions ?? []).filter((exception) =>
-      requiredSurfaceIds.has(exception.surface)
+    exceptionCount += exceptionsOf(action).filter((exception) =>
+      requiredSurfaceIds.has(exception?.surface)
     ).length;
   }
 
@@ -450,22 +467,25 @@ function buildReport(manifest, issues) {
 
   const surfaceById = new Map(surfaces.filter((item) => item?.id).map((item) => [item.id, item]));
   const externallyReachableActions = actions.filter((action) =>
-    (action?.bindings ?? []).some((binding) => isExternallyReachable(surfaceById.get(binding.surface)))
+    bindingsOf(action).some((binding) =>
+      isExternallyReachable(surfaceById.get(binding?.surface))
+    )
   ).length;
 
   const summary = {
     actions: actions.length,
     surfaces: surfaces.length,
     required_surfaces: requiredSurfaces.length,
-    headless_actions: actions.filter((action) => action.execution?.headless).length,
-    headless_evidenced_actions: actions.filter((action) => action.execution?.headless_evidence).length,
+    headless_actions: actions.filter((action) => action?.execution?.headless).length,
+    headless_evidence_declarations: actions.filter((action) => action?.execution?.headless_evidence)
+      .length,
     externally_reachable_actions: externallyReachableActions,
-    shared_external_resources: (manifest?.state?.external_resources ?? [])
+    shared_external_resources: arrayOrEmpty(manifest?.state?.external_resources)
       .filter((resource) => !resource?.exclusive)
       .map((resource) => ({
-        path: resource.path,
-        access: resource.access,
-        concurrency: resource.concurrency ?? null
+        path: resource?.path ?? null,
+        access: resource?.access ?? null,
+        concurrency: resource?.concurrency ?? null
       })),
     excluded_machine_surfaces: surfaces
       .filter((surface) => MACHINE_SURFACE_KINDS.has(surface?.kind) && !surface?.required_for_parity)
@@ -476,12 +496,12 @@ function buildReport(manifest, issues) {
         reason: surface.exclusion_reason ?? null
       })),
     present_required_bindings: presentRequiredBindings,
-    evidenced_required_bindings: evidencedRequiredBindings,
+    declared_test_bindings: declaredTestBindings,
     total_required_bindings: totalRequiredBindings,
     declared_parity_percent:
       totalRequiredBindings === 0 ? 0 : roundPercent(presentRequiredBindings, totalRequiredBindings),
-    evidenced_parity_percent:
-      totalRequiredBindings === 0 ? 0 : roundPercent(evidencedRequiredBindings, totalRequiredBindings),
+    declared_test_coverage_percent:
+      totalRequiredBindings === 0 ? 0 : roundPercent(declaredTestBindings, totalRequiredBindings),
     declared_exceptions: exceptionCount,
     errors,
     warnings
@@ -494,6 +514,10 @@ function buildReport(manifest, issues) {
     ok: errors === 0,
     spec_version: manifest?.spec_version ?? null,
     application: manifest?.application ?? null,
+    evidence: {
+      status: "declared",
+      message: "Static validation does not execute binding.test or headless_evidence. Run action-parity verify."
+    },
     // SPEC §5.2 first. The audit block below is an optional profile.
     violations,
     unproven,
@@ -510,25 +534,25 @@ function buildReport(manifest, issues) {
 // implementation is a property of code, not of a manifest. Saying "no behavior
 // of its own" here would be the same overclaim this validator exists to catch.
 function describeShadows(manifest) {
-  const actions = Array.isArray(manifest?.actions) ? manifest.actions : [];
-  return (Array.isArray(manifest?.surfaces) ? manifest.surfaces : []).map((surface) => {
+  const actions = arrayOrEmpty(manifest?.actions);
+  return arrayOrEmpty(manifest?.surfaces).map((surface) => {
     const bindings = actions
-      .flatMap((action) => action?.bindings ?? [])
-      .filter((binding) => binding.surface === surface.id);
+      .flatMap(bindingsOf)
+      .filter((binding) => binding?.surface === surface?.id);
     return {
-      id: surface.id,
-      kind: surface.kind,
+      id: surface?.id ?? null,
+      kind: surface?.kind ?? null,
       reachability: reachabilityOf(surface),
-      checked: surface.required_for_parity === true,
+      checked: surface?.required_for_parity === true,
       actions: bindings.length,
-      proven_bindings: bindings.filter(isEvidenced).length
+      declared_test_bindings: bindings.filter(hasDeclaredTest).length
     };
   });
 }
 
-// Targets are what the manifest asks for. Achieved is what this manifest can
-// actually demonstrate. Reporting only the former lets a declaration-only
-// manifest read as a passing grade, which is what this function exists to stop.
+// Targets are what the manifest asks for. Static analysis can award AP-1 and
+// report whether the AP-2 declarations are complete, but only `verify` can say
+// that the named tests ran. A filename in JSON is not executed evidence.
 function assessConformance(manifest, summary) {
   const targets = Array.isArray(manifest?.conformance_targets) ? manifest.conformance_targets : [];
   const actions = Array.isArray(manifest?.actions) ? manifest.actions : [];
@@ -537,17 +561,17 @@ function assessConformance(manifest, summary) {
   const blockers = [];
 
   const hasMachineBinding = (action) =>
-    (action?.bindings ?? []).some((binding) =>
-      MACHINE_SURFACE_KINDS.has(surfaceById.get(binding.surface)?.kind)
+    bindingsOf(action).some((binding) =>
+      MACHINE_SURFACE_KINDS.has(surfaceById.get(binding?.surface)?.kind)
     );
 
   if (summary.errors > 0) blockers.push(`${summary.errors} validation error(s)`);
   if (actions.length === 0) blockers.push("no Actions declared");
   const notHeadless = actions.filter((action) => action?.execution?.headless !== true).length;
   if (notHeadless > 0) blockers.push(`${notHeadless} Action(s) not headless`);
-  const unevidencedHeadless = actions.length - summary.headless_evidenced_actions;
-  if (unevidencedHeadless > 0) {
-    blockers.push(`${unevidencedHeadless} Action(s) claim headless execution without evidence`);
+  const undeclaredHeadless = actions.length - summary.headless_evidence_declarations;
+  if (undeclaredHeadless > 0) {
+    blockers.push(`${undeclaredHeadless} Action(s) claim headless execution without an evidence declaration`);
   }
   const noMachine = actions.filter((action) => !hasMachineBinding(action)).length;
   if (noMachine > 0) blockers.push(`${noMachine} Action(s) without a machine Surface`);
@@ -564,28 +588,31 @@ function assessConformance(manifest, summary) {
     if (summary.declared_parity_percent < 100) {
       blockers.push(`declared parity ${summary.declared_parity_percent}% (AP-2 needs 100%)`);
     }
-    if (summary.evidenced_parity_percent < 100) {
+    if (summary.declared_test_coverage_percent < 100) {
       blockers.push(
-        `evidenced parity ${summary.evidenced_parity_percent}% — ${
-          summary.total_required_bindings - summary.evidenced_required_bindings
+        `declared test coverage ${summary.declared_test_coverage_percent}% — ${
+          summary.total_required_bindings - summary.declared_test_bindings
         } required Binding(s) name no test`
       );
     }
   }
 
-  const ap2 = ap1 && blockers.length === 0;
-  const achieved = ap2 ? "AP-2" : ap1 ? "AP-1" : "none";
+  const readyForVerification = ap1 && blockers.length === 0;
+  const achieved = ap1 ? "AP-1" : "none";
+  if (readyForVerification) {
+    blockers.push("runtime evidence has not been executed; run action-parity verify before claiming AP-2");
+  }
 
-  // AP-2 is the ceiling a static check can honestly award. AP-3 is about
-  // runtime behaviour — structured results, policy enforced below the interface,
-  // real audit records — and a manifest only contains claims about those.
+  // AP-1 is the ceiling a static check can honestly award. AP-2 requires the
+  // generator and Binding observations to execute; AP-3 additionally concerns
+  // structured results, core policy, and real audit records.
   // `audit_required: true` states that an Action needs audit, not that audit
   // exists, so treating it as an AP-3 grade would repeat the mistake this
   // function was written to prevent.
   const notes = [];
-  if (ap2) {
+  if (readyForVerification) {
     notes.push(
-      "AP-3 and AP-4 are not derivable from a manifest: AP-3 requires runtime evidence of structured results, policy enforcement, and audit records; AP-4 requires a published conformance report."
+      "All AP-2 declarations are present. Static validation stops at AP-1; verify must execute the generator and binding tests."
     );
     const unaudited = actions.filter(
       (action) => action?.effects?.class !== "read" && action?.effects?.audit_required !== true
