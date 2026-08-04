@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   checkRegistryBundle,
+  generatedTextMatches,
   materializeRegistryBundle,
   stableStringify
 } from "../src/generator.mjs";
@@ -68,7 +69,10 @@ function exportBundle() {
 
 async function checkFile(target, expected) {
   try {
-    return { path: target, status: (await readFile(target, "utf8")) === expected ? "current" : "drifted" };
+    return {
+      path: target,
+      status: generatedTextMatches(await readFile(target, "utf8"), expected) ? "current" : "drifted"
+    };
   } catch (error) {
     if (error?.code === "ENOENT") return { path: target, status: "missing" };
     throw error;

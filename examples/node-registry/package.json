@@ -1,0 +1,17 @@
+{
+  "name": "action-parity-node-registry-example",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One Node Action Core exported to GUI, CLI, MCP, and HTTP Shadows.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "bin": {
+    "tasks": "./src/cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test tests/parity.test.mjs"
+  },
+  "dependencies": {
+    "action-parity-sdk": "0.7.0"
+  }
+}

@@ -8,6 +8,6 @@ repository.workspace = true
 readme = "README.md"
 
 [dependencies]
-action-parity-core = { version = "0.6.2", path = "../../crates/action-parity-core" }
+action-parity-core = { version = "0.7.0", path = "../../crates/action-parity-core" }
 serde.workspace = true
 serde_json.workspace = true

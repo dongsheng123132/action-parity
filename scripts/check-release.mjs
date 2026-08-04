@@ -111,6 +111,8 @@ try {
     await access(path.join(generated, filename));
   }
 
+  await checkNodeSdk(version, temporary);
+
   await run("cargo", ["package", "-p", "action-parity-core", "--allow-dirty", "--no-verify"], root);
   const tauriPackageFiles = await run(
     "cargo",
@@ -125,10 +127,100 @@ try {
   }
 
   process.stdout.write(
-    `release-ready\t${version}\tnpm clean-install + 4 generated artifacts + core crate packaged + Tauri publish set checked\n`
+    `release-ready\t${version}\tnpm clean-install + 4 generated artifacts + Node SDK smoke + core crate packaged + Tauri publish set checked\n`
   );
 } finally {
   await rm(temporary, { recursive: true, force: true });
+}
+
+/**
+ * Pack and install `action-parity-sdk` on its own, then run the loop a real
+ * adopter runs: register an Action, dispatch it, and export a bundle. A
+ * monorepo import proves nothing about the published tarball.
+ */
+async function checkNodeSdk(version, temporary) {
+  const sdkRoot = path.join(root, "sdk", "node");
+  const sdkPackage = JSON.parse(await readFile(path.join(sdkRoot, "package.json"), "utf8"));
+  assert(
+    sdkPackage.version === version,
+    `action-parity-sdk is ${sdkPackage.version}, expected the toolchain version ${version}`
+  );
+  assert(Object.keys(sdkPackage.dependencies ?? {}).length === 0,
+    "action-parity-sdk must stay dependency-free so it can be embedded anywhere");
+
+  const sdkPack = JSON.parse(
+    await runNpm(["pack", "--json", "--pack-destination", temporary], sdkRoot)
+  )[0];
+  const sdkPaths = new Set(sdkPack.files.map((file) => file.path));
+  for (const required of [
+    "src/index.mjs",
+    "src/registry.mjs",
+    "src/cli.mjs",
+    "src/mcp.mjs",
+    "src/electron.mjs",
+    "src/http.mjs",
+    "types/index.d.ts",
+    "types/cli.d.ts",
+    "README.md"
+  ]) {
+    assert(sdkPaths.has(required), `action-parity-sdk package is missing ${required}`);
+  }
+
+  const consumer = path.join(temporary, "sdk-consumer");
+  await mkdir(consumer);
+  await writeFile(
+    path.join(consumer, "package.json"),
+    `${JSON.stringify(
+      { name: "action-parity-sdk-smoke", private: true, type: "module" },
+      null,
+      2
+    )}\n`,
+    "utf8"
+  );
+  await runNpm(
+    ["install", "--ignore-scripts", "--no-audit", "--no-fund", path.join(temporary, sdkPack.filename)],
+    consumer
+  );
+
+  await writeFile(
+    path.join(consumer, "smoke.mjs"),
+    [
+      'import { createRegistry, defineAction, defineSurface, s } from "action-parity-sdk";',
+      'import { createCliRunner } from "action-parity-sdk/cli";',
+      'import { createMcpServer } from "action-parity-sdk/mcp";',
+      "",
+      "const registry = createRegistry({",
+      '  application: { id: "org.example.smoke", name: "Smoke", version: "1.0.0" },',
+      "  surfaces: [",
+      '    defineSurface({ id: "cli", kind: "cli", bindingTarget: "smoke {action_id} --json" }),',
+      '    defineSurface({ id: "mcp", kind: "mcp", bindingTarget: "tool:{action_id}" })',
+      "  ]",
+      "});",
+      "registry.register(",
+      "  defineAction({",
+      '    id: "note.create",',
+      '    title: "Create note",',
+      '    description: "Create one note.",',
+      '    effects: "write",',
+      "    input: s.object({ title: s.string({ minLength: 1 }) }),",
+      "    output: s.object({ title: s.string() }),",
+      "    handler: (input) => ({ title: input.title })",
+      "  })",
+      ");",
+      "",
+      'const envelope = await registry.dispatch({ actionId: "note.create", surface: "cli", input: { title: "ok" } });',
+      'if (envelope.ok !== true) throw new Error("dispatch failed: " + JSON.stringify(envelope));',
+      'if (registry.artifactBundle().format !== "action-parity.registry-bundle/v1") throw new Error("bad bundle");',
+      'const listed = await createMcpServer(registry).handle({ jsonrpc: "2.0", id: 1, method: "tools/list" });',
+      'if (listed.result.tools[0].name !== "note.create") throw new Error("bad tool list");',
+      'const exitCode = await createCliRunner(registry, { name: "smoke" }).run(["list", "--json"]);',
+      'if (exitCode !== 0) throw new Error("CLI list exited " + exitCode);',
+      'process.stdout.write("sdk-ok\\n");'
+    ].join("\n"),
+    "utf8"
+  );
+  const smoke = await run(process.execPath, [path.join(consumer, "smoke.mjs")], consumer);
+  assert(smoke.includes("sdk-ok"), "the installed action-parity-sdk tarball failed its smoke run");
 }
 
 function run(program, args, cwd) {

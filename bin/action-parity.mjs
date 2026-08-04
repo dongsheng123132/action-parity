@@ -12,7 +12,7 @@ import { verifyManifest } from "../src/verifier.mjs";
 import { buildAgentContext } from "../src/project.mjs";
 import { doctorProject } from "../src/doctor.mjs";
 
-const VERSION = "0.6.2";
+const VERSION = "0.7.0";
 const MANIFEST_SPEC_VERSION = "0.5.0";
 const SUPPORTED_MANIFEST_SPEC_VERSIONS = [MANIFEST_SPEC_VERSION];
 

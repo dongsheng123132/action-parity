@@ -1,0 +1,28 @@
+{
+  "$schema": "../../schema/action-parity.agent-profile.schema.json",
+  "format": "action-parity.agent-profile/v1",
+  "manifest": "generated/action-parity.json",
+  "registry": {
+    "export": ["node", "src/cli.mjs", "export"],
+    "source_paths": ["src/core.mjs"]
+  },
+  "generated_paths": [
+    "generated/action-parity.json",
+    "generated/action-client.ts",
+    "generated/cli-help.json",
+    "generated/mcp-tools.json"
+  ],
+  "commands": {
+    "generate": ["node", "../../scripts/generate-node-example.mjs"],
+    "generate_check": ["node", "../../scripts/generate-node-example.mjs", "--check"],
+    "verify": [
+      "node",
+      "../../bin/action-parity.mjs",
+      "verify",
+      "generated/action-parity.json",
+      "--plan",
+      "generated/action-parity.verify.json",
+      "--json"
+    ]
+  }
+}

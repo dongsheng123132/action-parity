@@ -28,6 +28,8 @@ Do not use it for purely visual layout, animation, tab switching, window movemen
 
 If the profile is missing, run `action-parity doctor . --json` first. Use its observations to classify existing machine surfaces and select one vertical slice. Then read [references/agent-profile.md](references/agent-profile.md) and create the smallest profile that points to real executable commands. Do not mechanically turn every Tauri/Electron command into an Action, and do not invent passing commands or evidence.
 
+If the project has no runtime Registry yet, do not hand-write one. Use the SDK for its language — `action-parity-sdk` for Node, Electron, and TypeScript, or `action-parity-core` for Rust — so the CLI, MCP, IPC, and Manifest are derived from the registration instead of written per interface. Keep the transports as forwarding shims; a transport that branches on an Action ID is a second implementation.
+
 ## How to Run
 
 In an unadopted repository, start with:

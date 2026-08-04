@@ -15,7 +15,7 @@
 > Implement each meaningful business action once in a headless Action Core. GUI, CLI, MCP, API, automation, and tests are bindings to that core, not competing implementations.
 
 > [!NOTE]
-> **Toolchain `v0.6.2` and Manifest specification `0.5.0` are separate versions.**
+> **Toolchain `v0.7.0` and Manifest specification `0.5.0` are separate versions.**
 > Coding agents can read both with `action-parity --version --json`; see the
 > [versioning contract](docs/VERSIONING.md).
 
@@ -83,6 +83,24 @@ action-parity generate action-parity.json --out-dir src/generated --typescript -
 The second command is read-only and exits nonzero for a missing or hand-edited client.
 
 See the [Rust Registry example](examples/rust-registry), the [Agent Profile Schema](schema/action-parity.agent-profile.schema.json), and the [agent-native development roadmap](docs/AGENT-NATIVE-DEVELOPMENT.zh-CN.md).
+
+## SDKs
+
+Two runtime SDKs implement the same Action Core, the same envelope, and the same `action-parity.registry-bundle/v1` output, so one toolchain generates and verifies both:
+
+| SDK | Package | Transports it ships |
+| --- | --- | --- |
+| Rust | [`action-parity-core`](crates/action-parity-core) | Tauri adapter, generic dispatch |
+| Node / Electron / TypeScript | [`action-parity-sdk`](sdk/node) | generated CLI, MCP stdio server, Electron IPC bridge, HTTP endpoint |
+
+```js
+import { createRegistry, defineAction, defineSurface, s } from "action-parity-sdk";
+import { createCliRunner } from "action-parity-sdk/cli";
+import { serveMcpStdio } from "action-parity-sdk/mcp";
+import { attachElectronIpc } from "action-parity-sdk/electron";
+```
+
+Registering an Action gives the CLI a command with flags, help, and exit codes; gives an agent an MCP tool; gives the GUI a catalog entry carrying a stable `data-action-id`; and adds the Bindings to the generated Manifest. The transports contain no business behavior, and confirmation, permission, stale-state rejection, idempotent retry, and timeouts are enforced in the core rather than per Surface. See the [Node SDK guide](docs/NODE-SDK.md) and the [Node Registry example](examples/node-registry), whose 16 Bindings are verified by executable evidence across GUI, CLI, MCP, and HTTP.
 
 ## A minimal manifest
 
@@ -225,7 +243,7 @@ Read the evidence and detailed comparison in [docs/LANDSCAPE.md](docs/LANDSCAPE.
 
 ## Project status
 
-**Toolchain v0.6.2; Manifest specification 0.5.0.** The repository includes a runnable Rust Action Registry, deterministic Manifest/CLI/MCP/TypeScript generation, executable Binding evidence, and an Agent Profile/Skill for coding-tool discovery. Installable npm tarballs are available from [GitHub Releases](https://github.com/dongsheng123132/action-parity/releases); publication to npm and crates.io is still pending, so those registry coordinates must not yet be claimed as available. Follow the [release gate](docs/RELEASING.md) for exact channel status. The SDK and conformance language remain open to revision before v1.0.
+**Toolchain v0.7.0; Manifest specification 0.5.0.** The repository includes two runnable Action Registries — Rust and Node/Electron — deterministic Manifest/CLI/MCP/TypeScript generation, runnable CLI, MCP, IPC, and HTTP transports, executable Binding evidence, and an Agent Profile/Skill for coding-tool discovery. Installable npm tarballs are available from [GitHub Releases](https://github.com/dongsheng123132/action-parity/releases); publication of `action-parity`, `action-parity-sdk`, and the crates is still pending, so those registry coordinates must not yet be claimed as available. Follow the [release gate](docs/RELEASING.md) for exact channel status. The SDKs and conformance language remain open to revision before v1.0.
 
 The real-project baseline now covers Redline, Zhaozuo, and U-King. The [merged U-King pilot](https://github.com/dongsheng123132/u-king-mini/pull/315) generates a 46-Action Manifest and typed client from its existing Rust core, verifies 46 CLI and 21 honest GUI bindings, and checks drift from a clean Linux checkout. Redline tests gradual adoption around an existing Rust dispatcher; Zhaozuo tests the honest compatibility path for third-party GUIs.
 
