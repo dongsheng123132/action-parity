@@ -55,6 +55,8 @@ Neither question has a percentage in it.
 
 ActionParity does **not** require one CLI command for every visual control. Tabs, layout toggles, drag handles, hover states, and other presentation-only interactions remain UI concerns. It requires parity for meaningful domain actions such as creating, changing, exporting, starting, stopping, diagnosing, repairing, purchasing, or deleting.
 
+<p align="center"><img src="docs/readme-assets/action-core.svg" alt="GUI/TUI, CLI/MCP, and API/automation all call one Action Core that owns state, policy, events, and evidence; conformance is checked against that core" width="100%" /></p>
+
 ## Start with the Action Registry, not the Manifest
 
 The Manifest is generated output in the runnable Rust reference implementation. Before adoption, a coding agent can inventory an unfamiliar repository without configuration:

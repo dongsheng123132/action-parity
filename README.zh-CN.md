@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/readme-assets/action-core-hero.webp" alt="影核：GUI、CLI、MCP、API 和自动化调用同一个动作核心" width="100%" /></p>
+
 # 影核（ActionParity）
 
 > **一个动作，所有界面。**
