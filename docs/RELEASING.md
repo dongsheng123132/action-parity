@@ -72,12 +72,20 @@ Do not move an existing public tag or create backdated 0.2–0.5 toolchain tags.
 
 ## Registry publication order
 
-Confirm credentials before changing registry state:
+Confirm credentials before changing registry state, naming the registry you are
+about to write to instead of trusting the ambient one:
 
 ```text
-npm whoami
+npm whoami --registry https://registry.npmjs.org
 cargo login
 ```
+
+A machine configured against a mirror is the common case in some regions, and a
+mirror is read-only. Check with `npm config get registry`; if it returns
+anything other than `https://registry.npmjs.org`, an unqualified `npm publish`
+aims at the mirror. Every command below therefore states its registry. Do not
+switch the global registry to publish and switch it back -- a release that
+stops halfway leaves the machine pointing somewhere nobody expects.
 
 The Rust crates require a two-phase first publication because the Tauri adapter
 depends on the published core crate:
@@ -87,9 +95,13 @@ cargo publish -p action-parity-core
 # wait until crates.io serves action-parity-core <toolchain-version>
 cargo package -p action-parity-tauri
 cargo publish -p action-parity-tauri
-npm publish --access public
-npm publish --access public --workspace action-parity-sdk
+npm publish --access public --registry https://registry.npmjs.org
+npm publish --access public --registry https://registry.npmjs.org --workspace action-parity-sdk
 ```
+
+Publish the two npm packages as separate decisions and check each before the
+next. An account with two-factor authentication enforced for writes also needs
+`--otp=<code>` on each publish.
 
 Then verify from clean directories outside the repository:
 
@@ -97,8 +109,12 @@ Then verify from clean directories outside the repository:
 cargo info action-parity-core@<toolchain-version>
 cargo info action-parity-tauri@<toolchain-version>
 npx --yes action-parity@<toolchain-version> --version --json
-npm view action-parity-sdk@<toolchain-version> version
+npm view action-parity-sdk@<toolchain-version> version --registry https://registry.npmjs.org
 ```
+
+npm publication is the one step here that cannot be taken back: a version is
+cached and indexed immediately, and after 72 hours it cannot be unpublished at
+all. Tags and merges can be reversed; this cannot.
 
 If authentication is unavailable, stop at the GitHub tarball channel and mark
 the registries pending. Never ask a user to paste a token into a command or log.
