@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   ActionError,
@@ -385,5 +386,21 @@ test("only the Surfaces of a kind receive the CLI catalog and MCP tool list", ()
   assert.deepEqual(
     registry.mcpTools().tools.map((tool) => tool.name),
     ["note.create"]
+  );
+});
+
+test("the SDK version literal cannot drift from the package it ships as", async () => {
+  const packaged = JSON.parse(
+    await readFile(new URL("../sdk/node/package.json", import.meta.url), "utf8")
+  );
+  const registry = createRegistry({ application: APPLICATION });
+  registry.addSurface(defineSurface(GUI));
+  const manifest = registry.manifest();
+  // The generator string is published inside every Manifest this SDK emits, so
+  // a stale literal would misattribute artifacts to a version that never made
+  // them. Two copies of a version number is exactly the drift this catches.
+  assert.equal(
+    manifest.generated_from.generator,
+    `action-parity-sdk/${packaged.version}`
   );
 });

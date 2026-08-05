@@ -13,7 +13,7 @@ import { resolveChangedScope } from "../src/changed.mjs";
 import { buildAgentContext } from "../src/project.mjs";
 import { doctorProject } from "../src/doctor.mjs";
 
-const VERSION = "0.7.0";
+const VERSION = "0.8.0";
 const MANIFEST_SPEC_VERSION = "0.5.0";
 const SUPPORTED_MANIFEST_SPEC_VERSIONS = [MANIFEST_SPEC_VERSION];
 

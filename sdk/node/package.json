@@ -1,6 +1,6 @@
 {
   "name": "action-parity-sdk",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Action Core SDK for Node, Electron, and TypeScript. Register a business Action once; derive CLI, MCP, IPC, HTTP, and the ActionParity Manifest from it.",
   "keywords": [
     "actionparity",

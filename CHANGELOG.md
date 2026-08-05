@@ -2,7 +2,12 @@
 
 All notable project changes will be documented here.
 
-## Unreleased
+## 0.8.0 - 2026-08-05
+
+A new command surface and a new artifact format are not a patch, so this is a
+minor bump rather than `0.7.1`. The Manifest specification stays `0.5.0`:
+change attribution lives in the local verification plan, so nothing on the wire
+moved.
 
 - Add `action-parity verify --changed [--base <ref>]`, which re-runs only the
   Actions a change can reach. Attribution lives in the verification plan rather

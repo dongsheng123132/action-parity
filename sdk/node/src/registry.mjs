@@ -11,7 +11,7 @@
 import { ActionError, toActionError } from "./errors.mjs";
 import { applyDefaults, isSchemaObject, s, validateValue } from "./schema.mjs";
 
-export const SDK_VERSION = "0.7.0";
+export const SDK_VERSION = "0.8.0";
 export const ENVELOPE_VERSION = 1;
 export const MANIFEST_SPEC_VERSION = "0.5.0";
 export const BUNDLE_FORMAT = "action-parity.registry-bundle/v1";

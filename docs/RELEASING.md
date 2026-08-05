@@ -7,7 +7,7 @@ their current values with:
 action-parity --version --json
 ```
 
-At toolchain `0.7.0`, the current wire Manifest remains specification `0.5.0`.
+At toolchain `0.8.0`, the current wire Manifest remains specification `0.5.0`.
 See [VERSIONING.md](VERSIONING.md) for the compatibility rules and the reason
 the historical public tags jumped from `v0.1.0` to `v0.6.0`.
 
@@ -64,7 +64,7 @@ attach the tarball produced by `npm pack`. The release title and first paragraph
 MUST state both identities, for example:
 
 ```text
-Toolchain v0.7.0 / Manifest specification 0.5.0
+Toolchain v0.8.0 / Manifest specification 0.5.0
 ```
 
 The notes MUST also state whether npm and crates.io are published or pending.
