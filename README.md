@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/readme-assets/action-core.svg" alt="ActionParity：GUI、CLI、MCP、API 和自动化调用同一个 Action Core" width="100%" /></p>
+<p align="center"><img src="docs/readme-assets/action-core-hero.webp" alt="ActionParity：GUI、CLI、MCP、API 和自动化调用同一个 Action Core" width="100%" /></p>
 
 <h1 align="center">ActionParity (影核)</h1>
 
@@ -54,6 +54,8 @@ Neither question has a percentage in it.
 > A meaningful user action MUST have one stable action identity and one canonical implementation, regardless of which interface invokes it.
 
 ActionParity does **not** require one CLI command for every visual control. Tabs, layout toggles, drag handles, hover states, and other presentation-only interactions remain UI concerns. It requires parity for meaningful domain actions such as creating, changing, exporting, starting, stopping, diagnosing, repairing, purchasing, or deleting.
+
+<p align="center"><img src="docs/readme-assets/action-core.svg" alt="GUI/TUI, CLI/MCP, and API/automation all call one Action Core that owns state, policy, events, and evidence; conformance is checked against that core" width="100%" /></p>
 
 ## Start with the Action Registry, not the Manifest
 
