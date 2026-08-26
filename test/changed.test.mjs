@@ -187,7 +187,7 @@ test("changing a Surface widens to a full run because every Binding is remeasure
       base: "HEAD"
     });
     assert.equal(scope.full, true);
-    assert.match(scope.full_reason, /surfaces, spec version, or application identity/);
+    assert.match(scope.full_reason, /changed outside its action list/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -311,4 +311,81 @@ test("globs stay inside a path segment unless they say otherwise", () => {
   assert.ok(globToRegExp("*.md").test("README.md"));
   assert.ok(!globToRegExp("*.md").test("docs/guide.md"));
   assert.ok(!globToRegExp("src/core.mjs").test("src/core-other.mjs"));
+});
+
+test("an ignore pattern cannot silence the plan or the Manifest", async () => {
+  const { root, write } = await makeRepo();
+  try {
+    const plan = { ...PLAN, scope_ignore: [...PLAN.scope_ignore, "action-parity*"] };
+    const edited = structuredClone(MANIFEST);
+    edited.actions[0].title = "Renamed create";
+    await write("action-parity.json", `${JSON.stringify(edited, null, 2)}\n`);
+    await write("action-parity.verify.json", `${JSON.stringify(plan, null, 2)}\n`);
+    const scope = await resolveChangedScope(edited, plan, {
+      planDirectory: root,
+      manifestPath: path.join(root, "action-parity.json"),
+      planPath: path.join(root, "action-parity.verify.json"),
+      base: "HEAD"
+    });
+    assert.equal(scope.full, true);
+    assert.match(scope.full_reason, /plan changed/);
+    assert.ok(scope.attribution.some((entry) => entry.via === "plan"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("a declared test that also matches another Action's source reaches both Actions", async () => {
+  const { root, write } = await makeRepo();
+  try {
+    const plan = structuredClone(PLAN);
+    plan.sources["task.delete"] = ["src/delete.mjs", "tests/**"];
+    await write("tests/create.test.mjs", "// create changed\n");
+    const scope = await resolveChangedScope(MANIFEST, plan, {
+      planDirectory: root,
+      manifestPath: path.join(root, "action-parity.json"),
+      base: "HEAD"
+    });
+    assert.equal(scope.full, false);
+    assert.deepEqual(scope.affected_action_ids.sort(), ["task.create", "task.delete"]);
+    assert.deepEqual(
+      scope.attribution.find((entry) => entry.file === "tests/create.test.mjs").action_ids.sort(),
+      ["task.create", "task.delete"]
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("any Manifest change outside the action list widens to a full run", async () => {
+  const { root, write } = await makeRepo();
+  try {
+    const edited = structuredClone(MANIFEST);
+    edited.state = { shared: "changed-shared-state" };
+    await write("action-parity.json", `${JSON.stringify(edited, null, 2)}\n`);
+    const scope = await resolveChangedScope(edited, PLAN, {
+      planDirectory: root,
+      manifestPath: path.join(root, "action-parity.json"),
+      base: "HEAD"
+    });
+    assert.equal(scope.full, true);
+    assert.match(scope.full_reason, /changed outside its action list/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("a moved implementation keeps its Action through the old path", async () => {
+  const { root, git } = await makeRepo();
+  try {
+    // Rename detection would report only the destination, which an ignore
+    // pattern can swallow; --no-renames must keep the old path attributable.
+    await git(["mv", "src/delete.mjs", "docs/moved-delete.mjs"]);
+    const scope = await scopeFor(root);
+    assert.equal(scope.full, false);
+    assert.deepEqual(scope.affected_action_ids, ["task.delete"]);
+    assert.deepEqual(scope.attribution.find((entry) => entry.file === "docs/moved-delete.mjs").via, "ignored");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

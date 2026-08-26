@@ -53,10 +53,11 @@ export async function resolveChangedScope(manifest, plan, options = {}) {
   for (const absolute of git.files) {
     const relativeToPlan = toPosix(path.relative(planDirectory, absolute));
 
-    if (ignore.some((pattern) => pattern.test(relativeToPlan))) {
-      attribution.push({ file: relativeToPlan, via: "ignored", action_ids: [] });
-      continue;
-    }
+    // Order matters: ignore patterns exist so docs churn does not trigger runs,
+    // but the plan, the Manifest, and declared test files are load-bearing for
+    // the scope decision itself. An ignore pattern that happens to match one of
+    // them must not silently produce a zero-action scoped pass, so every
+    // attribution branch below is checked before scope_ignore gets a vote.
 
     if (planPath && absolute === planPath) {
       full = true;
@@ -81,22 +82,29 @@ export async function resolveChangedScope(manifest, plan, options = {}) {
       continue;
     }
 
-    const matchedIds = declaredSourceIds.filter((id) =>
+    // Sources and test references are not exclusive: a declared test file that
+    // also matches another Action's source glob must reach both Actions, not
+    // let whichever branch is checked first swallow the other.
+    const matchedSourceIds = declaredSourceIds.filter((id) =>
       (sources[id] ?? []).some((pattern) => globToRegExp(pattern).test(relativeToPlan))
     );
-    if (matchedIds.length > 0) {
-      for (const id of matchedIds) affected.add(id);
-      attribution.push({ file: relativeToPlan, via: "sources", action_ids: matchedIds });
-      continue;
-    }
-
     const testRef = [...testRefToActions.keys()].find(
       (ref) => path.resolve(planDirectory, ref) === absolute
     );
-    if (testRef) {
-      const ids = [...testRefToActions.get(testRef)];
+    if (matchedSourceIds.length > 0 || testRef) {
+      const viaTest = testRef ? [...testRefToActions.get(testRef)] : [];
+      const ids = [...new Set([...matchedSourceIds, ...viaTest])];
       for (const id of ids) affected.add(id);
-      attribution.push({ file: relativeToPlan, via: "test", action_ids: ids });
+      attribution.push({
+        file: relativeToPlan,
+        via: matchedSourceIds.length > 0 && viaTest.length > 0 ? "sources+test" : matchedSourceIds.length > 0 ? "sources" : "test",
+        action_ids: ids
+      });
+      continue;
+    }
+
+    if (ignore.some((pattern) => pattern.test(relativeToPlan))) {
+      attribution.push({ file: relativeToPlan, via: "ignored", action_ids: [] });
       continue;
     }
 
@@ -144,7 +152,14 @@ async function changedFiles(cwd, base) {
     if (root.exit_code !== 0) return { error: "not a git repository", files: [] };
     const repoRoot = root.stdout.trim();
 
-    const diff = await runCommand(["git", "diff", "--name-only", base], { cwd, timeoutMs: 15_000 });
+    const diff = await runCommand(
+      // --no-renames keeps a move as delete+add. With rename detection the old
+      // path disappears from the file list, so moving an implementation into an
+      // ignored directory (or out of one) could hide the deletion from
+      // attribution; both endpoints must be attributed instead.
+      ["git", "diff", "--no-renames", "--name-only", base],
+      { cwd, timeoutMs: 15_000 }
+    );
     if (diff.exit_code !== 0) {
       return { error: `git diff against ${base} failed`, files: [] };
     }
@@ -197,14 +212,20 @@ async function manifestActionDelta(manifestPath, base, current, cwd) {
     return { full: true, reason: "the Manifest at the base revision is not valid JSON", action_ids: [] };
   }
 
-  const framing = (manifest) =>
-    JSON.stringify({
-      spec_version: manifest.spec_version,
-      application: manifest.application,
-      surfaces: manifest.surfaces
-    });
-  if (framing(previous) !== framing(current)) {
-    return { full: true, reason: "surfaces, spec version, or application identity changed", action_ids: [] };
+  // Anything outside the action list -- surfaces, spec version, application
+  // identity, state declarations, conformance targets -- changes what every
+  // Binding is measured against, so any top-level difference beyond `actions`
+  // widens to a full run. Comparing only a hand-picked subset would let a
+  // changed shared-state declaration pass as an empty scoped run.
+  const withoutActions = (manifest) => {
+    const copy = {};
+    for (const key of Object.keys(manifest ?? {}).sort()) {
+      if (key !== "actions") copy[key] = manifest[key];
+    }
+    return copy;
+  };
+  if (JSON.stringify(withoutActions(previous)) !== JSON.stringify(withoutActions(current))) {
+    return { full: true, reason: "the Manifest changed outside its action list", action_ids: [] };
   }
 
   const previousById = new Map((previous.actions ?? []).map((action) => [action.id, action]));
