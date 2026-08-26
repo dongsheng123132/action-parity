@@ -14,6 +14,7 @@ import { runCommand } from "../src/exec.mjs";
  */
 
 const isWindows = process.platform === "win32";
+const windowsOnly = { skip: isWindows ? false : "Windows-only behavior" };
 
 test("runCommand captures stdout and the exit code of a plain executable", async () => {
   const result = await runCommand(["git", "--version"], { timeoutMs: 30_000 });
@@ -22,8 +23,7 @@ test("runCommand captures stdout and the exit code of a plain executable", async
   assert.match(result.stdout, /^git version/);
 });
 
-test("a .cmd shim resolves and runs where a bare spawn would ENOENT", async (t) => {
-  if (!isWindows) t.skip("Windows-only behavior");
+test("a .cmd shim resolves and runs where a bare spawn would fail", windowsOnly, async () => {
   const { root } = await makeShimRepo();
   const result = await runCommand(["demo-cmd", "--version"], { cwd: root, timeoutMs: 30_000 });
   assert.equal(result.spawn_error, null);
@@ -31,24 +31,21 @@ test("a .cmd shim resolves and runs where a bare spawn would ENOENT", async (t) 
   assert.match(result.stdout, /demo-cmd-1\.2\.3/);
 });
 
-test("exit codes survive the cmd.exe batch wrapper", async (t) => {
-  if (!isWindows) t.skip("Windows-only behavior");
+test("exit codes survive the cmd.exe batch wrapper", windowsOnly, async () => {
   const { root } = await makeShimRepo();
   const result = await runCommand(["demo-cmd", "--fail"], { cwd: root, timeoutMs: 30_000 });
   assert.equal(result.exit_code, 7);
   assert.equal(result.timed_out, false);
 });
 
-test("arguments with spaces arrive intact through the wrapper", async (t) => {
-  if (!isWindows) t.skip("Windows-only behavior");
+test("arguments with spaces arrive intact through the wrapper", windowsOnly, async () => {
   const { root } = await makeShimRepo();
   const result = await runCommand(["demo-cmd", "echo-arg", "two parts & here"], { cwd: root, timeoutMs: 30_000 });
   assert.equal(result.exit_code, 0);
   assert.match(result.stdout, /ARG=\[two parts & here\]/);
 });
 
-test("a timeout kills the whole tree instead of hanging on orphaned pipes", async (t) => {
-  if (!isWindows) t.skip("Windows-only behavior");
+test("a timeout kills the whole tree instead of hanging on orphaned pipes", windowsOnly, async () => {
   const { root } = await makeShimRepo();
   const started = Date.now();
   const result = await runCommand(["demo-cmd", "--hang"], { cwd: root, timeoutMs: 3_000 });
@@ -65,17 +62,22 @@ test("an unknown program reports a spawn error instead of throwing", async () =>
 
 async function makeShimRepo() {
   const root = await mkdtemp(path.join(os.tmpdir(), "ap-exec-"));
-  await writeFile(
-    path.join(root, "demo-cmd.cmd"),
-    [
-      "@echo off",
-      "if \"%~1\"==\"--version\" echo demo-cmd-1.2.3 & exit /b 0",
-      "if \"%~1\"==\"--fail\" exit /b 7",
-      "if \"%~1\"==\"--hang\" ping -n 61 127.0.0.1 >nul & exit /b 9",
-      "if \"%~1\"==\"echo-arg\" echo ARG=[%~2] & exit /b 0",
-      "echo unknown args & exit /b 1"
-    ].join("\r\n"),
-    "utf8"
-  );
-  return { root };
+  try {
+    await writeFile(
+      path.join(root, "demo-cmd.cmd"),
+      [
+        "@echo off",
+        "if \"%~1\"==\"--version\" echo demo-cmd-1.2.3 & exit /b 0",
+        "if \"%~1\"==\"--fail\" exit /b 7",
+        "if \"%~1\"==\"--hang\" ping -n 61 127.0.0.1 >nul & exit /b 9",
+        "if \"%~1\"==\"echo-arg\" echo ARG=[%~2] & exit /b 0",
+        "echo unknown args & exit /b 1"
+      ].join("\r\n"),
+      "utf8"
+    );
+    return { root };
+  } catch (error) {
+    await rm(root, { recursive: true, force: true });
+    throw error;
+  }
 }
