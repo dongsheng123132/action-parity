@@ -12,6 +12,7 @@ import { verifyManifest } from "../src/verifier.mjs";
 import { resolveChangedScope } from "../src/changed.mjs";
 import { buildAgentContext } from "../src/project.mjs";
 import { doctorProject } from "../src/doctor.mjs";
+import { initializeProject } from "../src/init.mjs";
 
 const VERSION = "0.8.0";
 const MANIFEST_SPEC_VERSION = "0.5.0";
@@ -28,6 +29,7 @@ Usage:
                                   [--changed [--base <ref>]]
   action-parity context [project-directory|action-parity.config.json] [--json] [--quiet]
   action-parity doctor [project-directory] [--json] [--quiet]
+  action-parity init [project-directory] [--name <name>] [--flavor electron] [--force] [--json]
   action-parity --version [--json]
 
 Evidence model:
@@ -142,12 +144,12 @@ function optionValue(args, name) {
 }
 
 function positionalArgs(args) {
-  const values = new Set(["--plan", "--out", "--out-dir"]);
+  const values = new Set(["--plan", "--out", "--out-dir", "--name", "--flavor"]);
   const output = [];
   for (let index = 0; index < args.length; index += 1) {
     if (values.has(args[index])) {
       index += 1;
-    } else if (!["--json", "--quiet", "-q", "--typescript", "--check"].includes(args[index])) {
+    } else if (!["--json", "--quiet", "-q", "--typescript", "--check", "--force"].includes(args[index])) {
       output.push(args[index]);
     }
   }
@@ -277,6 +279,22 @@ async function runDoctor(projectPath, jsonMode, quiet) {
   process.exitCode = report.ok ? 0 : 1;
 }
 
+async function runInit(projectPath, args, jsonMode) {
+  const result = await initializeProject({
+    targetDirectory: projectPath ?? process.cwd(),
+    name: optionValue(args, "--name") ?? undefined,
+    flavor: optionValue(args, "--flavor") ?? undefined,
+    force: args.includes("--force")
+  });
+  if (jsonMode) {
+    process.stdout.write(`${JSON.stringify(jsonEnvelope(result))}\n`);
+  } else {
+    process.stdout.write(`Initialized ${result.flavor} starter in ${result.target}\n`);
+    for (const file of result.files) process.stdout.write(`${file.status}\t${file.path}\n`);
+    for (const step of result.next_steps) process.stdout.write(`Next\t${step}\n`);
+  }
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const jsonMode = args.includes("--json");
@@ -302,11 +320,11 @@ async function main() {
     return;
   }
   const [mode, input] = positional;
-  if (!mode || !["validate", "report", "generate", "verify", "context", "doctor"].includes(mode)) {
-    failUsage("Expected validate, report, generate, verify, context, or doctor.", jsonMode);
+  if (!mode || !["validate", "report", "generate", "verify", "context", "doctor", "init"].includes(mode)) {
+    failUsage("Expected validate, report, generate, verify, context, doctor, or init.", jsonMode);
     return;
   }
-  if (!["context", "doctor"].includes(mode) && !input) {
+  if (!["context", "doctor", "init"].includes(mode) && !input) {
     failUsage(`${mode} requires an input path.`, jsonMode);
     return;
   }
@@ -316,6 +334,8 @@ async function main() {
       await runContext(input, jsonMode, quiet);
     } else if (mode === "doctor") {
       await runDoctor(input, jsonMode, quiet);
+    } else if (mode === "init") {
+      await runInit(input, args, jsonMode);
     } else if (mode === "validate" || mode === "report") {
       await runStatic(mode, input, jsonMode, quiet);
     } else if (mode === "generate") {
