@@ -99,6 +99,8 @@ action-parity generate action-parity.json --out-dir src/generated --typescript -
 
 实现入口：[Rust Registry 样例](examples/rust-registry)、[Agent Profile Schema](schema/action-parity.agent-profile.schema.json)、[Agent 原生开发路线](docs/AGENT-NATIVE-DEVELOPMENT.zh-CN.md)。
 
+新项目 20 分钟接入（AI 可驱动的 CLI，先不上门禁）：见 [docs/QUICKSTART.zh-CN.md](docs/QUICKSTART.zh-CN.md)。
+
 ## SDK
 
 两个运行时 SDK 实现同一个动作核心、同一个执行信封、同一份 `action-parity.registry-bundle/v1`，因此同一套工具链既能生成也能验证它们：
