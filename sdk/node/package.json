@@ -1,6 +1,6 @@
 {
   "name": "action-parity-sdk",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Action Core SDK for Node, Electron, and TypeScript. Register a business Action once; derive CLI, MCP, IPC, HTTP, and the ActionParity Manifest from it.",
   "keywords": [
     "actionparity",
@@ -16,7 +16,7 @@
   "type": "module",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0"
   },
   "repository": {
     "type": "git",
@@ -28,23 +28,33 @@
   "exports": {
     ".": {
       "types": "./types/index.d.ts",
-      "import": "./src/index.mjs"
+      "import": "./src/index.mjs",
+      "require": "./src/index.mjs",
+      "default": "./src/index.mjs"
     },
     "./cli": {
       "types": "./types/cli.d.ts",
-      "import": "./src/cli.mjs"
+      "import": "./src/cli.mjs",
+      "require": "./src/cli.mjs",
+      "default": "./src/cli.mjs"
     },
     "./mcp": {
       "types": "./types/mcp.d.ts",
-      "import": "./src/mcp.mjs"
+      "import": "./src/mcp.mjs",
+      "require": "./src/mcp.mjs",
+      "default": "./src/mcp.mjs"
     },
     "./electron": {
       "types": "./types/electron.d.ts",
-      "import": "./src/electron.mjs"
+      "import": "./src/electron.mjs",
+      "require": "./src/electron.mjs",
+      "default": "./src/electron.mjs"
     },
     "./http": {
       "types": "./types/http.d.ts",
-      "import": "./src/http.mjs"
+      "import": "./src/http.mjs",
+      "require": "./src/http.mjs",
+      "default": "./src/http.mjs"
     }
   },
   "files": [

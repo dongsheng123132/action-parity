@@ -7,11 +7,14 @@ bridge, the HTTP endpoint, and the ActionParity Manifest are all derived from
 that one registration. No transport in this package contains business
 behavior, and none of them is allowed to be a second implementation.
 
-Requires Node 20 or newer. No runtime dependencies.
+Requires Node 20.19 or newer (22.12+ also fine). No runtime dependencies.
 
 ```text
 npm install action-parity-sdk
 ```
+
+CommonJS consumers can `require("action-parity-sdk")` directly on Node 20.19+
+or 22.12+; on older runtimes use `await import("action-parity-sdk")`.
 
 ## The whole loop
 
@@ -60,6 +63,17 @@ await serveMcpStdio(registry);
 import { attachElectronIpc } from "action-parity-sdk/electron";
 attachElectronIpc(ipcMain, registry, { confirm: askTheHuman });
 ```
+
+```js
+// http.mjs — the entire HTTP Shadow
+import http from "node:http";
+import { createHttpHandler } from "action-parity-sdk/http";
+http.createServer(createHttpHandler(registry)).listen(8080);
+```
+
+The HTTP Shadow dispatches under the surface id `api` by default, so a registry
+must declare a surface with `kind: "api"` (the `defineSurface` list above) or
+every HTTP request returns `unknown_surface`.
 
 Adding `note.archive` to `core.mjs` gives the CLI a command with flags, help
 text, and exit codes; gives the agent a new MCP tool; gives the GUI a catalog

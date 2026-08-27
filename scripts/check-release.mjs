@@ -146,7 +146,17 @@ async function checkNodeSdk(version, temporary) {
     `action-parity-sdk is ${sdkPackage.version}, expected the toolchain version ${version}`
   );
   assert(Object.keys(sdkPackage.dependencies ?? {}).length === 0,
-    "action-parity-sdk must stay dependency-free so it can be embedded anywhere");
+      "action-parity-sdk must stay dependency-free so it can be embedded anywhere");
+    const sdkSource = await readFile(path.join(sdkRoot, "src", "registry.mjs"), "utf8");
+    assert(
+      sdkSource.includes(`SDK_VERSION = "${version}"`),
+      `SDK_VERSION in sdk/node/src/registry.mjs does not match the toolchain version ${version}`
+    );
+    assert(
+      sdkPackage.exports["."].require === "./src/index.mjs" &&
+        sdkPackage.exports["./cli"].require === "./src/cli.mjs",
+      "action-parity-sdk exports must carry a require condition pointing at the same file"
+    );
 
   const sdkPack = JSON.parse(
     await runNpm(["pack", "--json", "--pack-destination", temporary], sdkRoot)
@@ -221,6 +231,21 @@ async function checkNodeSdk(version, temporary) {
   );
   const smoke = await run(process.execPath, [path.join(consumer, "smoke.mjs")], consumer);
   assert(smoke.includes("sdk-ok"), "the installed action-parity-sdk tarball failed its smoke run");
+
+  await writeFile(
+    path.join(consumer, "smoke.cjs"),
+    [
+      'const sdk = require("action-parity-sdk");',
+      'const cli = require("action-parity-sdk/cli");',
+      'if (typeof sdk.createRegistry !== "function" || typeof cli.createCliRunner !== "function") {',
+      "  process.exit(1);",
+      "}",
+      'process.stdout.write("cjs-ok\\n");'
+    ].join("\n"),
+    "utf8"
+  );
+  const cjsSmoke = await run(process.execPath, [path.join(consumer, "smoke.cjs")], consumer);
+  assert(cjsSmoke.includes("cjs-ok"), "CJS require of the installed action-parity-sdk failed");
 }
 
 function run(program, args, cwd) {
