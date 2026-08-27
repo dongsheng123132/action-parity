@@ -49,8 +49,9 @@ AI 之后只改 `actions.rs` / `lib.rs`，跑 generate + verify 收工。
 那些等第二个界面出现再说。
 
 ```powershell
-# 一条命令生成骨架（0.8.x 起；发布前可 git 钉版本）
-npx action-parity init . --flavor electron
+# 一条命令生成骨架（根 CLI 尚未发布：仓库内直接用 node 跑）
+node bin/action-parity.mjs init . --flavor electron
+# npm 上的 action-parity 发布后，可换成 npx action-parity init . --flavor electron
 ```
 
 生成的结构：
@@ -78,7 +79,7 @@ registry.add(defineAction({
 装依赖后验证：
 
 ```powershell
-npm i action-parity-sdk        # 发布前：file: 指向仓库 sdk/node
+npm i action-parity-sdk        # 已发布：npm 官方源 action-parity-sdk@0.8.0
 node app/cli.mjs note.list --json
 ```
 
@@ -119,8 +120,9 @@ AI（Claude Code / Codex / Hermes）面对一个影核项目的标准动作序�
 
 ## 5. 已知边界（诚实声明）
 
-- npm 包 `action-parity` / `action-parity-sdk` 尚未正式发布；
-  当前用 git 钉版本或 `file:` 引用（README §Publication 有说明）。
+- `action-parity-sdk` 已发布（0.8.0，npm 官方源）；根 CLI `action-parity` 与两个
+  Rust crate 尚未发布——仓库内请用 `node bin/action-parity.mjs`，发布后换
+  `npx action-parity`（见 §2）。
 - Windows 上 spawn `.cmd` 垫片的启动 bug 已在 0.8.x 修复
   （此前 verify 在部分 Windows 机器上根本起不来——如果你的旧项目
   verify 从没绿过，先升级工具链再下结论）。
