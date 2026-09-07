@@ -1,8 +1,16 @@
-//! Windows-only observation helper. It performs no UI interaction and never writes raw frames to disk.
-use serde::Serialize;
+//! Windows-only observation helper: read-only observation port.
+//! UIA usage in this file is limited to element location, tree walking and
+//! property/Value reads. No Invoke/SetValue/keyboard/mouse execution APIs are
+//! referenced anywhere in this crate (adapter facade, plan 6.2).
+//! Raw frames never touch disk; pixel masks are composited in-memory.
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::ffi::c_void;
 use std::io::{self, BufRead, Write};
+use uiautomation::core::{UIAutomation, UIElement};
+use uiautomation::patterns::UIValuePattern;
+use uiautomation::types::Handle as UIHandle;
+use windows::Win32::Foundation::HWND;
 
 type Hwnd = isize;
 type Hdc = isize;
@@ -49,6 +57,126 @@ const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
 struct WindowInfo { hwnd: String, pid: u32, title: String, bounds_px: Bounds, dpi: u32, image_name: String, image_path: String }
 #[derive(Serialize)]
 struct Bounds { x: i32, y: i32, width: i32, height: i32 }
+
+/// v0.1 UIA budget: 5000 nodes / depth 64.
+const MAX_TREE_NODES: usize = 5000;
+const MAX_TREE_DEPTH: u32 = 64;
+const TEXT_CAP: usize = 1024;
+const VALUE_CAP: usize = 4096;
+const MAX_MASKS: usize = 512;
+/// Opaque solid mask shade (B=G=R).
+const MASK_SHADE: u8 = 0x2E;
+
+#[derive(Serialize)]
+struct TreeNode {
+    node_id: String,
+    parent_id: Option<String>,
+    control_type: String,
+    name: String,
+    automation_id: Option<String>,
+    help_text: Option<String>,
+    /// Screen px; Node rebases to screenshot space by capture origin.
+    bounds_px: Bounds,
+    visible: bool,
+    enabled: bool,
+    focused: bool,
+    is_password: bool,
+    /// Always None for password elements: values are never requested.
+    value: Option<String>,
+    pid: u32,
+}
+
+#[derive(Deserialize, Clone, Copy)]
+struct MaskRect { x: i32, y: i32, width: i32, height: i32 }
+
+fn truncate(text: &str, cap: usize) -> String {
+    if text.chars().count() <= cap { text.to_string() } else { text.chars().take(cap).collect() }
+}
+
+fn read_node(element: &UIElement, node_id: String, parent_id: Option<String>) -> TreeNode {
+    let is_password = element.is_password().unwrap_or(true);
+    let value = if is_password { None } else {
+        element.get_pattern::<UIValuePattern>().ok()
+            .and_then(|pattern| pattern.get_value().ok())
+            .map(|v| truncate(&v, VALUE_CAP))
+            .filter(|v| !v.is_empty())
+    };
+    let (x, y, width, height) = element.get_bounding_rectangle().ok()
+        .map(|r| (r.get_left(), r.get_top(), r.get_width().max(0), r.get_height().max(0)))
+        .unwrap_or((0, 0, 0, 0));
+    TreeNode {
+        node_id,
+        parent_id,
+        control_type: element.get_control_type().map(|c| format!("{:?}", c)).unwrap_or_else(|_| "Unknown".into()),
+        name: truncate(&element.get_name().unwrap_or_default(), TEXT_CAP),
+        automation_id: element.get_automation_id().ok().map(|s| truncate(&s, TEXT_CAP)).filter(|s| !s.is_empty()),
+        help_text: element.get_help_text().ok().map(|s| truncate(&s, TEXT_CAP)).filter(|s| !s.is_empty()),
+        bounds_px: Bounds { x, y, width, height },
+        visible: element.is_offscreen().map(|off| !off).unwrap_or(false),
+        enabled: element.is_enabled().unwrap_or(false),
+        focused: element.has_keyboard_focus().unwrap_or(false),
+        is_password,
+        value,
+        pid: element.get_process_id().unwrap_or(0),
+    }
+}
+
+/// Control-view DFS (iterative). Returns (nodes, window identity, truncated).
+fn walk_tree(hwnd: Hwnd) -> Result<(Vec<TreeNode>, WindowInfo, bool), String> {
+    let item = unsafe { info(hwnd) }.ok_or_else(|| "window_not_found".to_string())?;
+    let automation = UIAutomation::new().map_err(|_| "uia_init_failed".to_string())?;
+    let walker = automation.get_control_view_walker().map_err(|_| "uia_walker_failed".to_string())?;
+    let root = automation.element_from_handle(UIHandle::from(HWND(hwnd as *mut c_void)))
+        .map_err(|_| "uia_root_failed".to_string())?;
+    let mut nodes = Vec::new();
+    let mut truncated = false;
+    let mut counter = 0u32;
+    let mut stack = vec![(root, None, 0u32)];
+    while let Some((element, parent_id, depth)) = stack.pop() {
+        if nodes.len() >= MAX_TREE_NODES { truncated = true; break; }
+        counter += 1;
+        let node_id = format!("n{:05}", counter);
+        if depth < MAX_TREE_DEPTH {
+            let mut kids = Vec::new();
+            let mut next = walker.get_first_child(&element).ok();
+            while let Some(child) = next {
+                next = walker.get_next_sibling(&child).ok();
+                kids.push(child);
+                if kids.len() >= MAX_TREE_NODES { break; }
+            }
+            for child in kids.into_iter().rev() { stack.push((child, Some(node_id.clone()), depth + 1)); }
+        } else if walker.get_first_child(&element).is_ok() {
+            truncated = true;
+        }
+        nodes.push(read_node(&element, node_id, parent_id));
+    }
+    Ok((nodes, item, truncated))
+}
+
+/// Screen-space masks are re-based by capture origin, clamped, composited.
+/// A mask with empty intersection is rejected (fail closed).
+fn apply_masks(pixels: &mut [u8], width: usize, height: usize, origin: (i32, i32), masks: &[MaskRect]) -> Result<usize, String> {
+    if masks.len() > MAX_MASKS { return Err("too_many_masks".into()); }
+    let mut applied = 0;
+    for mask in masks {
+        if mask.width <= 0 || mask.height <= 0 { return Err("mask_out_of_bounds".into()); }
+        let x0 = (mask.x - origin.0).max(0) as usize;
+        let y0 = (mask.y - origin.1).max(0) as usize;
+        let x1 = (mask.x - origin.0 + mask.width).clamp(0, width as i32) as usize;
+        let y1 = (mask.y - origin.1 + mask.height).clamp(0, height as i32) as usize;
+        if x0 >= x1 || y0 >= y1 { return Err("mask_out_of_bounds".into()); }
+        // DIB is bottom-up: buffer row = height-1-y.
+        for y in y0..y1 {
+            let row = (height - 1 - y) * width;
+            for x in x0..x1 {
+                let i = (row + x) * 4;
+                pixels[i] = MASK_SHADE; pixels[i + 1] = MASK_SHADE; pixels[i + 2] = MASK_SHADE;
+            }
+        }
+        applied += 1;
+    }
+    Ok(applied)
+}
 
 unsafe fn title(hwnd: Hwnd) -> String {
     let length = GetWindowTextLengthW(hwnd);
@@ -104,7 +232,7 @@ fn png_bgra(width: usize, height: usize, pixels: &[u8]) -> Vec<u8> {
     compressed.extend_from_slice(&adler32(&raw).to_be_bytes());
     let mut output = vec![137, 80, 78, 71, 13, 10, 26, 10]; let mut header = Vec::new(); header.extend_from_slice(&(width as u32).to_be_bytes()); header.extend_from_slice(&(height as u32).to_be_bytes()); header.extend_from_slice(&[8, 6, 0, 0, 0]); png_chunk(&mut output, b"IHDR", &header); png_chunk(&mut output, b"IDAT", &compressed); png_chunk(&mut output, b"IEND", &[]); output
 }
-fn capture(hwnd: Hwnd) -> Result<(Vec<u8>, WindowInfo), String> {
+fn capture(hwnd: Hwnd, masks: &[MaskRect]) -> Result<(Vec<u8>, WindowInfo, usize), String> {
     let item = unsafe { info(hwnd) }.ok_or_else(|| "window_not_found".to_string())?;
     let (width, height) = (item.bounds_px.width as usize, item.bounds_px.height as usize);
     if width > 32768 || height > 32768 || width.saturating_mul(height) > 67_108_864 { return Err("capture_too_large".into()); }
@@ -114,18 +242,46 @@ fn capture(hwnd: Hwnd) -> Result<(Vec<u8>, WindowInfo), String> {
         let info = BitmapInfo { header: BitmapInfoHeader { bi_size: std::mem::size_of::<BitmapInfoHeader>() as u32, bi_width: width as i32, bi_height: height as i32, bi_planes: 1, bi_bit_count: 32, bi_compression: 0, bi_size_image: 0, bi_x_pels_per_meter: 0, bi_y_pels_per_meter: 0, bi_clr_used: 0, bi_clr_important: 0 }, colors: [0] };
         let mut bits: *mut c_void = std::ptr::null_mut(); let bitmap = CreateDIBSection(source, &info, 0, &mut bits, 0, 0);
         if bitmap == 0 || bits.is_null() { if bitmap != 0 { DeleteObject(bitmap); } DeleteDC(memory); ReleaseDC(hwnd, source); return Err("dib_failed".into()); }
-        let old = SelectObject(memory, bitmap); let printed = PrintWindow(hwnd, memory, 2 /* PW_RENDERFULLCONTENT: GPU 合成内容（WebView2/Electron）需此标志，否则客户区黑屏 */); let bytes = if printed == 0 { Err("printwindow_failed".into()) } else { let raw = std::slice::from_raw_parts(bits as *const u8, width * height * 4); Ok(png_bgra(width, height, raw)) };
-        SelectObject(memory, old); DeleteObject(bitmap); DeleteDC(memory); ReleaseDC(hwnd, source); bytes.map(|png| (png, item))
+        let old = SelectObject(memory, bitmap); let printed = PrintWindow(hwnd, memory, 2 /* PW_RENDERFULLCONTENT: GPU 合成内容（WebView2/Electron）需此标志，否则客户区黑屏 */); let bytes = if printed == 0 { Err("printwindow_failed".into()) } else {
+            let raw = std::slice::from_raw_parts(bits as *const u8, width * height * 4);
+            let mut owned = raw.to_vec();
+            match apply_masks(&mut owned, width, height, (item.bounds_px.x, item.bounds_px.y), masks) {
+                Ok(applied) => Ok((png_bgra(width, height, &owned), applied)),
+                Err(code) => Err(code),
+            }
+        };
+        SelectObject(memory, old); DeleteObject(bitmap); DeleteDC(memory); ReleaseDC(hwnd, source); bytes.map(|(png, applied)| (png, item, applied))
     }
 }
-fn respond(control: Value, frame: Option<Vec<u8>>) { let mut stdout = io::stdout().lock(); let _ = serde_json::to_writer(&mut stdout, &control); let _ = stdout.write_all(b"\n"); if let Some(bytes) = frame { let _ = stdout.write_all(&bytes); } let _ = stdout.flush(); }
+fn respond(control: Value, segments: Vec<Vec<u8>>) { let mut stdout = io::stdout().lock(); let _ = serde_json::to_writer(&mut stdout, &control); let _ = stdout.write_all(b"\n"); for bytes in segments { let _ = stdout.write_all(&bytes); } let _ = stdout.flush(); }
 fn parse_hwnd(value: &str) -> Option<Hwnd> { usize::from_str_radix(value.trim_start_matches("0x"), 16).ok().map(|n| n as Hwnd) }
 fn main() {
-    let mut input = String::new(); if io::stdin().lock().read_line(&mut input).is_err() || input.len() > 65536 { respond(json!({"ok":false,"code":"invalid_control"}), None); return; }
-    let request: Value = match serde_json::from_str(&input) { Ok(v) => v, Err(_) => { respond(json!({"ok":false,"code":"invalid_json"}), None); return; } };
+    let mut input = String::new(); if io::stdin().lock().read_line(&mut input).is_err() || input.len() > 65536 { respond(json!({"ok":false,"code":"invalid_control"}), vec![]); return; }
+    let request: Value = match serde_json::from_str(&input) { Ok(v) => v, Err(_) => { respond(json!({"ok":false,"code":"invalid_json"}), vec![]); return; } };
     match request.get("op").and_then(Value::as_str) {
-        Some("list") => { let filter = request.get("filter").and_then(Value::as_str).unwrap_or(""); respond(json!({"ok":true,"op":"list","windows":enumerate(filter),"known_limitations":["UIA tree pending R2"]}), None); }
-        Some("capture") => match request.get("hwnd").and_then(Value::as_str).and_then(parse_hwnd).and_then(|hwnd| capture(hwnd).ok()) { Some((png, window)) => respond(json!({"ok":true,"op":"capture","frame_bytes":png.len(),"window":window,"known_limitations":["UIA tree pending R2"]}), Some(png)), None => respond(json!({"ok":false,"code":"capture_failed"}), None) },
-        _ => respond(json!({"ok":false,"code":"unknown_op"}), None)
+        Some("list") => { let filter = request.get("filter").and_then(Value::as_str).unwrap_or(""); respond(json!({"ok":true,"op":"list","windows":enumerate(filter),"known_limitations":["UIA tree via tree op","process-reverify-R2"]}), vec![]); }
+        Some("tree") => match request.get("hwnd").and_then(Value::as_str).and_then(parse_hwnd).map(walk_tree) {
+            Some(Ok((nodes, window, truncated))) => {
+                let tree_bytes = serde_json::to_vec(&nodes).unwrap_or_default();
+                respond(json!({"ok":true,"op":"tree","tree_bytes":tree_bytes.len(),"window":window,"node_count":nodes.len(),"truncated":truncated,"known_limitations":["control-view-only","no-value-for-password","process-reverify-R2"]}), vec![tree_bytes])
+            }
+            Some(Err(code)) => respond(json!({"ok":false,"code":code}), vec![]),
+            None => respond(json!({"ok":false,"code":"tree_failed"}), vec![]),
+        },
+        Some("capture") => {
+            let masks = match request.get("masks") {
+                None | Some(Value::Null) => Vec::new(),
+                Some(value) => match serde_json::from_value::<Vec<MaskRect>>(value.clone()) {
+                    Ok(m) => m,
+                    Err(_) => { respond(json!({"ok":false,"code":"invalid_masks"}), vec![]); return; }
+                }
+            };
+            match request.get("hwnd").and_then(Value::as_str).and_then(parse_hwnd).map(|hwnd| capture(hwnd, &masks)) {
+                Some(Ok((png, window, applied))) => respond(json!({"ok":true,"op":"capture","frame_bytes":png.len(),"window":window,"masks_applied":applied,"known_limitations":["process-reverify-R2"]}), vec![png]),
+                Some(Err(code)) => respond(json!({"ok":false,"code":code}), vec![]),
+                None => respond(json!({"ok":false,"code":"capture_failed"}), vec![]),
+            }
+        }
+        _ => respond(json!({"ok":false,"code":"unknown_op"}), vec![])
     }
 }

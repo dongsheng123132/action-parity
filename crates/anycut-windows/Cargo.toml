@@ -8,3 +8,5 @@ publish = false
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
+uiautomation = { version = "0.25", features = ["pattern"] }
+windows = { version = "0.62.2", features = ["Win32_Foundation"] }
