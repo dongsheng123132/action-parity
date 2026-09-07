@@ -1302,5 +1302,6 @@ AnyCut v0.1 的交付标准是：在中文 Windows 上，将 U-King 的指定窗
 - 三页录制（`C:/tmp/m4-rec/sessions/2026-09-07-62798`，ttl 1h）：3 帧八件套齐、`tree_status` 全 complete、三帧标题相异（UIA SelectionItem 切页，终帧落回探针标签）；`inspect` 三帧全过；mask 数随页而异（标题 marker 页 2、干净页 0）——遮盖按帧实算，无跨帧复用。
 - `tutorial --session`：步骤引用 `frame-<i>#nodes/<id>` 逐条校验存在性+未到期；无证据写点击报 `tutorial_evidence_required`（真机已验）；无证据+“界面发生变化/人工说明”放行。三步样例（2 证据+1 人工说明）落盘 `tutorial.md`。
 - 单测 18/18（新增会话身份/到期上限/引用四态/组装两格式）。
+- 干净机验证（阿里云按量 Win2022 中文，i-bp160q7e2zgcpr02uayf，已 teardown 停费）：node portable（npmmirror）+ `npm i ajv@8` + 同提交包，`node --test` **18/18**，CLI usage 正常，helper exe 可启动无缺依赖弹窗。国际网（nodejs.org）云上不通，改国内镜像源解决；教训：干净机包须含 `ajv` 依赖说明。
 
 PLAN-READY
