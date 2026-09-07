@@ -1281,4 +1281,11 @@ AnyCut v0.1 的交付标准是：在中文 Windows 上，将 U-King 的指定窗
 - `CC Switch`（绿色版主窗口，1485x638）：3.7MB，亮度 92.2，暗像素 0.2%——同样真实像素。
 - 两包 `inspect shadow` + `builtin audit` 全过（预期 `tree-partial` 唯一 finding，零网络）。事后杀掉自起的绿色版进程，常驻 mini 服务未动。
 
+### 9.4 M1 脱敏三探针（2026-09-07，真机记事本，均为沙箱假密钥，事后已清盘）
+
+- P1 密钥进 `--purpose`（`sk-test-FAKE-0000-ANYCUT` + `密码:fakepassword123`）：捕获成功，七文本产物 grep 零命中，`api-key` + `labelled-secret` 双标记齐全。**文本路径 PASS**。
+- P2 密钥在文件内容（标题干净）：捕获成功，文本产物零泄漏；但 `mask_count=0`——占位树无内容节点、无 OCR，像素侧无定位信息，原图按构造直通。**§8.1 像素半项 FAIL**，R2（UIA 树/OCR）关闭前不得捕获涉密窗口。
+- P3 密钥进窗口标题（`测试密钥sk-test-FAKE-TITLE-0001.txt`）：标题文本脱敏正确（`[已脱敏:test-secret][已脱敏:api-key].txt`，规则按 ORDER 先后触发）；但捕获**未如预期硬失败**——定位根因：`maskRegions` 只消费显式传入的 `nodes`，真机默认路径（单根占位树）永不产生像素 mask。fail-closed 目前只覆盖 fixture/显式节点路径。**真机像素遮盖触发器缺失**，与 P2 同根因，UIA 树优先级由 R2 升为像素脱敏阻断项。
+- 附带澄清：`app_id` 回显 `--app` 选择器原文（如 `FAKE-TITLE`），经 `redactValue` 实测真密钥模式仍会被脱敏，无需修；`--app` 里放真密钥本就是误用。
+
 PLAN-READY
