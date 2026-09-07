@@ -4,6 +4,7 @@ members = [
   "crates/action-parity-core",
   "adapters/tauri",
   "examples/rust-registry",
+  "crates/anycut-windows",
 ]
 
 [workspace.package]

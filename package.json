@@ -21,7 +21,8 @@
   },
   "workspaces": [
     "sdk/node",
-    "examples/node-registry"
+    "examples/node-registry",
+    "packages/anycut"
   ],
   "bin": {
     "action-parity": "./bin/action-parity.mjs"
@@ -49,7 +50,7 @@
     "generate:node-example": "node scripts/generate-node-example.mjs",
     "verify:node-example": "node bin/action-parity.mjs verify examples/node-registry/generated/action-parity.json --plan examples/node-registry/generated/action-parity.verify.json",
     "sync:agent-skills": "node scripts/sync-agent-skills.mjs",
-    "test": "node --test test/cli.test.mjs test/validator.test.mjs test/verifier.test.mjs test/project.test.mjs test/generator.test.mjs test/typescript.test.mjs test/doctor.test.mjs test/sdk-core.test.mjs test/sdk-surfaces.test.mjs test/changed.test.mjs test/exec.test.mjs test/init.test.mjs",
+    "test": "node --test test/cli.test.mjs test/validator.test.mjs test/verifier.test.mjs test/project.test.mjs test/generator.test.mjs test/typescript.test.mjs test/doctor.test.mjs test/sdk-core.test.mjs test/sdk-surfaces.test.mjs test/changed.test.mjs test/exec.test.mjs test/init.test.mjs test/anycut.test.mjs",
     "test:rust": "cargo test --workspace"
   },
   "dependencies": {

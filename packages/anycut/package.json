@@ -1,0 +1,8 @@
+{
+  "name": "anycut",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": { "anycut": "./bin/anycut.mjs" },
+  "engines": { "node": ">=20" }
+}
