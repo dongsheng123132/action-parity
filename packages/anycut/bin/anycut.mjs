@@ -32,6 +32,7 @@ async function capture(flags) {
 }
 
 async function tutorial(run, flags) {
+  if (!flags.session && !run) throw new AnyCutError(2, 'usage', '用法：anycut tutorial <run> [--format md|html] [--title <text>] 或 anycut tutorial --session <dir> --steps \'<json>\'');
   if (flags.session) {
     const steps = flags.steps ? JSON.parse(flags.steps) : [];
     const built = await buildTutorial(flags.session, { title: flags.title ?? '界面说明', format: flags.format ?? 'md', steps });

@@ -17,6 +17,7 @@ const version = pkg.version;
 const distName = `anycut-v${version}-win-x64`;
 const distRoot = path.join(root, "dist", distName);
 const zipPath = path.join(root, "dist", `${distName}.zip`);
+const NETWORK_LIBRARY_NAMES = new Set(["axios", "node-fetch", "undici", "got", "request", "ws", "socket.io"]);
 
 const checks = [];
 function record(name, fn) {
@@ -156,8 +157,6 @@ if (failures > 0) {
 }
 
 // ---- helpers ----
-
-const NETWORK_LIBRARY_NAMES = new Set(["axios", "node-fetch", "undici", "got", "request", "ws", "socket.io"]);
 
 async function requireDist() {
   const exists = await pathExists(distRoot);

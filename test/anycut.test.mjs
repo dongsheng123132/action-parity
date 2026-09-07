@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { deflateSync } from 'node:zlib';
 import { writeShadowBundle } from '../packages/anycut/src/core.mjs';
@@ -231,4 +233,12 @@ test('buildTutorial: 有证据给引用，无证据写人工说明', async (t) =
   assert.match(built.body, /人工说明，无界面证据/);
   const html = await buildTutorial(sessionDir, { title: 'T', format: 'html', now, steps: [{ index: 0, text: '看', ref: 'frame-0#nodes/root' }] });
   assert.equal(html.file, 'tutorial.html');
+});
+
+test('CLI: tutorial 无 run/--session 报 usage，不是 internal_error', () => {
+  const cliPath = fileURLToPath(new URL('../packages/anycut/bin/anycut.mjs', import.meta.url));
+  const result = spawnSync(process.execPath, [cliPath, 'tutorial'], { encoding: 'utf8' });
+  const envelope = JSON.parse(result.stdout);
+  assert.equal(envelope.ok, false);
+  assert.equal(envelope.error.code, 'usage'); // 此前会因 run=undefined 崩成 internal_error（§8.5 释放门发现）
 });
