@@ -1273,4 +1273,12 @@ AnyCut v0.1 的交付标准是：在中文 Windows 上，将 U-King 的指定窗
 - 发现并修复：`capture.image_size_px` 硬编码 1x1（truth-in-bundle 类缺陷）。`core.mjs` 新增 `pngDimensions()` 从 PNG IHDR 解析真实尺寸；fixture（1x1 占位 PNG）仍 11/11 全绿，真机复验回报 `1028x897`。
 - 已知限制（R2，不挡 v0.1）：UIA 树未实现、进程启动时间/捕获后复核待补、backend 仅 printwindow、crop 仅 window。
 
+### 9.3 U-King 中文靶子冒烟（2026-09-07，与 §9.2 同机）
+
+- 起 `U-King-绿色版.exe`（PID 31588）+ 常驻 `u-king-mini.exe`（PID 63624，动之前已在）。`list` 一次看到 6 个相关窗口：双主窗口、双 `*-siw` 单实例哨兵窗（14x14）、双资源管理器。
+- §8.2 歧义场景免费验证：`--app U-King` 多匹配时 CLI 以 `window_ambiguous`（exit 2）拒绝，不瞎选第一个。
+- `U-King AI 管家`（Tauri，2062x1246，dpi 120）：10MB 落盘，采样均值亮度 152/255、暗像素 0.1%——**非黑屏**。PrintWindow + PW_RENDERFULLCONTENT 在 WebView2 系目标上成立，§6.4 的 GPU 风险项在该靶子上关闭。
+- `CC Switch`（绿色版主窗口，1485x638）：3.7MB，亮度 92.2，暗像素 0.2%——同样真实像素。
+- 两包 `inspect shadow` + `builtin audit` 全过（预期 `tree-partial` 唯一 finding，零网络）。事后杀掉自起的绿色版进程，常驻 mini 服务未动。
+
 PLAN-READY
