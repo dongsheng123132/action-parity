@@ -1296,4 +1296,11 @@ AnyCut v0.1 的交付标准是：在中文 Windows 上，将 U-King 的指定窗
 - 护照两报错定性均为**调用问题**，非真 bug：`inspect --run <dir> --section all` 与 `audit --run <dir> builtin` 误把 run 当 `--run` flag 传——正确形为 `inspect <run> [--section tree|window|actions|state|regions]` / `audit <run>`，实测全过。`--section all` 不被支持（`invalid_section`，exit 2）。加固（`6e98b3f`）：缺 run 位置参数或误传 `--run` 时报 `usage` 而非 `internal_error`/`run_not_found`。
 - 单测 14/14（新增 `planMasks`/`rebaseMasks`/`verifyMasks` 正反例；verify 用 zlib 现拼最小 RGBA PNG）。红线遵守：未 kill notepad（共享会话），探针 buffer/disk/标题三处已恢复干净。
 
+### 9.6 M4 record/tutorial 真机验证（2026-09-07，Notepad 三标签页，无密钥探针）
+
+- `record` 实现（`src/record.mjs`）：复用单帧 capture 链逐帧落盘（`frame-<i>/runs/<date>-0001` 八件套，inspect/audit 零改动）；会话 `session.json` 断言目标身份一致（hwnd+owner_pid+image_name 漂移即 `session_identity_changed`）、会话到期上限（首帧 created_at + ttl，录制不延长保留期）；键盘/其他应用内容不进包（by-construction，`keyboard_captured:false`）。
+- 三页录制（`C:/tmp/m4-rec/sessions/2026-09-07-62798`，ttl 1h）：3 帧八件套齐、`tree_status` 全 complete、三帧标题相异（UIA SelectionItem 切页，终帧落回探针标签）；`inspect` 三帧全过；mask 数随页而异（标题 marker 页 2、干净页 0）——遮盖按帧实算，无跨帧复用。
+- `tutorial --session`：步骤引用 `frame-<i>#nodes/<id>` 逐条校验存在性+未到期；无证据写点击报 `tutorial_evidence_required`（真机已验）；无证据+“界面发生变化/人工说明”放行。三步样例（2 证据+1 人工说明）落盘 `tutorial.md`。
+- 单测 18/18（新增会话身份/到期上限/引用四态/组装两格式）。
+
 PLAN-READY
