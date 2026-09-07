@@ -22,9 +22,11 @@ async function main() {
   }
 
   // §8.5 "捕获来源、产物摘要、版本与验收日志可关联" — a dirty tree makes the
-  // recorded commit hash a lie about what's actually in the zip.
-  const gitStatus = await run("git", ["status", "--porcelain"], root);
-  assert(gitStatus.trim() === "", "工作区不干净：提交或清理后再打包，避免 RELEASE.md 里的 commit hash 撒谎");
+  // recorded commit hash a lie about what's actually in the zip. Untracked
+  // files unrelated to this package (e.g. stray notes at repo root) don't
+  // affect what HEAD contains, so only tracked modifications block the build.
+  const gitStatus = await run("git", ["status", "--porcelain", "--untracked-files=no"], root);
+  assert(gitStatus.trim() === "", `工作区有未提交的改动：提交或清理后再打包，避免 RELEASE.md 里的 commit hash 撒谎\n${gitStatus}`);
   const commit = (await run("git", ["rev-parse", "HEAD"], root)).trim();
 
   await rm(path.join(root, "dist"), { recursive: true, force: true });
