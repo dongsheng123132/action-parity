@@ -1288,4 +1288,12 @@ AnyCut v0.1 的交付标准是：在中文 Windows 上，将 U-King 的指定窗
 - P3 密钥进窗口标题（`测试密钥sk-test-FAKE-TITLE-0001.txt`）：标题文本脱敏正确（`[已脱敏:test-secret][已脱敏:api-key].txt`，规则按 ORDER 先后触发）；但捕获**未如预期硬失败**——定位根因：`maskRegions` 只消费显式传入的 `nodes`，真机默认路径（单根占位树）永不产生像素 mask。fail-closed 目前只覆盖 fixture/显式节点路径。**真机像素遮盖触发器缺失**，与 P2 同根因，UIA 树优先级由 R2 升为像素脱敏阻断项。
 - 附带澄清：`app_id` 回显 `--app` 选择器原文（如 `FAKE-TITLE`），经 `redactValue` 实测真密钥模式仍会被脱敏，无需修；`--app` 里放真密钥本就是误用。
 
+### 9.5 UIA 真树链路收尾（2026-09-07，均为沙箱假密钥，事后已清盘）
+
+- Rust helper（`b9348db`）：`tree` op（控制视图 DFS，5000 节点/64 深预算，密码元素永不取值）+ `capture(masks)`（不透明实色 `0x2E` 合成，越界/超量拒绝）。Node 布线（`57cca4f`）：tree→`planMasks`→helper 合成→数量断言→`verifyMasks`→落盘；tree 不可用 fail closed（`tree_failed`）。
+- M1-P2 复测（`$TEMP/tree-e2e-p2/runs/2026-09-07-0001`，探针 `api-key = sk-test-FAKE-0000-ANYCUT` 经 UIA ValuePattern 写入活动标签 buffer、 capture 后原值写回，磁盘探针文件已恢复）：**PASS**——七文本产物 grep 原始密钥零命中；`mask_count=3`（Document n00003 + P3 遗留标题 marker 两节点）；Document 中心像素 `46,46,46`（遮盖色）；`inspect`/`audit builtin` 全过（findings 空）。§9.4 的 P2 像素半项 FAIL 在此关闭。
+- M1-P3 等价覆盖：同机 `$TEMP/tree-e2e/runs/2026-09-07-0001` 标题 marker 文本触发 2 masks 且 CLI 内 `verifyMasks` 通过；P2 包内标题 marker 同样被遮盖（TabItem 中心像素 `46,46,46`），不再单独复测。
+- 护照两报错定性均为**调用问题**，非真 bug：`inspect --run <dir> --section all` 与 `audit --run <dir> builtin` 误把 run 当 `--run` flag 传——正确形为 `inspect <run> [--section tree|window|actions|state|regions]` / `audit <run>`，实测全过。`--section all` 不被支持（`invalid_section`，exit 2）。加固（`6e98b3f`）：缺 run 位置参数或误传 `--run` 时报 `usage` 而非 `internal_error`/`run_not_found`。
+- 单测 14/14（新增 `planMasks`/`rebaseMasks`/`verifyMasks` 正反例；verify 用 zlib 现拼最小 RGBA PNG）。红线遵守：未 kill notepad（共享会话），探针 buffer/disk/标题三处已恢复干净。
+
 PLAN-READY
