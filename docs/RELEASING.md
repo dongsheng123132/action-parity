@@ -37,9 +37,12 @@ publication.
 | npm | `action-parity` | pending |
 | crates.io | `action-parity-core` / `action-parity-tauri` | pending |
 | GitHub Releases | tarballs | available |
+| GitHub Releases | `anycut-v0.1.0-win-x64.zip` | not yet pushed — build locally with `npm run build:anycut-release`, verify with `npm run check:anycut-release`; attaching the asset to a GitHub Release is a separate, manual step (see AnyCut release gate below) |
 
 This table is the single source of truth for channel state; README and
-QUICKSTART reference it instead of restating per-channel facts.
+QUICKSTART reference it instead of restating per-channel facts. `anycut` is
+not published to npm this round (private workspace package, GitHub Release
+zip only — see `packages/anycut/`).
 
 ## Release gate
 
@@ -81,6 +84,33 @@ Toolchain v0.8.0 / Manifest specification 0.5.0
 
 The notes MUST also state whether npm and crates.io are published or pending.
 Do not move an existing public tag or create backdated 0.2–0.5 toolchain tags.
+
+## AnyCut release gate
+
+AnyCut (`packages/anycut/`) ships as a standalone Windows x64 zip on the
+GitHub Releases channel, not through `npm pack`/`check:release` above —
+it bundles a Rust helper exe (`anycut-windows.exe`) alongside the Node CLI,
+which the main release gate has no concept of. From a clean commit:
+
+```text
+npm run build:anycut-release
+npm run check:anycut-release
+```
+
+`build:anycut-release` refuses to run on a dirty working tree (a dirty tree
+would make the commit hash recorded in `RELEASE.md` a lie about what's in the
+zip — 宪法第 9 条). It produces `dist/anycut-v0.1.0-win-x64/` and
+`dist/anycut-v0.1.0-win-x64.zip`, building both the CLI and
+`anycut-windows.exe` from the same commit.
+
+`check:anycut-release` asserts the seven acceptance criteria in
+`docs/ANYCUT_V0.1_PLAN.md` §8.5: the unit suite, all five commands runnable
+from the packaged bundle, standalone operation outside the repo, an offline
+closed loop (no network-capable dependency, commands succeed under a
+poisoned proxy), commit-hash and `SHA256SUMS` provenance covering both the
+CLI and the helper exe, and a non-trivial compatibility-limitations section
+in `RELEASE.md`. As with the main gate, attaching the zip to a GitHub Release
+is a manual step this script does not perform.
 
 ## Registry publication order
 

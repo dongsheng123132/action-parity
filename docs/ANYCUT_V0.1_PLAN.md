@@ -1257,6 +1257,25 @@ v0.1 完成需同时满足：
 - Windows helper 与 CLI 来自同一源码提交，并在发布物中带摘要。
 - 未验证的应用、后端和平台明确列入兼容性限制。
 
+**本次实测（2026-09-07）**：七条逐条形式化并落地，不再只是清单。
+
+- `packages/anycut/package.json` 补 `dependencies.ajv`（此前靠 workspace 根提升，
+  §9.6 干净机那轮暴露的真缺陷——zip 分发时根 `node_modules` 不在场，装不上）。
+- 新增 `scripts/build-anycut-release.mjs`：工作区脏则拒绝出包（`git status --porcelain`
+  非空 → 非零退出，避免 `RELEASE.md` 里的 commit hash 撒谎）；CLI 与 `anycut-windows.exe`
+  由同一次动作、同一提交构建；产物 `dist/anycut-v0.1.0-win-x64.zip` + `SHA256SUMS`
+  （含 helper exe 摘要）+ `RELEASE.md`（含兼容性限制表，含 §9.7 的 U-King 结论）。
+- 新增 `scripts/check-anycut-release.mjs`（`npm run check:anycut-release`），
+  七条逐条对应可执行判据：①单测套件 ②解压产物内五命令均可调用且失败态是参数错误而非
+  `internal_error` ③复制到仓库外的临时目录、只用包内 `node_modules` 独立跑通
+  ④`audit adapters list` 声明 `network:false` + 包内依赖树无联网库 +
+  毒化代理环境变量下命令仍成功（排除静默出网）⑤⑥`RELEASE.md` 记录的 commit hash
+  与 `git rev-parse HEAD` 一致，`SHA256SUMS` 逐文件（含 helper exe）复算一致
+  ⑦`RELEASE.md` 兼容性限制小节非空且引用 U-King 结论。
+- `docs/RELEASING.md` 补「AnyCut release gate」小节 + Channel status 表新增一行
+  （`anycut-v0.1.0-win-x64.zip`，**未推送**，本轮不发 npm）。
+- 发行范围：GitHub Release zip 通道，本轮**不发布** npm；推送 Release 由用户本人操作。
+
 AnyCut v0.1 的交付标准是：在中文 Windows 上，将 U-King 的指定窗口稳定转换成受控 Shadow，完成 inspect、统一描述校验与 audit，并以同一数据管线支撑 record/tutorial。
 
 ## 9. 实测记录

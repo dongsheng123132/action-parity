@@ -44,6 +44,8 @@
     "check:generated": "node scripts/generate-rust-example.mjs --check && node scripts/generate-node-example.mjs --check",
     "check:links": "node scripts/check-links.mjs",
     "check:release": "node scripts/check-release.mjs",
+    "build:anycut-release": "node scripts/build-anycut-release.mjs",
+    "check:anycut-release": "node scripts/check-anycut-release.mjs",
     "validate": "node bin/action-parity.mjs validate examples/minimal/action-parity.json && node bin/action-parity.mjs validate examples/u-king/action-parity.json && node bin/action-parity.mjs validate examples/node-registry/generated/action-parity.json",
     "report": "node bin/action-parity.mjs report examples/u-king/action-parity.json",
     "generate:rust-example": "node scripts/generate-rust-example.mjs",
