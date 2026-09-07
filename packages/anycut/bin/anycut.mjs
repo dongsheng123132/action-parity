@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { mkdir, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { writeShadowBundle, AnyCutError } from '../src/core.mjs';
+import { writeShadowBundle, AnyCutError, planMasks, rebaseMasks, verifyMasks } from '../src/core.mjs';
 import { inspectRun, validateShadow } from '../src/inspect.mjs';
 import { listAuditors, runAudit } from '../src/audit.mjs';
 import { callWindowsHelper } from '../src/adapter.mjs';
@@ -34,12 +34,27 @@ async function capture(flags) {
   const windows = listed.control.windows ?? [];
   const chosen = flags.window ? windows.find((item) => item.hwnd === flags.window) : windows.length === 1 ? windows[0] : null;
   if (!chosen) throw new AnyCutError(2, 'window_ambiguous', '无法唯一确定窗口；请传 --window');
+  const timeoutMs = Number(flags.timeout ?? 15000);
+  // UIA 真树：不可用即拒绝无树捕获（fail closed——像素无法定位即不可证明脱敏）。
+  let treed;
+  try {
+    treed = await callWindowsHelper({ op: 'tree', hwnd: chosen.hwnd }, { timeoutMs });
+  } catch (error) {
+    throw new AnyCutError(5, 'tree_failed', `UIA 树不可用，拒绝无树捕获（${error.code ?? error.message}）`);
+  }
+  if (!Array.isArray(treed.tree) || treed.tree.length === 0) throw new AnyCutError(5, 'tree_failed', 'UIA 树为空，拒绝无树捕获');
+  const planned = planMasks(treed.tree);
+  const masksForHelper = planned.masks.map(({ x, y, width, height }) => ({ x, y, width, height }));
   // C1 partial process identity: helper now reports the owning process's real
   // exe path. The bundle stores only the public image name (privacy: no user
   // names / directories) while the path is hashed into the verification
   // material below; full startup-time re-verification lands in R2.
-  const captured = await callWindowsHelper({ op: 'capture', hwnd: chosen.hwnd, backend: 'printwindow' }, { timeoutMs: Number(flags.timeout ?? 15000) });
-  return writeShadowBundle({ outRoot: flags.out ?? defaultOut(), purpose: flags.purpose, ttl: flags.ttl ?? '1h', crop: 'window', backend: 'printwindow', screenshot: captured.frame, adapter: 'windows-native', capture: { subject: { app_id: flags.app, app_name: chosen.title, app_version: null, platform: 'windows', os_version: 'Windows 11', locale: 'zh-CN', processes: [{ pid: chosen.pid, image_name: chosen.image_name ?? 'unknown.exe', image_sha256: null }], window: { hwnd: chosen.hwnd, owner_pid: chosen.pid, title: chosen.title, bounds_px: chosen.bounds_px, dpi: chosen.dpi ?? 96 } }, process_identity: { image_path: chosen.image_path ?? '', strategy: 'K32GetModuleFileNameExW@capture-time', reverify: 'R2' }, known_limitations: ['UIA 树待 R2', '进程身份捕获时核验，启动时间/捕获后复核待 R2'] } });
+  const captured = await callWindowsHelper({ op: 'capture', hwnd: chosen.hwnd, backend: 'printwindow', masks: masksForHelper }, { timeoutMs });
+  if ((captured.control.masks_applied ?? -1) !== masksForHelper.length) throw new AnyCutError(5, 'mask_count_mismatch', 'helper 遮盖数量与请求不一致');
+  const origin = { x: chosen.bounds_px.x, y: chosen.bounds_px.y };
+  verifyMasks(captured.frame, rebaseMasks(planned.masks, origin));
+  const treeNote = treed.control.truncated ? 'UIA 树截断 partial' : 'UIA 控制视图全树';
+  return writeShadowBundle({ outRoot: flags.out ?? defaultOut(), purpose: flags.purpose, ttl: flags.ttl ?? '1h', crop: 'window', backend: 'printwindow', screenshot: captured.frame, adapter: 'windows-native', coordinate_origin: origin, masksApplied: masksForHelper, treeStatus: treed.control.truncated ? 'partial' : 'complete', capture: { subject: { app_id: flags.app, app_name: chosen.title, app_version: null, platform: 'windows', os_version: 'Windows 11', locale: 'zh-CN', processes: [{ pid: chosen.pid, image_name: chosen.image_name ?? 'unknown.exe', image_sha256: null }], window: { hwnd: chosen.hwnd, owner_pid: chosen.pid, title: chosen.title, bounds_px: chosen.bounds_px, dpi: chosen.dpi ?? 96 } }, nodes: treed.tree, process_identity: { image_path: chosen.image_path ?? '', strategy: 'K32GetModuleFileNameExW@capture-time', reverify: 'R2' }, known_limitations: [treeNote, '进程身份捕获时核验，启动时间/捕获后复核待 R2'] } });
 }
 
 async function tutorial(run, flags) {

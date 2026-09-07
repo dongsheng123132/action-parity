@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { inflateSync } from 'node:zlib';
 import { redactValue, redactText, redactPixels } from './redact.mjs';
 
 const PNG_1X1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M/wHwAF/gL+V2Lh9wAAAABJRU5ErkJggg==', 'base64');
@@ -77,17 +78,29 @@ export async function writeShadowBundle(options) {
     window: { hwnd: '0x0000000000000001', owner_pid: 1, title: 'U-King 设置', bounds_px: { x: 0, y: 0, width: 1, height: 1 }, dpi: 96 }
   };
   const common = { spec_version: '0.1.0', shadow_id };
-  const tree = { format: 'anycut.ui-tree', ...common, nodes: sanitized.value.nodes ?? [{ node_id: 'root', parent_id: null, control_type: 'Window', name: subject.window.title, automation_id: null, bounds_px: { x: 0, y: 0, width: 1, height: 1 }, visible: true }], known_limitations: sanitized.value.known_limitations ?? ['UIA 树待 R2'] };
-  // B2 pipeline integration: text-node hits become pixel masks. Without the
-  // helper-side compositor (R2) any unresolved mask is a hard failure — the raw
-  // screenshot never reaches the bundle with masks pending.
-  const maskRegions = (sanitized.value.nodes ?? []).filter((node) => typeof node?.redaction === 'string' || /已脱敏/.test(String(node?.name ?? ''))).map((node) => ({ ref: `ui-tree.json#/nodes/${node.node_id}`, bounds_px: node.bounds_px, rule: 'text-node-hit' }));
-  const png = redactPixels(Buffer.isBuffer(options.screenshot) ? options.screenshot : PNG_1X1, maskRegions);
+  const origin = options.coordinate_origin ?? null;
+  const screenNodes = sanitized.value.nodes ?? [{ node_id: 'root', parent_id: null, control_type: 'Window', name: subject.window.title, automation_id: null, bounds_px: { x: 0, y: 0, width: 1, height: 1 }, visible: true }];
+  // 真树路径：所需 mask 必须已有 helper 合成证明（masksApplied 与重算一致），
+  // 否则拒绝落盘。fixture/显式节点无证明时同样拒绝（B2 回归）。
+  const required = requiredMasks(screenNodes);
+  if (required.length > 0) {
+    const applied = options.masksApplied ?? [];
+    const covered = applied.length === required.length && required.every((item, index) =>
+      applied[index]?.x === item.x && applied[index]?.y === item.y && applied[index]?.width === item.width && applied[index]?.height === item.height);
+    if (!covered) throw new AnyCutError(5, 'pixel_redaction_unresolved', '存在未合成的像素遮盖：拒绝落盘未脱敏原图');
+  }
+  const nodes = rebaseNodes(screenNodes, origin);
+  const tree = { format: 'anycut.ui-tree', ...common, nodes, known_limitations: sanitized.value.known_limitations ?? ['UIA 树待 R2'] };
+  const hitRegions = nodes.filter((node) => isHit(node) && node.visible !== false && saneBounds(node.bounds_px))
+    .map((node) => ({ ref: `ui-tree.json#/nodes/${node.node_id}`, bounds_px: node.bounds_px, rule: 'text-node-hit' }));
+  // 截图必须已在 helper 侧合成；此处只做空 mask 直通，不断言二次合成。
+  const png = redactPixels(Buffer.isBuffer(options.screenshot) ? options.screenshot : PNG_1X1, []);
   const imageSize = pngDimensions(png.png);
   const window = { format: 'anycut.window', ...common, ...subject };
-  const actions = { format: 'anycut.actions', ...common, actions: sanitized.value.actions ?? [] };
-  const state = { format: 'anycut.state', ...common, observed: sanitized.value.state ?? {}, authoritative: { state_version: null, values: {} } };
-  const regions = { format: 'anycut.regions', ...common, regions: sanitized.value.regions ?? [], redactions: sanitized.value.redactions ?? [] };
+  const actions = { format: 'anycut.actions', ...common, actions: deriveActions(nodes) };
+  const focused = nodes.find((node) => node.focused === true)?.node_id ?? null;
+  const state = { format: 'anycut.state', ...common, observed: { focus_node_id: focused, enabled_count: nodes.filter((node) => node.enabled === true).length, total_count: nodes.length, ...(sanitized.value.state ?? {}) }, authoritative: { state_version: null, values: {} } };
+  const regions = { format: 'anycut.regions', ...common, regions: sanitized.value.regions ?? [], redactions: hitRegions };
   const files = new Map([
     ['screenshot.png', { bytes: png.png, media: 'image/png' }], ['ui-tree.json', { bytes: json(tree), media: 'application/json' }], ['window.json', { bytes: json(window), media: 'application/json' }], ['actions.json', { bytes: json(actions), media: 'application/json' }], ['state.json', { bytes: json(state), media: 'application/json' }], ['regions.json', { bytes: json(regions), media: 'application/json' }]
   ]);
@@ -98,9 +111,9 @@ export async function writeShadowBundle(options) {
   const shadow = {
     $schema: 'urn:shadowcore:shadow:0.1.0', format: 'shadowcore.ui-shadow', spec_version: '0.1.0', shadow_id, run_id: runId, created_at: at, expires_at: ISO(now.getTime() + ttl * 1000),
     producer: { name: 'anycut', version: '0.1.0', adapter: options.adapter ?? 'fixture', adapter_version: '0.1.0' }, subject,
-    capture: { scope: 'single-window', crop, backend, started_at: at, ended_at: at, screenshot_at: at, tree_at: at, skew_ms: 0, consistency: 'within-budget', status: 'complete', tree_status: 'partial', image_size_px: imageSize, coordinate_space: 'screenshot-physical-px', warnings: tree.known_limitations.map((message) => ({ code: 'limitation', message })) },
+    capture: { scope: 'single-window', crop, backend, started_at: at, ended_at: at, screenshot_at: at, tree_at: at, skew_ms: 0, consistency: 'within-budget', status: 'complete', tree_status: options.treeStatus ?? 'partial', image_size_px: imageSize, coordinate_space: 'screenshot-physical-px', warnings: tree.known_limitations.map((message) => ({ code: 'limitation', message })) },
     artifacts: artifactIndex,
-    privacy: { purpose, redaction: { mode: 'auto', ruleset_version: '0.1.1', status: 'passed', mask_count: png.masks.length + regions.redactions.length, text_replacement_count: sanitized.replacements + (redactText(options.purpose).replacements), unresolved_count: 0 }, retention: { ttl_seconds: ttl, enforcement: 'deny-after-expiry', cleanup: 'best-effort' }, egress: { default: 'deny', approval_required: true, grant_ref: null }, interaction_policy: 'observe-only' },
+    privacy: { purpose, redaction: { mode: 'auto', ruleset_version: '0.1.1', status: 'passed', mask_count: required.length, text_replacement_count: sanitized.replacements + (redactText(options.purpose).replacements), unresolved_count: 0 }, retention: { ttl_seconds: ttl, enforcement: 'deny-after-expiry', cleanup: 'best-effort' }, egress: { default: 'deny', approval_required: true, grant_ref: null }, interaction_policy: 'observe-only' },
     links: { action_parity: null, task_passport: null }, required_capabilities: [], extensions: {}
   };
   try {
@@ -115,4 +128,104 @@ export async function writeShadowBundle(options) {
   // validateShadow rejects as missing_artifact (B4 fail-closed path).
 }
 
+/** 交互候选：仅凭控件类型做观察记录，不声明 pattern 能力（R2 补 pattern 查询）。 */
+const INTERACTIVE_TYPES = new Set(['Button', 'CheckBox', 'RadioButton', 'ComboBox', 'Hyperlink', 'ListItem', 'MenuItem', 'TabItem', 'SplitButton']);
+function deriveActions(rebasedNodes) {
+  const actions = [];
+  for (const node of rebasedNodes ?? []) {
+    if (!INTERACTIVE_TYPES.has(node?.control_type)) continue;
+    actions.push({
+      observation_id: `o-${node.node_id}`, node_id: node.node_id, label: node.name ?? '',
+      patterns: [], source: 'uia', action_id: null, mapping_status: 'unmapped',
+      evidence_ref: `ui-tree.json#/nodes/${node.node_id}`, executable: false,
+    });
+  }
+  return actions;
+}
+
 export { sha256, ttlSeconds };
+
+const MASK_SHADE = 0x2e;
+
+/** Hit 规则与落盘一致：在 SANITIZED 节点上找脱敏标记。 */
+function isHit(node) {
+  if (!node || typeof node !== 'object') return false;
+  if (typeof node.redaction === 'string') return true;
+  return [node.name, node.value, node.help_text].some((field) => typeof field === 'string' && field.includes('[已脱敏'));
+}
+
+function saneBounds(bounds) {
+  return bounds && [bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isInteger) && bounds.width > 0 && bounds.height > 0;
+}
+
+/** sanitized 节点 → 屏幕空间 mask（只取可见节点）。 */
+export function requiredMasks(sanitizedNodes) {
+  const masks = [];
+  for (const node of sanitizedNodes ?? []) {
+    if (!isHit(node) || node.visible === false || !saneBounds(node.bounds_px)) continue;
+    const { x, y, width, height } = node.bounds_px;
+    masks.push({ x, y, width, height, ref: `ui-tree.json#/nodes/${node.node_id}`, rule: 'text-node-hit' });
+  }
+  return masks;
+}
+
+/** 屏幕空间节点 bounds 按 capture 原点 rebase 到截图空间。 */
+export function rebaseNodes(nodes, origin) {
+  if (!origin) return nodes ?? [];
+  return (nodes ?? []).map((node) => {
+    if (!node || !saneBounds(node?.bounds_px)) return node;
+    const bounds = node.bounds_px;
+    return { ...node, bounds_px: { x: bounds.x - origin.x, y: bounds.y - origin.y, width: bounds.width, height: bounds.height } };
+  });
+}
+
+export function rebaseMasks(masks, origin) {
+  if (!origin) return masks ?? [];
+  return (masks ?? []).map((mask) => ({ ...mask, x: mask.x - origin.x, y: mask.y - origin.y }));
+}
+
+/** 原始树 → 脱敏 + mask 规划（CLI 在 capture 前调用）。 */
+export function planMasks(rawNodes) {
+  const sanitized = redactValue({ nodes: rawNodes ?? [] });
+  return { sanitizedNodes: sanitized.value.nodes, masks: requiredMasks(sanitized.value.nodes), replacements: sanitized.replacements };
+}
+
+function pngPixels(png) {
+  // 仅支持 helper 写入的 PNG：8-bit RGBA 非交错。
+  if (!Buffer.isBuffer(png) || png.length < 33 || png.readUInt32BE(12) !== 0x49484452) throw new AnyCutError(5, 'unsupported_png', '截图不是受支持的 PNG');
+  const width = png.readUInt32BE(16); const height = png.readUInt32BE(20);
+  if (png[24] !== 8 || png[25] !== 6 || png[26] !== 0 || png[27] !== 0 || png[28] !== 0) throw new AnyCutError(5, 'unsupported_png', '截图 PNG 须为 8-bit RGBA 非交错');
+  let pos = 8; const parts = [];
+  while (pos + 8 <= png.length) {
+    const length = png.readUInt32BE(pos); const type = png.toString('ascii', pos + 4, pos + 8);
+    if (type === 'IDAT') parts.push(png.subarray(pos + 8, pos + 8 + length));
+    if (type === 'IEND') break;
+    pos += 12 + length;
+  }
+  const raw = inflateSync(Buffer.concat(parts));
+  const stride = width * 4 + 1;
+  if (raw.length !== stride * height) throw new AnyCutError(5, 'unsupported_png', '截图 PNG 数据长度异常');
+  for (let y = 0; y < height; y += 1) {
+    if (raw[y * stride] !== 0) throw new AnyCutError(5, 'unsupported_png', '截图含非零过滤器行');
+  }
+  return { width, height, raw, stride };
+}
+
+/** 校验 helper 的合成声明：每个 mask 取与图像交集中心像素，必须为遮盖色。 */
+export function verifyMasks(png, masks) {
+  if (!masks?.length) return { checked: 0 };
+  const { width, height, raw, stride } = pngPixels(png);
+  let checked = 0;
+  for (const mask of masks) {
+    const ix0 = Math.max(0, mask.x); const iy0 = Math.max(0, mask.y);
+    const ix1 = Math.min(width, mask.x + mask.width); const iy1 = Math.min(height, mask.y + mask.height);
+    if (ix0 >= ix1 || iy0 >= iy1) throw new AnyCutError(5, 'mask_verification_failed', `遮盖区与截图无交集: ${mask.ref ?? 'mask'}`);
+    const cx = ix0 + ((ix1 - ix0) >> 1); const cy = iy0 + ((iy1 - iy0) >> 1);
+    const i = cy * stride + 1 + cx * 4;
+    if (raw[i] !== MASK_SHADE || raw[i + 1] !== MASK_SHADE || raw[i + 2] !== MASK_SHADE) {
+      throw new AnyCutError(5, 'mask_verification_failed', `像素遮盖校验失败: ${mask.ref ?? 'mask'}`);
+    }
+    checked += 1;
+  }
+  return { checked };
+}

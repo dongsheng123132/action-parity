@@ -11,7 +11,7 @@ export function helperPath(repoRoot = process.cwd()) {
   return join(repoRoot, 'target', 'debug', name);
 }
 
-/** Send one UTF-8 JSON line. Capture replies use JSON line then exact binary frame bytes. */
+/** Send one UTF-8 JSON line. Replies: control line, then optional tree JSON bytes, then optional binary frame. */
 export async function callWindowsHelper(message, { executable = helperPath(), timeoutMs = 15_000 } = {}) {
   if (!existsSync(executable)) throw new AnyCutError(5, 'helper_missing', 'Windows helper 未构建');
   const encoded = Buffer.from(JSON.stringify(message), 'utf8');
@@ -31,10 +31,20 @@ export async function callWindowsHelper(message, { executable = helperPath(), ti
       if (newline < 0 || newline > MAX_CONTROL_BYTES) return done(reject, new AnyCutError(5, 'helper_protocol_error', 'helper 未返回受限 JSON 控制消息'));
       try {
         const control = JSON.parse(bytes.subarray(0, newline).toString('utf8'));
-        const frame = bytes.subarray(newline + 1);
+        let offset = newline + 1;
+        let tree = null;
+        if (control.tree_bytes !== undefined) {
+          if (!Number.isInteger(control.tree_bytes) || control.tree_bytes < 0 || control.tree_bytes > MAX_FRAME_BYTES) throw new Error('tree length');
+          const segment = bytes.subarray(offset, offset + control.tree_bytes);
+          if (segment.length !== control.tree_bytes) throw new Error('tree length');
+          offset += control.tree_bytes;
+          try { tree = JSON.parse(segment.toString('utf8')); } catch { throw new Error('tree json'); }
+          if (!Array.isArray(tree)) throw new Error('tree shape');
+        }
+        const frame = bytes.subarray(offset);
         if (control.frame_bytes !== undefined && (control.frame_bytes !== frame.length || frame.length > MAX_FRAME_BYTES)) throw new Error('frame length');
         if (!control.ok) return done(reject, new AnyCutError(5, control.code ?? 'helper_failed', 'Windows helper 捕获失败'));
-        done(resolve, { control, frame, stderr });
+        done(resolve, { control, tree, frame, stderr });
       } catch { done(reject, new AnyCutError(5, 'helper_protocol_error', 'helper 返回非法协议')); }
     });
     child.stdin.end(Buffer.concat([encoded, Buffer.from('\n')]));
