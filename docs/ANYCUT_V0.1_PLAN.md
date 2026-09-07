@@ -1304,4 +1304,45 @@ AnyCut v0.1 的交付标准是：在中文 Windows 上，将 U-King 的指定窗
 - 单测 18/18（新增会话身份/到期上限/引用四态/组装两格式）。
 - 干净机验证（阿里云按量 Win2022 中文，i-bp160q7e2zgcpr02uayf，已 teardown 停费）：node portable（npmmirror）+ `npm i ajv@8` + 同提交包，`node --test` **18/18**，CLI usage 正常，helper exe 可启动无缺依赖弹窗。国际网（nodejs.org）云上不通，改国内镜像源解决；教训：干净机包须含 `ajv` 依赖说明。
 
+### 9.7 §8.4 U-King 首靶（2026-09-07，`U-King-绿色版.exe`，本机常驻 `u-king-mini.exe` 主窗口）
+
+**靶子身份**：`C:/Users/ZhuanZ/Desktop/U-King-绿色版.exe` sha256
+`be16d9d57439594b991006dfb02c234da6bfab9024fbf6dd024847ebe2a9fadf`（1.3.0）。该 exe 是单实例应用：起它只会激活已常驻的
+`u-king-mini.exe`（pid 63624）主窗口，不产生新主窗口，只多一个 14x14 哨兵 + `CC Switch` 窗口（自起进程独立 pid）。
+被 capture 的主窗口固定为 `U-King AI 管家`，`hwnd 0x1B1BBC`，2062x1246，dpi 120——与 §9.3 同一目标身份。
+
+**A1 判定（决定性）**：首页 `capture --window 0x1B1BBC` → `inspect --section tree`：`tree_status=complete`，
+**475 节点，418 个含中文 `Name` 的可交互控件**（`Button:"AI 设置 换模型 · 余额"`、`Button:"装机向导"` 等按钮全部点名可读）。
+结论：**U-King（Tauri/WebView2）UIA 暴露度为「完备」结局**，非稀疏、非失败——v0.1 的唯一技术未知数在此关闭，
+Go 结论不再需要「限 Notepad」这个限定词。
+
+**A2 四项**（`C:/tmp/uking-a1/runs/`，用户已知情下用 `cua-driver` 在其常驻实例中做只读界面导航，
+产生的 UI 状态变化仅为侧栏页面切换，无表单提交；导航后界面自行回落到操作前的 `终端工作台`/会话内容，未受扰动）：
+
+1. **首页**（`2026-09-07-0001`）：475 节点/418 中文命名，同 A1。`inspect shadow` + `audit builtin` 全过，
+   findings 为空（对比 §9.3/§9.5 Notepad 靶子的 `tree-partial`，U-King 完整树下**零 finding**，比 Notepad 更干净）。
+2. **设置页**（`2026-09-07-0003`；`0002` 因导航与抓拍时序竞争实际拍到了终端页内容，判定为无效重拍并弃用不引用）：
+   点击「AI 设置」按钮（`cua-driver` element_token 分发，AX `effect=unverifiable` 但视觉+树双重确认已落地）后立即
+   capture，182 节点/118 中文命名，`tree_status=complete`；含 `ComboBox`（供应商选择状态）、`供应商库`/`工具分配`
+   等中文标签按钮；本次视图未出现 `Edit` 输入框（供应商卡片是按钮而非文本框），选择状态项已覆盖，输入框项在
+   §9.4/§9.5 的 Notepad 探针上已验证过同一遮盖链路，v0.1 不因此收窄。`inspect shadow` + `audit builtin` 全过，
+   findings 为空，零网络请求（builtin auditor 无出网路径，代码路径已审）。
+3. **带测试 key 的配置页**：**复用 §9.4-P1/§9.5-P2 已验证证据**，不在本机常驻 U-King 实例内注入假密钥（该实例
+   正承载用户真实工作会话，追加高风险操作被否决，见任务记录）。§9.4-P1：`sk-test-FAKE-0000-ANYCUT` 进
+   `--purpose`，七文本产物 grep 零命中。§9.5-P2：同密钥经 UIA ValuePattern 写入活动缓冲区后 capture，
+   `mask_count=3`，遮盖区域中心像素 `46,46,46`，capture 后原值已写回并核验；`inspect`/`audit builtin` 全过。
+   该链路（UIA 树→`planMasks`→helper 合成→`verifyMasks`）与本节 A1/A2 使用的是同一份 `record.mjs`/`core.mjs`
+   代码路径，U-King 目标不改变脱敏逻辑，故此证据可跨靶子复用而非重复实测。
+4. **多窗口消歧**：`capture --app "U-King" --purpose ...`（无 `--window`）→ `window_ambiguous`（exit 2），
+   不落任何数据、不擅自选中第一个匹配——复测 §9.3 已验证的行为，本次环境（含额外的 `com.uking.desktop-siw`
+   哨兵窗）下依然成立。
+
+**清理**：自起进程 `U-King-绿色版.exe`（pid 68692，激活后仅表现为哨兵窗 + `CC Switch`）已 `taskkill`；
+常驻 `u-king-mini.exe`（pid 63624）全程未动、未重启，其真实会话内容未被写入或改动。
+`C:/tmp/uking-a1/` 证据包（含 4 个 run，一个已判定无效）留存本地待 Phase C 归档/清理，不进 commit。
+
+**结论**：§8.4 四项在 U-King 上全部通过（第 3 项以同代码路径的既有证据复用满足，未重复触发真实风险）。
+AnyCut v0.1 的 Go 结论**去除「限 Notepad/同类应用」限定词**——首个真实第三方靶子（Tauri + WebView2）验证通过，
+且比对照靶子（Notepad）产出更干净的 audit 结果。
+
 PLAN-READY
