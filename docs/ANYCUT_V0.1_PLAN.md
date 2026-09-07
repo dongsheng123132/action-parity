@@ -1,6 +1,9 @@
 # AnyCut CLI v0.1 规划
 
-> 状态：待实现的架构与验收契约。本文不包含实现代码；JSON Schema 为数据契约草案。  
+> 状态：v0.1 已实现并通过 §8.4/§8.5 全部验收（2026-09-07，见 §9.7 与本节「本次实测」）——
+> 五命令、真机 UIA 树、脱敏链路、record/tutorial、release gate 均已跑通；
+> GitHub Release zip 已在本地构建校验，**尚未推送**（发布通道见 `docs/RELEASING.md`）。
+> 本文其余部分仍是原始架构与验收契约，作为实现的规格来源保留。  
 > 首发平台：中文 Windows 11 x64。  
 > 首个靶子：U-King 中文桌面端。  
 > 定位：ShadowCore / ActionParity 的首个 UI 观察 reference implementation。
@@ -1274,6 +1277,13 @@ v0.1 完成需同时满足：
   ⑦`RELEASE.md` 兼容性限制小节非空且引用 U-King 结论。
 - `docs/RELEASING.md` 补「AnyCut release gate」小节 + Channel status 表新增一行
   （`anycut-v0.1.0-win-x64.zip`，**未推送**，本轮不发 npm）。
+- 落地过程顺手抓到并修了两个真 bug（均非 U-King 相关，release gate 本身的价值所在）：
+  `anycut tutorial` 缺 `run`/`--session` 时会崩成 `internal_error` 而非清爽的 `usage`
+  报错（`bin/anycut.mjs` 补校验，`test/anycut.test.mjs` 补 CLI 级回归，19/19）；
+  两处脏树判定误把仓库根三份非本轮 `chatgpt-share-*.md` 当阻断（`--untracked-files=no` 修复）。
+- **实测结果**：`node --test test/anycut.test.mjs` 19/19；`npm run check` 132/132（主线无回归）；
+  `node scripts/build-anycut-release.mjs` 产出 `dist/anycut-v0.1.0-win-x64.zip`；
+  `npm run check:anycut-release` §8.5 七条判据全绿（commit `bd75022`，见 6 项 PASS 输出）。
 - 发行范围：GitHub Release zip 通道，本轮**不发布** npm；推送 Release 由用户本人操作。
 
 AnyCut v0.1 的交付标准是：在中文 Windows 上，将 U-King 的指定窗口稳定转换成受控 Shadow，完成 inspect、统一描述校验与 audit，并以同一数据管线支撑 record/tutorial。
