@@ -73,7 +73,12 @@ async function main() {
   const command = p.shift();
   if (command === 'capture') return respond(await capture(flags));
   if (command === 'inspect') {
-    if (p[0] === 'shadow') return respond(await validateShadow(p[1]));
+    if (flags.run) throw new AnyCutError(2, 'usage', '用法：anycut inspect <run> [--section tree|window|actions|state|regions]（run 为位置参数，不用 --run）');
+    if (p[0] === 'shadow') {
+      if (!p[1]) throw new AnyCutError(2, 'usage', '用法：anycut inspect [shadow] <run> [--section tree|window|actions|state|regions]');
+      return respond(await validateShadow(p[1]));
+    }
+    if (!p[0]) throw new AnyCutError(2, 'usage', '用法：anycut inspect <run> [--section tree|window|actions|state|regions]');
     const strict = flags.strict === true;
     const outcome = await inspectRun(p[0], { section: flags.section, node: flags.node });
     // strict mode: a partial capture is a threshold failure (exit 7), per plan §7.8
@@ -83,6 +88,8 @@ async function main() {
   if (command === 'audit') {
     if (p[0] === 'adapters' && p[1] === 'list') return respond(listAuditors());
     if (p[0] === 'adapters') throw new AnyCutError(3, 'adapter_registry_restricted', 'v0.1 仅启用内置 auditor；第三方注册需要受限子进程');
+    if (flags.run) throw new AnyCutError(2, 'usage', '用法：anycut audit <run> [--auditor builtin]（run 为位置参数，不用 --run）');
+    if (!p[0]) throw new AnyCutError(2, 'usage', '用法：anycut audit <run> [--auditor builtin]');
     const outcome = await runAudit({ run: p[0], auditor: flags.auditor ?? 'builtin', ruleset: flags.ruleset ?? 'builtin-v0.1', failOn: flags['fail-on'] ?? 'high' });
     // Plan §7.8: audit completion and review verdict are separate — exit 7
     // still reports ok:true with the completed report; the exit code alone
