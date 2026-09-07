@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 import { mkdir, writeFile } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { writeShadowBundle, AnyCutError, planMasks, rebaseMasks, verifyMasks } from '../src/core.mjs';
+import { AnyCutError } from '../src/core.mjs';
+import { captureFrame, recordSession, buildTutorial, listSessionFrames } from '../src/record.mjs';
 import { inspectRun, validateShadow } from '../src/inspect.mjs';
 import { listAuditors, runAudit } from '../src/audit.mjs';
-import { callWindowsHelper } from '../src/adapter.mjs';
 
 function parse(argv) {
   const positionals = []; const flags = {};
@@ -23,41 +23,23 @@ const defaultOut = () => join(process.env.LOCALAPPDATA ?? process.cwd(), 'AnyCut
 const respond = (data, exitCode = 0) => { process.stdout.write(`${JSON.stringify({ ok: exitCode === 0, data: data ?? null, error: exitCode ? { code: data?.code ?? 'failed', message: data?.message ?? '命令失败', retryable: exitCode === 5 } : null })}\n`); process.exitCode = exitCode; };
 
 async function capture(flags) {
-  if (!flags.app || !flags.purpose) throw new AnyCutError(2, 'missing_capture_argument', 'capture 需要 --app 和 --purpose');
-  if (flags.redact && flags.redact !== 'auto') throw new AnyCutError(2, 'invalid_redact', 'v0.1 只支持 --redact auto');
-  // B1 companion fix: do not accept a backend the helper cannot honour —
-  // recording "wgc" while capturing via PrintWindow would produce a lying bundle.
-  const backend = flags.backend ?? 'printwindow';
-  if (backend !== 'printwindow') throw new AnyCutError(2, 'invalid_backend', 'v0.1 helper 仅实现 printwindow；wgc 列为 R2');
-  if (flags.crop && flags.crop !== 'window') throw new AnyCutError(2, 'invalid_crop', 'v0.1 helper 捕获整个窗口；client 裁剪列为 R2');
-  const listed = await callWindowsHelper({ op: 'list', filter: flags.app }, { timeoutMs: Number(flags.timeout ?? 15000) });
-  const windows = listed.control.windows ?? [];
-  const chosen = flags.window ? windows.find((item) => item.hwnd === flags.window) : windows.length === 1 ? windows[0] : null;
-  if (!chosen) throw new AnyCutError(2, 'window_ambiguous', '无法唯一确定窗口；请传 --window');
-  const timeoutMs = Number(flags.timeout ?? 15000);
-  // UIA 真树：不可用即拒绝无树捕获（fail closed——像素无法定位即不可证明脱敏）。
-  let treed;
-  try {
-    treed = await callWindowsHelper({ op: 'tree', hwnd: chosen.hwnd }, { timeoutMs });
-  } catch (error) {
-    throw new AnyCutError(5, 'tree_failed', `UIA 树不可用，拒绝无树捕获（${error.code ?? error.message}）`);
-  }
-  if (!Array.isArray(treed.tree) || treed.tree.length === 0) throw new AnyCutError(5, 'tree_failed', 'UIA 树为空，拒绝无树捕获');
-  const planned = planMasks(treed.tree);
-  const masksForHelper = planned.masks.map(({ x, y, width, height }) => ({ x, y, width, height }));
-  // C1 partial process identity: helper now reports the owning process's real
-  // exe path. The bundle stores only the public image name (privacy: no user
-  // names / directories) while the path is hashed into the verification
-  // material below; full startup-time re-verification lands in R2.
-  const captured = await callWindowsHelper({ op: 'capture', hwnd: chosen.hwnd, backend: 'printwindow', masks: masksForHelper }, { timeoutMs });
-  if ((captured.control.masks_applied ?? -1) !== masksForHelper.length) throw new AnyCutError(5, 'mask_count_mismatch', 'helper 遮盖数量与请求不一致');
-  const origin = { x: chosen.bounds_px.x, y: chosen.bounds_px.y };
-  verifyMasks(captured.frame, rebaseMasks(planned.masks, origin));
-  const treeNote = treed.control.truncated ? 'UIA 树截断 partial' : 'UIA 控制视图全树';
-  return writeShadowBundle({ outRoot: flags.out ?? defaultOut(), purpose: flags.purpose, ttl: flags.ttl ?? '1h', crop: 'window', backend: 'printwindow', screenshot: captured.frame, adapter: 'windows-native', coordinate_origin: origin, masksApplied: masksForHelper, treeStatus: treed.control.truncated ? 'partial' : 'complete', capture: { subject: { app_id: flags.app, app_name: chosen.title, app_version: null, platform: 'windows', os_version: 'Windows 11', locale: 'zh-CN', processes: [{ pid: chosen.pid, image_name: chosen.image_name ?? 'unknown.exe', image_sha256: null }], window: { hwnd: chosen.hwnd, owner_pid: chosen.pid, title: chosen.title, bounds_px: chosen.bounds_px, dpi: chosen.dpi ?? 96 } }, nodes: treed.tree, process_identity: { image_path: chosen.image_path ?? '', strategy: 'K32GetModuleFileNameExW@capture-time', reverify: 'R2' }, known_limitations: [treeNote, '进程身份捕获时核验，启动时间/捕获后复核待 R2'] } });
+  const { runDir, shadow } = await captureFrame({
+    app: flags.app, window: flags.window, purpose: flags.purpose, ttl: flags.ttl ?? '1h',
+    timeoutMs: Number(flags.timeout ?? 15000), outRoot: flags.out ?? defaultOut(),
+    backend: flags.backend ?? 'printwindow', crop: flags.crop ?? 'window',
+  });
+  return { runDir, shadow_id: shadow.shadow_id };
 }
 
 async function tutorial(run, flags) {
+  if (flags.session) {
+    const steps = flags.steps ? JSON.parse(flags.steps) : [];
+    const built = await buildTutorial(flags.session, { title: flags.title ?? '界面说明', format: flags.format ?? 'md', steps });
+    const root = flags.out ?? join(resolve(flags.session), 'tutorial');
+    await mkdir(root, { recursive: true });
+    await writeFile(join(root, built.file), built.body, { encoding: 'utf8', flag: 'w' });
+    return { file: join(root, built.file), steps: steps.length };
+  }
   const { shadow } = await validateShadow(run);
   const root = flags.out ?? join(resolve(run), 'tutorial');
   await mkdir(root, { recursive: true });
@@ -96,7 +78,15 @@ async function main() {
     // expresses "threshold reached".
     return respond({ ok: true, report: outcome.report, threshold_reached: outcome.exitCode === 7 }, outcome.exitCode);
   }
-  if (command === 'record') throw new AnyCutError(5, 'record_requires_live_capture', 'record 骨架已保留；需要 Windows 真机捕获验收');
+  if (command === 'record') {
+    if (p[0] === 'sessions' && p[1] === 'list' && p[2]) return respond(await listSessionFrames(p[2]));
+    if (!flags.app || !flags.purpose) throw new AnyCutError(2, 'missing_capture_argument', 'record 需要 --app 和 --purpose');
+    return respond(await recordSession({
+      app: flags.app, window: flags.window, purpose: flags.purpose, ttl: flags.ttl ?? '1h',
+      frames: flags.frames ?? 3, intervalMs: flags.interval ?? 1500,
+      timeoutMs: Number(flags.timeout ?? 15000), outRoot: flags.out ?? defaultOut(),
+    }));
+  }
   if (command === 'tutorial') return respond(await tutorial(p[0] ?? flags.run, flags));
   throw new AnyCutError(2, 'usage', '用法：anycut capture|inspect|audit|record|tutorial');
 }

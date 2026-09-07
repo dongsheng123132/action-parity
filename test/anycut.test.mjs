@@ -9,6 +9,7 @@ import { planMasks, rebaseMasks, verifyMasks } from '../packages/anycut/src/core
 import { redactText, redactValue, redactPixels } from '../packages/anycut/src/redact.mjs';
 import { validateShadow } from '../packages/anycut/src/inspect.mjs';
 import { runAudit } from '../packages/anycut/src/audit.mjs';
+import { assertSessionIdentity, sessionExpiry, validateTutorialRefs, buildTutorial } from '../packages/anycut/src/record.mjs';
 
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), 'anycut-中文-fixture-'));
@@ -173,4 +174,61 @@ test('verifyMasks: 遮盖色通过、未遮盖/无交集硬失败', () => {
   assert.throws(() => verifyMasks(png, [{ x: 2, y: 0, width: 2, height: 2, ref: 'm1' }]), (error) => error.code === 'mask_verification_failed');
   assert.throws(() => verifyMasks(png, [{ x: 10, y: 10, width: 2, height: 2, ref: 'm2' }]), (error) => error.code === 'mask_verification_failed');
   assert.throws(() => verifyMasks(Buffer.from([1, 2, 3]), [{ x: 0, y: 0, width: 1, height: 1 }]), (error) => error.code === 'unsupported_png');
+});
+
+// ---- M4 record/tutorial（§8.3 钉死）----
+
+const fakeShadow = (hwnd = '0x1', pid = 1, image = 'n.exe') => ({
+  subject: { window: { hwnd, owner_pid: pid }, processes: [{ image_name: image }] },
+});
+
+test('assertSessionIdentity: 身份漂移拒绝组会话', () => {
+  assert.deepEqual(assertSessionIdentity([fakeShadow(), fakeShadow()]), { hwnd: '0x1', frames: 2 });
+  assert.throws(() => assertSessionIdentity([]), (error) => error.code === 'empty_session');
+  assert.throws(() => assertSessionIdentity([fakeShadow(), fakeShadow('0x2')]), (error) => error.code === 'session_identity_changed');
+  assert.throws(() => assertSessionIdentity([fakeShadow(), fakeShadow('0x1', 2)]), (error) => error.code === 'session_identity_changed');
+});
+
+test('sessionExpiry: 首帧起算，录制不延长保留期', () => {
+  assert.equal(sessionExpiry('2026-09-07T01:02:03.000Z', '1h'), '2026-09-07T02:02:03.000Z');
+  assert.equal(sessionExpiry('2026-09-07T01:02:03.000Z', '60s'), '2026-09-07T01:03:03.000Z');
+});
+
+async function tutorialSession(t) {
+  const item = await fixture();
+  t.after(() => rm(item.root, { recursive: true, force: true }));
+  const sessionDir = join(item.root, 'sessions', 's1');
+  await mkdir(join(sessionDir, 'frame-0'), { recursive: true });
+  await writeFile(join(sessionDir, 'session.json'), JSON.stringify({
+    format: 'anycut.record-session', spec_version: '0.1.0', frames: [{ index: 0, run_dir: item.runDir }],
+  }));
+  return { sessionDir, now: new Date('2026-09-07T01:03:00.000Z') };
+}
+
+test('validateTutorialRefs: 存在/缺失/过期/无证据四态', async (t) => {
+  const { sessionDir, now } = await tutorialSession(t);
+  assert.deepEqual(await validateTutorialRefs(sessionDir, [{ index: 0, text: '看设置页', ref: 'frame-0#nodes/root' }], { now }),
+    [{ index: 0, ref: 'frame-0#nodes/root', shadow_id: (await validateShadow((JSON.parse(await readFile(join(sessionDir, 'session.json'), 'utf8'))).frames[0].run_dir, { now })).shadow.shadow_id }]);
+  await assert.rejects(() => validateTutorialRefs(sessionDir, [{ index: 0, text: '点不存在', ref: 'frame-0#nodes/nope' }], { now }),
+    (error) => error.code === 'tutorial_ref_not_found');
+  await assert.rejects(() => validateTutorialRefs(sessionDir, [{ index: 0, text: '看设置页', ref: 'frame-0#nodes/root' }], { now: new Date('2027-01-01T00:00:00.000Z') }),
+    (error) => error.code === 'shadow_expired'); // 过期帧拒绝引用
+  await assert.rejects(() => validateTutorialRefs(sessionDir, [{ index: 0, text: '点了保存' }], { now }),
+    (error) => error.code === 'tutorial_evidence_required'); // 无证据还敢写点击
+  assert.deepEqual(await validateTutorialRefs(sessionDir, [{ index: 0, text: '界面发生变化，人工说明' }], { now }), [{ index: 0, ref: null }]);
+});
+
+test('buildTutorial: 有证据给引用，无证据写人工说明', async (t) => {
+  const { sessionDir, now } = await tutorialSession(t);
+  const built = await buildTutorial(sessionDir, {
+    title: '三页说明', now, steps: [
+      { index: 0, text: '打开设置页', ref: 'frame-0#nodes/root' },
+      { index: 1, text: '界面发生变化，人工说明' },
+    ],
+  });
+  assert.equal(built.file, 'tutorial.md');
+  assert.match(built.body, /证据：frame-0#nodes\/root/);
+  assert.match(built.body, /人工说明，无界面证据/);
+  const html = await buildTutorial(sessionDir, { title: 'T', format: 'html', now, steps: [{ index: 0, text: '看', ref: 'frame-0#nodes/root' }] });
+  assert.equal(html.file, 'tutorial.html');
 });
