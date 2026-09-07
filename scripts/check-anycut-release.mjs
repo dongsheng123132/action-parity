@@ -96,8 +96,8 @@ record("4 offline (no network capability, no network attempt)", async () => {
 record("5/6 provenance: commit hash matches HEAD; SHA256SUMS verifies helper+CLI", async () => {
   await requireDist();
   const headCommit = (await run("git", ["rev-parse", "HEAD"], root)).trim();
-  const gitStatus = await run("git", ["status", "--porcelain"], root);
-  assert(gitStatus.trim() === "", "working tree is dirty; rebuild after committing so the recorded commit hash is trustworthy");
+  const gitStatus = await run("git", ["status", "--porcelain", "--untracked-files=no"], root);
+  assert(gitStatus.trim() === "", `working tree has uncommitted changes to tracked files; rebuild after committing so the recorded commit hash is trustworthy\n${gitStatus}`);
   const releaseNotes = await readFile(path.join(distRoot, "RELEASE.md"), "utf8");
   const commitMatch = releaseNotes.match(/commit `([0-9a-f]{7,40})`/);
   assert(commitMatch, "RELEASE.md does not record a commit hash");
