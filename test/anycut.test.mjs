@@ -3,7 +3,9 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import { deflateSync } from 'node:zlib';
 import { writeShadowBundle } from '../packages/anycut/src/core.mjs';
+import { planMasks, rebaseMasks, verifyMasks } from '../packages/anycut/src/core.mjs';
 import { redactText, redactValue, redactPixels } from '../packages/anycut/src/redact.mjs';
 import { validateShadow } from '../packages/anycut/src/inspect.mjs';
 import { runAudit } from '../packages/anycut/src/audit.mjs';
@@ -115,4 +117,60 @@ test('B1 truth-in-bundle: backend/crop outside helper capability is rejected', a
     await assert.rejects(() => writeShadowBundle({ outRoot: root, purpose: 'B1 wgc', ttl: '1h', crop: 'window', backend: 'wgc', now: new Date('2026-09-07T03:00:00.000Z') }), (error) => error.code === 'invalid_backend');
     await assert.rejects(() => writeShadowBundle({ outRoot: root, purpose: 'B1 client', ttl: '1h', crop: 'client', now: new Date('2026-09-07T03:00:00.000Z') }), (error) => error.code === 'invalid_crop');
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+// ---- UIA 真树链路纯函数（§9.5 M1-P2 复测钉死）----
+
+test('planMasks: 涉密节点产出屏幕空间 mask，干净节点零 mask', () => {
+  const hit = planMasks([{ node_id: 'd', parent_id: null, control_type: 'Document', name: '编辑器', value: 'api-key = sk-test-FAKE-0000', bounds_px: { x: 10, y: 20, width: 100, height: 50 }, visible: true }]);
+  assert.equal(hit.masks.length, 1);
+  assert.equal(hit.masks[0].x, 10); assert.equal(hit.masks[0].y, 20);
+  assert.equal(hit.masks[0].width, 100); assert.equal(hit.masks[0].height, 50);
+  assert.equal(hit.masks[0].ref, 'ui-tree.json#/nodes/d');
+  assert.ok(hit.replacements >= 1);
+  assert.doesNotMatch(JSON.stringify(hit.sanitizedNodes), /sk-test-FAKE-0000/);
+  const clean = planMasks([{ node_id: 'd', parent_id: null, control_type: 'Document', name: '编辑器', value: '普通中文文本', bounds_px: { x: 10, y: 20, width: 100, height: 50 }, visible: true }]);
+  assert.equal(clean.masks.length, 0);
+  const hidden = planMasks([{ node_id: 'd', parent_id: null, control_type: 'Document', name: '编辑器', value: 'api-key = sk-test-FAKE-0000', bounds_px: { x: 10, y: 20, width: 100, height: 50 }, visible: false }]);
+  assert.equal(hidden.masks.length, 0); // 不可见节点不规划像素遮盖
+});
+
+test('rebaseMasks: 按 capture 原点平移，无原点直通', () => {
+  const masks = [{ x: 666, y: 261, width: 100, height: 50, ref: 'r', rule: 'text-node-hit' }];
+  assert.deepEqual(rebaseMasks(masks, { x: 660, y: 186 }), [{ x: 6, y: 75, width: 100, height: 50, ref: 'r', rule: 'text-node-hit' }]);
+  assert.deepEqual(rebaseMasks(masks, null), masks);
+});
+
+function tinyPng(width, height, paint) {
+  // 与 helper 一致：8-bit RGBA 非交错，filter-0 行。
+  const rows = [];
+  for (let y = 0; y < height; y += 1) {
+    const row = Buffer.alloc(1 + width * 4, 0);
+    for (let x = 0; x < width; x += 1) {
+      const [r, g, b, a] = paint(x, y);
+      row[1 + x * 4] = r; row[1 + x * 4 + 1] = g; row[1 + x * 4 + 2] = b; row[1 + x * 4 + 3] = a;
+    }
+    rows.push(row);
+  }
+  const idat = deflateSync(Buffer.concat(rows));
+  const table = new Int32Array(256);
+  for (let n = 0; n < 256; n += 1) { let c = n; for (let k = 0; k < 8; k += 1) c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1); table[n] = c; }
+  const crc = (buf) => { let c = -1; for (const byte of buf) c = table[(c ^ byte) & 0xff] ^ (c >>> 8); return (c ^ -1) >>> 0; };
+  const chunk = (type, data) => {
+    const head = Buffer.alloc(8); head.writeUInt32BE(data.length, 0); head.write(type, 4, 'ascii');
+    const tail = Buffer.alloc(4); tail.writeUInt32BE(crc(Buffer.concat([Buffer.from(type, 'ascii'), data])), 0);
+    return Buffer.concat([head, data, tail]);
+  };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(width, 0); ihdr.writeUInt32BE(height, 4);
+  ihdr[8] = 8; ihdr[9] = 6; // 8-bit RGBA
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', idat), chunk('IEND', Buffer.alloc(0))]);
+}
+
+test('verifyMasks: 遮盖色通过、未遮盖/无交集硬失败', () => {
+  const png = tinyPng(4, 3, (x, y) => (x < 2 && y < 2 ? [0x2e, 0x2e, 0x2e, 255] : [255, 255, 255, 255]));
+  assert.deepEqual(verifyMasks(png, [{ x: 0, y: 0, width: 2, height: 2, ref: 'm0' }]), { checked: 1 });
+  assert.deepEqual(verifyMasks(png, []), { checked: 0 }); // 无 mask 直通
+  assert.throws(() => verifyMasks(png, [{ x: 2, y: 0, width: 2, height: 2, ref: 'm1' }]), (error) => error.code === 'mask_verification_failed');
+  assert.throws(() => verifyMasks(png, [{ x: 10, y: 10, width: 2, height: 2, ref: 'm2' }]), (error) => error.code === 'mask_verification_failed');
+  assert.throws(() => verifyMasks(Buffer.from([1, 2, 3]), [{ x: 0, y: 0, width: 1, height: 1 }]), (error) => error.code === 'unsupported_png');
 });
