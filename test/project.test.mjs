@@ -110,7 +110,7 @@ function profileFixture() {
 
 function manifestFixture() {
   return {
-    spec_version: "0.5.0",
+    spec_version: "0.6.0",
     application: { id: "org.example.notes", name: "Notes", version: "1.0.0" },
     conformance_targets: ["AP-1"],
     surfaces: [

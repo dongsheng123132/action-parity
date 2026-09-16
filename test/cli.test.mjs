@@ -30,7 +30,7 @@ test("--version --json separates toolchain and Manifest specification versions",
   assert.equal(result.status, 0, result.stderr);
   assert.equal(envelope.ok, true);
   assert.equal(envelope.data.toolchain_version, "0.8.1");
-  assert.equal(envelope.data.manifest_spec_version, "0.5.0");
-  assert.deepEqual(envelope.data.supported_manifest_spec_versions, ["0.5.0"]);
+  assert.equal(envelope.data.manifest_spec_version, "0.6.0");
+  assert.deepEqual(envelope.data.supported_manifest_spec_versions, ["0.6.0"]);
   assert.equal(envelope.error, null);
 });

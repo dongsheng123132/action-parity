@@ -93,6 +93,24 @@ test("a CLI binding with no visible JSON mode still warns", async () => {
   assert.ok(report.issues.some((item) => item.code === "cli_binding_json_not_visible"));
 });
 
+test("a human Web surface is not misreported as an excluded machine interface", async () => {
+  const manifest = await fixture("../examples/minimal/action-parity.json");
+  manifest.surfaces.push({
+    id: "web",
+    kind: "web",
+    required_for_parity: false,
+    reachability: "in-process",
+    exclusion_reason: undefined
+  });
+
+  const report = validateManifestObject(manifest);
+
+  assert.equal(
+    report.issues.some((item) => item.code === "machine_surface_excluded_without_reason" && item.path === "/surfaces/3"),
+    false
+  );
+});
+
 test("missing required binding fails declared parity", async () => {
   const manifest = await fixture("../examples/minimal/action-parity.json");
   manifest.actions[0].bindings = manifest.actions[0].bindings.filter(

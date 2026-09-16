@@ -16,7 +16,7 @@
       "type": "string"
     },
     "spec_version": {
-      "const": "0.5.0"
+      "const": "0.6.0"
     },
     "application": {
       "$ref": "#/$defs/application"
@@ -125,11 +125,21 @@
             "mcp",
             "api",
             "ipc",
-            "test"
+            "test",
+            "webmcp",
+            "web"
           ]
         },
         "required_for_parity": {
           "type": "boolean"
+        },
+        "binding_target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "binding_test": {
+          "type": "string",
+          "minLength": 1
         },
         "test_driver": {
           "type": "string",

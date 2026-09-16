@@ -15,7 +15,11 @@ const validateSchema = ajv.compile(schema);
 // `test` is deliberately absent. A test adapter reachable only from the build
 // system is evidence that an Action runs headlessly, not an interface an agent
 // or another program can use.
-const MACHINE_SURFACE_KINDS = new Set(["cli", "mcp", "api", "ipc"]);
+// `web` is the human-visible page, analogous to `gui`: it is important
+// parity evidence for Computer Use, but is not itself a structured machine
+// invocation interface. `webmcp`, on the other hand, is an agent-callable
+// page interface and belongs in this set.
+const MACHINE_SURFACE_KINDS = new Set(["cli", "mcp", "api", "ipc", "webmcp"]);
 
 // Reachability defaults are the honest reading of each kind, and fail closed on
 // the ambiguous one: a Tauri or Electron `ipc` Surface is callable only from the
@@ -25,7 +29,9 @@ const DEFAULT_REACHABILITY = {
   api: "external",
   mcp: "local-ipc",
   ipc: "in-process",
-  test: "in-process"
+  test: "in-process",
+  webmcp: "in-process",
+  web: "in-process"
 };
 
 function reachabilityOf(surface) {

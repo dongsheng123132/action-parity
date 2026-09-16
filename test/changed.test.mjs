@@ -34,7 +34,7 @@ const action = (id, testRef) => ({
 });
 
 const MANIFEST = {
-  spec_version: "0.5.0",
+  spec_version: "0.6.0",
   application: { id: "demo", name: "Demo", version: "1.0.0" },
   surfaces: [
     { id: "cli", kind: "cli", required_for_parity: true },

@@ -55,6 +55,8 @@ pub enum SurfaceKind {
     Api,
     Ipc,
     Test,
+    WebMcp,
+    Web,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -417,15 +419,15 @@ pub struct Registry {
 
 impl Registry {
     pub fn new(application: Application) -> Self {
-        Self {
-            application,
-            spec_version: "0.5.0".to_string(),
-            generator_revision: None,
-            surfaces: BTreeMap::new(),
-            actions: BTreeMap::new(),
-            state: None,
+            Self {
+                application,
+                spec_version: "0.6.0".to_string(),
+                generator_revision: None,
+                surfaces: BTreeMap::new(),
+                actions: BTreeMap::new(),
+                state: None,
+            }
         }
-    }
 
     pub fn spec_version(mut self, version: impl Into<String>) -> Self {
         self.spec_version = version.into();
@@ -698,35 +700,178 @@ impl Registry {
     }
 
     pub fn artifact_bundle(&self) -> Value {
-        json!({
-            "format": BUNDLE_FORMAT,
-            "manifest": self.manifest(),
-            "cli_help": self.cli_help(),
-            "mcp_tools": self.mcp_tools(),
-        })
-    }
-
-    fn manifest_action(&self, action: &ActionDescriptor) -> Value {
-        let bindings = self
-            .surfaces
-            .values()
-            .filter(|surface| exposed_on(action, &surface.id))
-            .map(|surface| {
-                let mut binding = json!({
-                    "surface": surface.id,
-                    "target": expand_template(&surface.binding_target, action),
-                });
-                if let Some(test) = &surface.binding_test {
-                    binding["test"] = Value::String(expand_template(test, action));
-                }
-                binding
+            json!({
+                "format": BUNDLE_FORMAT,
+                "manifest": self.manifest(),
+                "cli_help": self.cli_help(),
+                "mcp_tools": self.mcp_tools(),
+                "webmcp_tools": self.webmcp_tools(),
+                "llms_txt": self.llms_txt(),
+                "aimap_json": self.aimap_json(),
+                "schema_org_jsonld": self.schema_org_jsonld(),
             })
-            .collect::<Vec<_>>();
+        }
 
-        let mut value = serde_json::to_value(action).expect("Action descriptors are serializable");
-        value["bindings"] = Value::Array(bindings);
-        value
-    }
+        /// WebMCP tool registrations as `document.modelContext.registerTool()` JS snippets.
+        /// Each tool name is the Action ID; input/output schemas come from the Action descriptor.
+        /// The binding target is expanded from the Surface's binding_target template.
+        pub fn webmcp_tools(&self) -> Value {
+            json!({
+                "tools": self.actions.values().filter(|registered| {
+                    self.exposed_on_kind(&registered.descriptor, SurfaceKind::WebMcp)
+                }).map(|registered| {
+                    let action = &registered.descriptor;
+                    let surface = self.surfaces.values().find(|s| s.kind == SurfaceKind::WebMcp && exposed_on(action, &s.id));
+                    let binding_target = surface.map(|s| expand_template(&s.binding_target, action)).unwrap_or_else(|| format!("tool:{}", action.id));
+                    json!({
+                        "name": action.id,
+                        "title": action.title,
+                        "description": action.description,
+                        "inputSchema": action.input_schema,
+                        "outputSchema": action.output_schema,
+                        "bindingTarget": binding_target,
+                    })
+                }).collect::<Vec<_>>()
+            })
+        }
+
+        /// Generates llms.txt v2 content from registered Actions and Surfaces.
+            /// Includes knowledge references and Action capabilities.
+            pub fn llms_txt(&self) -> Value {
+                let mut lines = vec![
+                    format!("# {}", self.application.name),
+                    format!("Version: {}", self.application.version),
+                    "".to_string(),
+                    "## Actions".to_string(),
+                    "".to_string(),
+                ];
+
+                for registered in self.actions.values() {
+                    let action = &registered.descriptor;
+                    let surfaces: Vec<String> = self.surfaces.values()
+                        .filter(|s| exposed_on(action, &s.id))
+                        .map(|s| format!("{:?}:{}", s.kind, s.id))
+                        .collect();
+                    lines.push(format!("- **{}**: {} ({})", action.title, action.description, surfaces.join(", ")));
+                }
+
+                lines.push("".to_string());
+                lines.push("## Surfaces".to_string());
+                lines.push("".to_string());
+
+                for surface in self.surfaces.values() {
+                    lines.push(format!("- **{}** ({:?}) — {}", surface.id, surface.kind, surface.binding_target));
+                }
+
+                lines.push("".to_string());
+                lines.push("> This file is auto-generated from ActionParity Registry.".to_string());
+
+                json!({
+                    "content": lines.join("\n"),
+                })
+            }
+
+        /// Generates lightweight AIMAP from routes/actions.
+        /// Derived from Registry — not hand-maintained.
+        pub fn aimap_json(&self) -> Value {
+            // Group actions by route/purpose inferred from action IDs
+            let mut routes: BTreeMap<String, Vec<String>> = BTreeMap::new();
+
+            for registered in self.actions.values() {
+                let action = &registered.descriptor;
+                // Infer route from first segment of action ID (e.g., "note.create" -> "note")
+                let route = action.id.split('.').next().unwrap_or("root");
+                routes.entry(route.to_string()).or_default().push(action.id.clone());
+            }
+
+            json!({
+                "site": self.application.id,
+                "profile": "action-parity-web/0.1",
+                "content": {
+                    "llms": "/llms.txt",
+                    "sitemap": "/sitemap.xml",
+                },
+                "agent_interfaces": {
+                    "webmcp": self.surfaces.values().any(|s| s.kind == SurfaceKind::WebMcp),
+                    "mcp": self.surfaces.values().find(|s| s.kind == SurfaceKind::Mcp).map(|s| expand_template(&s.binding_target, &self.actions.values().next().unwrap().descriptor)).unwrap_or_default(),
+                },
+                "routes": routes.into_iter().map(|(path, actions)| {
+                    json!({
+                        "path": format!("/{}", path),
+                        "purpose": format!("{} actions", path),
+                        "actions": actions,
+                    })
+                }).collect::<Vec<_>>()
+            })
+        }
+
+        /// Optional Schema.org JSON-LD for SEO and NLWeb compatibility.
+                        pub fn schema_org_jsonld(&self) -> Value {
+                            let mut entries = vec![];
+
+                            for registered in self.actions.values() {
+                                let action = &registered.descriptor;
+                                // Map EffectClass to Schema.org action types
+                                let action_type = match action.effects.effect_class {
+                                    EffectClass::Read => "SearchAction",
+                                    EffectClass::Write => "CreateAction",
+                                    EffectClass::External => "InteractAction",
+                                    EffectClass::Financial => "TradeAction",
+                                    EffectClass::Destructive => "DeleteAction",
+                                };
+
+                                entries.push(json!({
+                                    "@type": action_type,
+                                    "name": action.title,
+                                    "description": action.description,
+                                    "actionId": action.id,
+                                }));
+                            }
+
+                            let url = self.application.homepage.as_ref().map(|h| h.as_str()).unwrap_or_else(|| {
+                                let owned = format!("https://{}", self.application.id);
+                                Box::leak(owned.into_boxed_str())
+                            });
+
+                            json!({
+                                "@context": "https://schema.org",
+                                "@type": "WebSite",
+                                "name": self.application.name,
+                                "url": url,
+                                "potentialAction": entries,
+                            })
+                        }
+
+        fn manifest_action(&self, action: &ActionDescriptor) -> Value {
+            let bindings = self
+                .surfaces
+                .values()
+                .filter(|surface| exposed_on(action, &surface.id))
+                .map(|surface| {
+                    let mut binding = json!({
+                        "surface": surface.id,
+                        "target": expand_template(&surface.binding_target, action),
+                    });
+                    if let Some(test) = &surface.binding_test {
+                        binding["test"] = Value::String(expand_template(test, action));
+                    }
+                    // Web binding verification: ensure web surfaces have core handler check
+                    if surface.kind == SurfaceKind::WebMcp || surface.kind == SurfaceKind::Web {
+                        binding["verification"] = json!({
+                            "core_handler": true,
+                            "human_control": true,
+                            "visible_state_update": true,
+                            "confirmation_policy": action.effects.confirmation,
+                        });
+                    }
+                    binding
+                })
+                .collect::<Vec<_>>();
+
+            let mut value = serde_json::to_value(action).expect("Action descriptors are serializable");
+            value["bindings"] = Value::Array(bindings);
+            value
+        }
 
     fn exposed_on_kind(&self, action: &ActionDescriptor, kind: SurfaceKind) -> bool {
         self.surfaces

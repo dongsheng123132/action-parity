@@ -13,11 +13,11 @@ import { applyDefaults, isSchemaObject, s, validateValue } from "./schema.mjs";
 
 export const SDK_VERSION = "0.8.1";
 export const ENVELOPE_VERSION = 1;
-export const MANIFEST_SPEC_VERSION = "0.5.0";
+export const MANIFEST_SPEC_VERSION = "0.6.0";
 export const BUNDLE_FORMAT = "action-parity.registry-bundle/v1";
 export const CLI_HELP_FORMAT = "action-parity.cli-help/v1";
 
-const SURFACE_KINDS = new Set(["gui", "tui", "cli", "mcp", "api", "ipc", "test"]);
+const SURFACE_KINDS = new Set(["gui", "tui", "cli", "mcp", "api", "ipc", "test", "webmcp", "web"]);
 const REACHABILITY = new Set(["in-process", "local-ipc", "external"]);
 const EFFECT_CLASSES = new Set(["read", "write", "external", "financial", "destructive"]);
 const RISKS = new Set(["low", "medium", "high", "critical"]);
@@ -29,7 +29,9 @@ const DEFAULT_REACHABILITY = {
   mcp: "local-ipc",
   api: "external",
   ipc: "local-ipc",
-  test: "in-process"
+  test: "in-process",
+  webmcp: "in-process",
+  web: "in-process"
 };
 
 /** Effect defaults per class. A class alone is enough to declare an Action. */

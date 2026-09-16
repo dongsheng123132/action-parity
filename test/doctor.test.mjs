@@ -127,7 +127,7 @@ test("doctor does not call a declared generated client a hand-maintained duplica
 
 function guiOnlyManifest() {
   return {
-    spec_version: "0.5.0",
+    spec_version: "0.6.0",
     application: { id: "org.example.notes", name: "Notes", version: "1.0.0" },
     surfaces: [
       {

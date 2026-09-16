@@ -1,6 +1,6 @@
 # ActionParity Specification
 
-**Version:** 0.5.0 Working Draft  
+**Version:** 0.6.0 Working Draft
 **Status:** Non-normative until 1.0.0  
 **Tagline:** One action. Every interface.
 

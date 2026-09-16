@@ -1,0 +1,213 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dongsheng123132/action-parity/v0.6.0/schema/action-parity.schema.json",
+  "spec_version": "0.6.0",
+  "application": {
+    "id": "org.actionparity.web-profile-example",
+    "name": "ActionParity Web Profile Example",
+    "version": "0.1.0",
+    "description": "Minimal example showing WebMCP and Web surfaces with AI discovery artifacts",
+    "homepage": "https://actionparity.org/web-profile",
+    "source": "https://github.com/dongsheng123132/action-parity"
+  },
+  "surfaces": [
+    {
+      "id": "webmcp",
+      "kind": "webmcp",
+      "required_for_parity": true,
+      "reachability": "in-process",
+      "binding_target": "document.modelContext.registerTool({name:'{action_id}',inputSchema:...})",
+      "binding_test": "tests/webmcp-parity.test.mjs",
+      "test_driver": "node --test",
+      "description": "WebMCP binding for AI agents on the current page"
+    },
+    {
+      "id": "web",
+      "kind": "web",
+      "required_for_parity": true,
+      "reachability": "in-process",
+      "binding_target": "data-action-id='{action_id}'",
+      "binding_test": "tests/web-parity.test.mjs",
+      "test_driver": "node --test",
+      "description": "Human Web UI with semantic HTML/ARIA bindings"
+    },
+    {
+      "id": "cli",
+      "kind": "cli",
+      "required_for_parity": true,
+      "reachability": "external",
+      "binding_target": "web-profile call cli {action_id} <input-json> --json",
+      "binding_test": "tests/parity.test.mjs",
+      "test_driver": "node --test",
+      "description": "Command-line interface for automation"
+    }
+  ],
+  "actions": [
+    {
+      "id": "event.search",
+      "title": "Search events",
+      "description": "Search for events by keyword, location, date",
+      "tags": ["read", "search"],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "query": { "type": "string" },
+          "location": { "type": "string" },
+          "date_from": { "type": "string", "format": "date" }
+        },
+        "required": ["query"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string" },
+                "title": { "type": "string" },
+                "date": { "type": "string", "format": "date-time" },
+                "location": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "effects": {
+        "class": "read",
+        "risk": "low",
+        "reversible": true,
+        "confirmation": "never",
+        "audit_required": false
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": true,
+        "cancellable": true,
+        "timeout_ms": 5000,
+        "headless_evidence": "tests/core/event-search.test.ts"
+      },
+      "bindings": [
+        {
+          "surface": "webmcp",
+          "target": "document.modelContext.registerTool({name:'event.search',inputSchema:{type:'object',properties:{query:{type:'string'},location:{type:'string'},date_from:{type:'string'}},required:['query']}})"
+        },
+        {
+          "surface": "web",
+          "target": "data-action-id='event.search'"
+        },
+        {
+          "surface": "cli",
+          "target": "web-profile call cli event.search <input-json> --json"
+        }
+      ],
+      "parity_exceptions": []
+    },
+    {
+      "id": "event.create-draft",
+      "title": "Create event draft",
+      "description": "Create a new event draft visible in the UI for human review",
+      "tags": ["write", "draft"],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string", "minLength": 1 },
+          "date": { "type": "string", "format": "date-time" },
+          "location": { "type": "string", "minLength": 1 },
+          "cover_image": { "type": "string", "format": "uri" }
+        },
+        "required": ["title", "date", "location"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "draft_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["draft"] }
+        }
+      },
+      "effects": {
+        "class": "write",
+        "risk": "low",
+        "reversible": true,
+        "confirmation": "conditional",
+        "audit_required": true
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": false,
+        "cancellable": true,
+        "timeout_ms": 10000,
+        "headless_evidence": "tests/core/event-create-draft.test.ts"
+      },
+      "bindings": [
+        {
+          "surface": "webmcp",
+          "target": "document.modelContext.registerTool({name:'event.create-draft',inputSchema:{type:'object',properties:{title:{type:'string'},date:{type:'string'},location:{type:'string'},cover_image:{type:'string'}},required:['title','date','location']}})"
+        },
+        {
+          "surface": "web",
+          "target": "data-action-id='event.create-draft'"
+        },
+        {
+          "surface": "cli",
+          "target": "web-profile call cli event.create-draft <input-json> --json"
+        }
+      ],
+      "parity_exceptions": []
+    },
+    {
+      "id": "event.publish",
+      "title": "Publish event",
+      "description": "Publish a reviewed event draft — human confirmation required",
+      "tags": ["write", "publish", "human-confirm"],
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "draft_id": { "type": "string" }
+        },
+        "required": ["draft_id"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "event_id": { "type": "string" },
+          "status": { "type": "string", "enum": ["published"] },
+          "published_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "effects": {
+        "class": "write",
+        "risk": "high",
+        "reversible": false,
+        "confirmation": "always",
+        "audit_required": true
+      },
+      "execution": {
+        "headless": true,
+        "idempotent": false,
+        "cancellable": false,
+        "timeout_ms": 15000,
+        "headless_evidence": "tests/core/event-publish.test.ts"
+      },
+      "bindings": [
+        {
+          "surface": "webmcp",
+          "target": "document.modelContext.registerTool({name:'event.publish',inputSchema:{type:'object',properties:{draft_id:{type:'string'}},required:['draft_id']}})"
+        },
+        {
+          "surface": "web",
+          "target": "data-action-id='event.publish'"
+        },
+        {
+          "surface": "cli",
+          "target": "web-profile call cli event.publish <input-json> --json"
+        }
+      ],
+      "parity_exceptions": []
+    }
+  ],
+  "generated_from": {
+    "generator": "action-parity-core/0.8.1",
+    "revision": "examples/web-profile"
+  }
+}

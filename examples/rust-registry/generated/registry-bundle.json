@@ -1,4 +1,26 @@
 {
+  "aimap_json": {
+    "agent_interfaces": {
+      "mcp": "tool:note.create",
+      "webmcp": false
+    },
+    "content": {
+      "llms": "/llms.txt",
+      "sitemap": "/sitemap.xml"
+    },
+    "profile": "action-parity-web/0.1",
+    "routes": [
+      {
+        "actions": [
+          "note.create",
+          "note.list"
+        ],
+        "path": "/note",
+        "purpose": "note actions"
+      }
+    ],
+    "site": "org.actionparity.real-notes"
+  },
   "cli_help": {
     "actions": [
       {
@@ -120,8 +142,11 @@
     "invocation": "call <action-id> --input-json <json> --json"
   },
   "format": "action-parity.registry-bundle/v1",
+  "llms_txt": {
+    "content": "# Real Notes Registry Example\nVersion: 0.1.0\n\n## Actions\n\n- **Create note**: Create one note in the in-memory example store. (Cli:cli, Gui:gui, Mcp:mcp)\n- **List notes**: List notes from the in-memory example store. (Cli:cli, Gui:gui, Mcp:mcp)\n\n## Surfaces\n\n- **cli** (Cli) — notes-registry call cli {action_id} <input-json> --json\n- **gui** (Gui) — data-action-id={action_id}\n- **mcp** (Mcp) — tool:{action_id}\n\n> This file is auto-generated from ActionParity Registry."
+  },
   "manifest": {
-    "$schema": "https://raw.githubusercontent.com/dongsheng123132/action-parity/v0.5.0/schema/action-parity.schema.json",
+    "$schema": "https://raw.githubusercontent.com/dongsheng123132/action-parity/v0.6.0/schema/action-parity.schema.json",
     "actions": [
       {
         "bindings": [
@@ -290,7 +315,7 @@
       "generator": "action-parity-core/0.8.1",
       "revision": "examples/rust-registry/src/main.rs"
     },
-    "spec_version": "0.5.0",
+    "spec_version": "0.6.0",
     "surfaces": [
       {
         "id": "cli",
@@ -411,5 +436,28 @@
         "title": "List notes"
       }
     ]
+  },
+  "schema_org_jsonld": {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Real Notes Registry Example",
+    "potentialAction": [
+      {
+        "@type": "CreateAction",
+        "actionId": "note.create",
+        "description": "Create one note in the in-memory example store.",
+        "name": "Create note"
+      },
+      {
+        "@type": "SearchAction",
+        "actionId": "note.list",
+        "description": "List notes from the in-memory example store.",
+        "name": "List notes"
+      }
+    ],
+    "url": "https://org.actionparity.real-notes"
+  },
+  "webmcp_tools": {
+    "tools": []
   }
 }

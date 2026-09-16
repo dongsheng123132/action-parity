@@ -15,7 +15,7 @@ import { doctorProject } from "../src/doctor.mjs";
 import { initializeProject } from "../src/init.mjs";
 
 const VERSION = "0.8.1";
-const MANIFEST_SPEC_VERSION = "0.5.0";
+const MANIFEST_SPEC_VERSION = "0.6.0";
 const SUPPORTED_MANIFEST_SPEC_VERSIONS = [MANIFEST_SPEC_VERSION];
 
 function usage() {
