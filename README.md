@@ -2,7 +2,7 @@
 
 <h1 align="center">ActionParity (影核)</h1>
 
-<p align="center">Author / Maintainer：He Fangsheng (贺方升 / 贺去病; Dosen) · <a href="https://www.hequbing.com">hequbing.com</a></p>
+<p align="center">Author / Maintainer：He Fangsheng (贺方升 / 贺去病; also known as Dosen) · <a href="https://www.hequbing.com">hequbing.com</a></p>
 
 <p align="center"><strong>One action. Every interface.</strong></p>
 
