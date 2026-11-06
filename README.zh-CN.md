@@ -2,6 +2,8 @@
 
 # 影核（ActionParity）
 
+作者 / Author：贺去病（贺方升 / Dosen）· [hequbing.com](https://www.hequbing.com)
+
 > **一个动作，所有界面。**
 
 > **版本边界：工具链 `v0.8.0`，Manifest 规范 `0.5.0`。** 两者独立演进，
